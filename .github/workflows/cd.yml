@@ -3,12 +3,18 @@ name: CD
 on:
   workflow_dispatch:
 
-# jobs:
-#   build-test-push:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
-#
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint codebase
+        uses: github/super-linter@v6
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Add other build/test steps as needed
+#       # Example: Install dependencies, run tests, build Docker images, push to registry
 #       # Build backend Docker image
 #       - name: Build backend Docker image
 #         run: docker build -t myapp-backend ./backend
