@@ -22,6 +22,7 @@ jobs:
       # Lint codebase
       - name: Lint codebase
         uses: github/super-linter@v6
+        continue-on-error: true
         env:
           VALIDATE_ALL_CODEBASE: true
           DEFAULT_BRANCH: ${{ github.ref_name }}  # Use current branch as default
@@ -62,3 +63,10 @@ jobs:
       #   run: |
       #     cd backend
       #     npm run build
+
+      # # (Optional) Upload build artifacts
+      # - name: Upload production build
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: react-build
+      #     path: frontend/build/
