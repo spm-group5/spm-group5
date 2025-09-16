@@ -1,38 +1,57 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run a one-line script
-        run: echo Hello, world!
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to production
-        run: |
-          echo "Deploying to production..."
-          # Add your deployment commands here (e.g., scp, ssh, AWS CLI)
+      # Lint codebase
+      - name: Lint codebase
+        uses: github/super-linter@v6
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # # Install backend dependencies
+      # - name: Install backend dependencies
+      #   run: |
+      #     cd backend
+      #     npm install
+
+      # # Run backend unit tests
+      # - name: Run backend unit tests
+      #   run: |
+      #     cd backend
+      #     npm test
+
+      # # Install frontend dependencies
+      # - name: Install frontend dependencies
+      #   run: |
+      #     cd frontend
+      #     npm install
+
+      # # Run frontend unit tests
+      # - name: Run frontend unit tests
+      #   run: |
+      #     cd frontend
+      #     npm test
+
+      # # (Optional) Build frontend
+      # - name: Build frontend
+      #   run: |
+      #     cd frontend
+      #     npm run build
+
+      # # (Optional) Build backend
+      # - name: Build backend
+      #   run: |
+      #     cd backend
+      #     npm run build
