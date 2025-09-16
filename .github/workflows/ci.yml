@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches-ignore:
+      - 'wip-*'
   pull_request:
-    branches: [ "main" ]
+    branches-ignore:
+      - 'wip-*'
   workflow_dispatch:
 
 jobs:

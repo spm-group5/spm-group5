@@ -4,15 +4,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-test-push:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Lint codebase
-        uses: github/super-linter@v6
-        env:
-          VALIDATE_ALL_CODEBASE: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+
       # Add other build/test steps as needed
 #       # Example: Install dependencies, run tests, build Docker images, push to registry
 #       # Build backend Docker image
