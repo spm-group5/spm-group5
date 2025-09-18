@@ -34,16 +34,24 @@ The server will start on `http://localhost:3000`
 
 ## Project Structure
 ```bash
-backend/
-├── .gitignore
+project-root/
 ├── README.md          # This file
-├── package.json       # Dependencies and scripts
-├── package-lock.json  # Locked dependency versions
-├── server.js          # Main server file
-├── node_modules/      # Dependencies (auto-generated)
-├── controllers/       # Route controllers 
-├── models/           # Data models 
-└── routes/           # API routes 
+├── backend/           
+   ├── README.md      # Backend documentation
+   ├── server.js      # Server entry point - handles startup and database connection
+   ├── src/           # Source code directory
+   │   ├── app.js     # Express application configuration - middleware, routes setup
+   │   ├── controllers/ # Route handlers - business logic for API endpoints
+   │   ├── models/    # Database models - MongoDB/Mongoose schemas
+   │   ├── routes/    # API route definitions - URL endpoints and HTTP methods
+   │   ├── middleware/ # Authentication, validation, error handling
+   │   ├── services/  # Business logic layer between controller and database, handle database interactions
+   │   ├── config/    # Configuration files - database connection, app settings
+   │   └── utils/     # Helper functions - validation, formatting, common utilities
+   ├── tests/         # Test files - unit tests, integration tests, test setup
+   ├── environments/  # Environment configuration files
+   │   └── .env       # Environment variables (development settings)│   ├── package.json   # Dependencies and scripts
+   └── node_modules/  # Installed packages
 ```
 
 ## Environment Variables
