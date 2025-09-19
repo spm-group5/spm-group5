@@ -28,3 +28,6 @@ dist-ssr
 .env.local
 .env.*.local
 .env.*
+
+#.DS_Store
+.DS_Store
