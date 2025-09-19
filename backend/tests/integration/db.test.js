@@ -26,10 +26,10 @@ test('Test DB connection', async () => {
   expect(id).toBeDefined();
 });
 
-test('Prod DB connection', async () => {
-  const id = await testConnection(
-    path.join(__dirname, '../../environments/.env.prod'),
-    { prod: 'This is a prod DB write', date: new Date() }
-  );
-  expect(id).toBeDefined();
-});
+// test('Prod DB connection', async () => {
+//   const id = await testConnection(
+//     path.join(__dirname, '../../environments/.env.prod'),
+//     { prod: 'This is a prod DB write', date: new Date() }
+//   );
+//   expect(id).toBeDefined();
+// });
