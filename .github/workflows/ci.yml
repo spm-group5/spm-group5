@@ -18,9 +18,11 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        if: ${{ !env.ACT }}  # Skip checkout when running with 'act'
         with:
-          # Fetch all history for proper linting
+          # Fetch all history
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref }}
 
@@ -33,16 +35,28 @@ jobs:
           DEFAULT_BRANCH: ${{ github.ref_name }}  # Use current branch as default
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure environments directory exists
+        run: mkdir -p backend/environments
+
       - name: Create backend .env file
+        if: ${{ !env.ACT }}
         run: |
-          echo "DB_CONNECTION_STRING=${{ secrets.TEST_DB_CONNECTION_STRING }}" > backend/environments/.env.test
+          echo "MONGO_URI=${{ secrets.TEST_DB_CONNECTION_STRING }}" > backend/environments/.env.test
+      
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
+        if: ${{ !env.ACT }}  # Skip checkout when running with 'act'
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
+
+      - name: Use Node.js ${{ matrix.node-version }} (local)
+        uses: actions/setup-node@v4
+        if: ${{ env.ACT }}  # Run without cache when using act
+        with:
+          node-version: ${{ matrix.node-version }}
       
       - name: Install backend dependencies
         run: npm ci
