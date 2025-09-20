@@ -1,7 +1,6 @@
-import { test, expect } from 'vitest';
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-import path from 'path';
+const { MongoClient } = require('mongodb');
+const dotenv = require('dotenv');
+const path = require('path');
 
 async function testConnection(envFile, testDoc) {
   dotenv.config({ path: envFile, override: true });
