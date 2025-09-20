@@ -7,8 +7,10 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:run": "vitest run",
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
