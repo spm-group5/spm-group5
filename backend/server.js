@@ -1,23 +1,16 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const app = express();
-dotenv.config({path: './environments/.env'});
+const dotenv = require('dotenv'); //for loading environment variables
+dotenv.config({path: './environments/.env.test'}); //define path to .env file
+
+const app = require("./src/app"); //import the Express application from src/app.js
+const db = require('./src/config/db'); //import the database connection, automatically starting the connection
+const userModel = require('./src/models/user.model'); //import the User model to ensure it's registered
 
 
-//connect with MongoDB database
-const mongoose = require('mongoose')
-mongoose.connect(process.env.MONGO_URI) //input DB connection string from .env
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error("Error connecting to MongoDB:",err));
 
-app.get('/', (req, res) => {
-    res.send('<h1>Hello, Express.js Server!</h1>');
-});
+const port = process.env.PORT || 3000; //set the port from environment variable or default to 3000
 
-// Example specifying the port and starting the server
-const port = process.env.PORT || 3000; // You can use environment variables for port configuration
-
+//start the server and listen on the defined port
 app.listen(port, () => {
-    console.log(`App listening at port ${process.env.PORT}`)
-    console.log(`Server is running on port ${port}`);
+    console.log("Server is running on port " + port);
 });
+
