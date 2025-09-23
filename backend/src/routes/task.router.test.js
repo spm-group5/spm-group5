@@ -3,10 +3,31 @@ import request from 'supertest';
 import express from 'express';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import taskRouter from './task.router.js';
 import User from '../models/user.model.js';
 import Task from '../models/task.model.js';
 import Project from '../models/project.model.js';
+
+// Share currentUser for the auth mock to use
+let currentUser = null;
+
+vi.mock('../middleware/auth.middleware.js', () => ({
+	requireAuth: (req, res, next) => {
+		if (currentUser) {
+			req.session = {
+				authenticated: true,
+				userId: currentUser._id,
+				username: currentUser.username,
+				userRoles: currentUser.roles,
+				userDepartment: currentUser.department
+			};
+			req.user = currentUser;
+		}
+		next();
+	}
+}));
+
+// Import router AFTER the mock above
+import taskRouter from './task.router.js';
 
 let app;
 let mongoServer;
@@ -31,11 +52,8 @@ beforeAll(async () => {
         hashed_password: 'password123'
     });
 
-    // Mock auth middleware for testing
-    app.use((req, res, next) => {
-        req.user = testUser;
-        next();
-    });
+    // Assign for auth mock
+    currentUser = testUser;
 
     // Mount router
     app.use('/api', taskRouter);
