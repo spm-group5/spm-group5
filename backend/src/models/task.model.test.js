@@ -1,9 +1,9 @@
-const { describe, it, expect, beforeAll, afterAll } = require('vitest');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const Task = require('./task.model');
-const User = require('./user.model');
-const Project = require('./project.model');
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import Task from './task.model.js';
+import User from './user.model.js';
+import Project from './project.model.js';
 
 let mongoServer;
 
