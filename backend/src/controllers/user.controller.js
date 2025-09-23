@@ -2,7 +2,7 @@ const UserService = require('../services/user.services'); //import the user serv
 
 //Controller for user-related operations
 
-
+//register a new user
 exports.register = async(req, res, next) => {
     try{
         //extract user details from request body
@@ -17,5 +17,15 @@ exports.register = async(req, res, next) => {
     catch(err){
         //handle errors and send error response
         res.status(500).json({message: "Error registering user", error: err.message});
+    }
+}
+
+//login a user
+exports.login = async(req, res, next) => {
+    try {
+
+    }
+    catch(err) {
+
     }
 }

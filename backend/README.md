@@ -96,6 +96,12 @@ Start the server: `node server.js`
 Open browser to `http://localhost:3000`
 You should see "Hello, Express.js Server!" message
 
+## Running Unit Tests
+
+Change to `backend` directory: `cd backend`
+Start the server: `node server.js`
+Run the vitest framework: `npm test`
+
 
 
 
