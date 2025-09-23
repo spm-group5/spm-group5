@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for routes/user.router.js</title>
+    <title>Code coverage report for routes/task.router.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,13 +19,13 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">routes</a> user.router.js</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">routes</a> task.router.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>11/11</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/11</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -74,10 +74,7 @@
 <a name='L9'></a><a href='#L9'>9</a>
 <a name='L10'></a><a href='#L10'>10</a>
 <a name='L11'></a><a href='#L11'>11</a>
-<a name='L12'></a><a href='#L12'>12</a>
-<a name='L13'></a><a href='#L13'>13</a>
-<a name='L14'></a><a href='#L14'>14</a>
-<a name='L15'></a><a href='#L15'>15</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L12'></a><a href='#L12'>12</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -86,26 +83,20 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import express from 'express';
-const router = express.Router(); //create a new router object
-import userController from '../controllers/user.controller.js'; //import the user controller
-import { requireAuth } from '../middleware/auth.middleware.js'; //import authentication middleware
+<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">import express from 'express';
+const router = express.Router();
+import taskController from '../controllers/task.controller.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 &nbsp;
-// Public routes (no authentication required)
-router.post('/register', userController.register); //route for user registration
-router.post('/login', userController.login); //route for user login
-router.post('/logout', userController.logout); //route for user logout
+router.post('/tasks', requireAuth, taskController.createTask);
+router.put('/tasks/:taskId', requireAuth, taskController.updateTask);
+router.get('/tasks', requireAuth, taskController.getTasks);
+router.get('/tasks/:taskId', requireAuth, taskController.getTaskById);
+router.delete('/tasks/:taskId', requireAuth, taskController.deleteTask);
 &nbsp;
-// Protected routes (authentication required)
-router.get('/profile', requireAuth, userController.getProfile); //route for getting user profile
-&nbsp;
-export default router; //export the router for use in other modules
-&nbsp;</pre></td></tr></table></pre>
+export default router;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->

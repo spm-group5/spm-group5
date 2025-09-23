@@ -1,9 +1,22 @@
-const dotenv = require('dotenv'); //for loading environment variables
-dotenv.config({path: './environments/.env.test'}); //define path to .env file
+import dotenv from 'dotenv'; //for loading environment variables
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const app = require("./src/app"); //import the Express application from src/app.js
-const db = require('./src/config/db'); //import the database connection, automatically starting the connection
-const userModel = require('./src/models/user.model'); //import the User model to ensure it's registered
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables FIRST
+dotenv.config({path: path.join(__dirname, 'environments', '.env.test')}); //define path to .env file
+
+// Debug: Check if MONGO_URI is loaded
+console.log('MONGO_URI loaded:', process.env.MONGO_URI ? 'Yes' : 'No');
+
+// Now import other modules after environment variables are loaded
+import app from "./src/app.js"; //import the Express application from src/app.js
+import db from './src/config/db.js'; //import the database connection, automatically starting the connection
+import userModel from './src/models/user.model.js'; //import the User model to ensure it's registered
+import taskModel from './src/models/task.model.js'; //import the Task model to ensure it's registered
+import projectModel from './src/models/project.model.js'; //import the Project model to ensure it's registered
 
 
 

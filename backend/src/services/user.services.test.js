@@ -1,14 +1,13 @@
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import UserServices from './user.services.js';
+import userModel from '../models/user.model.js';
 /**
  * Service Layer Tests for User Account Creation
  * Tests the UserServices.registerUser() method for business logic validation,
  * data processing, and database interactions using in-memory MongoDB
  */
-
-// Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
-const UserServices = require('./user.services');
-const userModel = require('../models/user.model');
 
 describe('UserServices - User Account Creation', () => {
     let mongoServer;
@@ -213,6 +212,252 @@ describe('UserServices - User Account Creation', () => {
             const result = await UserServices.registerUser('testuser', ['staff', 'manager'], 'it', 'password123');
 
             expect(result.roles).toEqual(['staff', 'manager']);
+        });
+    });
+});
+
+describe('UserServices - User Authentication', () => {
+    let mongoServer;
+
+    // Setup: Create in-memory MongoDB instance for isolated testing
+    beforeAll(async () => {
+        mongoServer = await MongoMemoryServer.create();
+        const mongoUri = mongoServer.getUri();
+        await mongoose.connect(mongoUri);
+    });
+
+    // Cleanup: Disconnect from database and stop MongoDB server
+    afterAll(async () => {
+        await mongoose.disconnect();
+        await mongoServer.stop();
+    });
+
+    // Reset: Clear all users before each test for test isolation
+    beforeEach(async () => {
+        await userModel.deleteMany({});
+    });
+
+    // Test Group: Successful user authentication scenarios
+    describe('Happy Path Tests - Login', () => {
+        // Test: Valid login with correct credentials
+        it('should successfully authenticate user with valid credentials', async () => {
+            // First create a user
+            const userData = {
+                username: 'testuser',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            };
+
+            await UserServices.registerUser(
+                userData.username,
+                userData.roles,
+                userData.department,
+                userData.hashed_password
+            );
+
+            // Now test login
+            const result = await UserServices.loginUser('testuser', 'password123');
+
+            expect(result).toBeDefined();
+            expect(result.username).toBe('testuser');
+            expect(result.roles).toEqual(['staff']);
+            expect(result.department).toBe('it');
+            expect(result.id).toBeDefined();
+            expect(result.hashed_password).toBeUndefined(); // Password should not be returned
+        });
+
+        // Test: Login with manager role
+        it('should authenticate user with manager role', async () => {
+            await UserServices.registerUser('manager1', ['manager'], 'sales', 'managerpass123');
+
+            const result = await UserServices.loginUser('manager1', 'managerpass123');
+
+            expect(result.roles).toEqual(['manager']);
+            expect(result.department).toBe('sales');
+        });
+
+        // Test: Login with admin role
+        it('should authenticate user with admin role', async () => {
+            await UserServices.registerUser('admin1', ['admin'], 'it', 'adminpass123');
+
+            const result = await UserServices.loginUser('admin1', 'adminpass123');
+
+            expect(result.roles).toEqual(['admin']);
+        });
+
+        // Test: Login with multiple roles
+        it('should authenticate user with multiple roles', async () => {
+            await UserServices.registerUser('multiuser', ['staff', 'manager'], 'hr', 'password123');
+
+            const result = await UserServices.loginUser('multiuser', 'password123');
+
+            expect(result.roles).toEqual(['staff', 'manager']);
+        });
+    });
+
+    // Test Group: Authentication failure scenarios
+    describe('Negative Path Tests - Login Failures', () => {
+        // Test: Invalid username should fail authentication
+        it('should throw error for non-existent username', async () => {
+            await expect(
+                UserServices.loginUser('nonexistent', 'password123')
+            ).rejects.toThrow('Login failed: Invalid username or password');
+        });
+
+        // Test: Wrong password should fail authentication
+        it('should throw error for incorrect password', async () => {
+            await UserServices.registerUser('testuser', ['staff'], 'it', 'correctpassword');
+
+            await expect(
+                UserServices.loginUser('testuser', 'wrongpassword')
+            ).rejects.toThrow('Login failed: Invalid username or password');
+        });
+
+        // Test: Empty username should fail authentication
+        it('should throw error for empty username', async () => {
+            await expect(
+                UserServices.loginUser('', 'password123')
+            ).rejects.toThrow('Login failed: Username must be a string');
+        });
+
+        // Test: Empty password should fail authentication
+        it('should throw error for empty password', async () => {
+            await expect(
+                UserServices.loginUser('testuser', '')
+            ).rejects.toThrow('Login failed: Password must be a string');
+        });
+
+        // Test: Non-string username should fail authentication
+        it('should throw error for non-string username', async () => {
+            await expect(
+                UserServices.loginUser(123, 'password123')
+            ).rejects.toThrow('Login failed: Username must be a string');
+        });
+
+        // Test: Non-string password should fail authentication
+        it('should throw error for non-string password', async () => {
+            await expect(
+                UserServices.loginUser('testuser', 123)
+            ).rejects.toThrow('Login failed: Password must be a string');
+        });
+
+        // Test: Null username should fail authentication
+        it('should throw error for null username', async () => {
+            await expect(
+                UserServices.loginUser(null, 'password123')
+            ).rejects.toThrow('Login failed: Username must be a string');
+        });
+
+        // Test: Null password should fail authentication
+        it('should throw error for null password', async () => {
+            await expect(
+                UserServices.loginUser('testuser', null)
+            ).rejects.toThrow('Login failed: Password must be a string');
+        });
+    });
+
+    // Test Group: User lookup by ID scenarios
+    describe('Happy Path Tests - Get User By ID', () => {
+        // Test: Valid user ID should return user data
+        it('should successfully get user by valid ID', async () => {
+            const userData = {
+                username: 'testuser',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            };
+
+            const createdUser = await UserServices.registerUser(
+                userData.username,
+                userData.roles,
+                userData.department,
+                userData.hashed_password
+            );
+
+            const result = await UserServices.getUserById(createdUser._id);
+
+            expect(result).toBeDefined();
+            expect(result.username).toBe('testuser');
+            expect(result.roles).toEqual(['staff']);
+            expect(result.department).toBe('it');
+            expect(result.id).toBeDefined();
+            expect(result.hashed_password).toBeUndefined(); // Password should not be returned
+        });
+
+        // Test: Get user with multiple roles
+        it('should get user with multiple roles by ID', async () => {
+            const createdUser = await UserServices.registerUser('multiuser', ['staff', 'manager'], 'hr', 'password123');
+
+            const result = await UserServices.getUserById(createdUser._id);
+
+            expect(result.roles).toEqual(['staff', 'manager']);
+        });
+    });
+
+    // Test Group: User lookup failure scenarios
+    describe('Negative Path Tests - Get User By ID Failures', () => {
+        // Test: Non-existent user ID should fail
+        it('should throw error for non-existent user ID', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+
+            await expect(
+                UserServices.getUserById(fakeId)
+            ).rejects.toThrow('Failed to get user: User not found');
+        });
+
+        // Test: Invalid ObjectId format should fail
+        it('should throw error for invalid ObjectId format', async () => {
+            await expect(
+                UserServices.getUserById('invalid-id')
+            ).rejects.toThrow('Failed to get user');
+        });
+
+        // Test: Null ID should fail
+        it('should throw error for null ID', async () => {
+            await expect(
+                UserServices.getUserById(null)
+            ).rejects.toThrow('Failed to get user');
+        });
+
+        // Test: Undefined ID should fail
+        it('should throw error for undefined ID', async () => {
+            await expect(
+                UserServices.getUserById(undefined)
+            ).rejects.toThrow('Failed to get user');
+        });
+    });
+
+    // Test Group: Edge cases and boundary conditions
+    describe('Edge Cases', () => {
+        // Test: Username with whitespace should be trimmed for lookup
+        it('should handle username with leading/trailing whitespace', async () => {
+            await UserServices.registerUser('  testuser  ', ['staff'], 'it', 'password123');
+
+            // Login should work with trimmed username (database lookup trims)
+            const result = await UserServices.loginUser('  testuser  ', 'password123');
+
+            expect(result.username).toBe('  testuser  '); // Original stored username (with whitespace)
+            expect(result.roles).toEqual(['staff']);
+            expect(result.department).toBe('it');
+        });
+
+        // Test: Case-sensitive username matching
+        it('should be case-sensitive for username matching', async () => {
+            await UserServices.registerUser('TestUser', ['staff'], 'it', 'password123');
+
+            await expect(
+                UserServices.loginUser('testuser', 'password123')
+            ).rejects.toThrow('Login failed: Invalid username or password');
+        });
+
+        // Test: Case-sensitive password matching
+        it('should be case-sensitive for password matching', async () => {
+            await UserServices.registerUser('testuser', ['staff'], 'it', 'Password123');
+
+            await expect(
+                UserServices.loginUser('testuser', 'password123')
+            ).rejects.toThrow('Login failed: Invalid username or password');
         });
     });
 });

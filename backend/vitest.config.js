@@ -1,11 +1,11 @@
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
+// Vitest configuration for CommonJS project
+export default {
   test: {
     environment: 'node',
     globals: true, // Enable Vitest globals like describe, it, expect
     setupFiles: [],
     css: false, // Disable CSS handling
+    testTimeout: 20000, // 20 second timeout for tests
     coverage: {
       provider: 'v8', // Use V8 for coverage
       reporter: ['text', 'json', 'html'], // Generate coverage reports in text, JSON, and HTML formats
@@ -35,4 +35,4 @@ export default defineConfig({
       }
     },
   },
-});
+};
