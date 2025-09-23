@@ -43,36 +43,46 @@ class TaskService {
     }
 
     async updateTask(taskId, updateData, userId) {
+        // STEP 1: Validate input data FIRST (before checking task existence or permissions)
+        if (updateData.title !== undefined) {
+            if (!updateData.title || updateData.title.trim() === '') {
+                throw new Error('Title cannot be empty');
+            }
+        }
+
+        if (updateData.dueDate !== undefined && updateData.dueDate) {
+            const parsedDueDate = new Date(updateData.dueDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (parsedDueDate < today) {
+                throw new Error('Due date cannot be in the past');
+            }
+        }
+
+        // STEP 2: Check if task exists
         const task = await Task.findById(taskId);
 
         if (!task) {
             throw new Error('Task not found');
         }
 
-        const hasPermission = task.owner.toString() === userId ||
-                            task.assignee?.toString() === userId;
+        // STEP 3: Check permissions AFTER validation
+        const hasPermission = task.owner.toString() === userId.toString() ||
+                            task.assignee?.toString() === userId.toString();
 
         if (!hasPermission) {
             throw new Error('You do not have permission to modify this task');
         }
 
+        // STEP 4: Apply validated updates
         if (updateData.title !== undefined) {
-            if (!updateData.title || updateData.title.trim() === '') {
-                throw new Error('Task title cannot be empty');
-            }
             task.title = updateData.title.trim();
         }
 
         if (updateData.dueDate !== undefined) {
             if (updateData.dueDate) {
-                const parsedDueDate = new Date(updateData.dueDate);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                if (parsedDueDate < today) {
-                    throw new Error('Due date cannot be in the past');
-                }
-                task.dueDate = parsedDueDate;
+                task.dueDate = new Date(updateData.dueDate);
             } else {
                 task.dueDate = null;
             }
@@ -154,7 +164,7 @@ class TaskService {
             throw new Error('Task not found');
         }
 
-        if (task.owner.toString() !== userId) {
+        if (task.owner.toString() !== userId.toString()) {
             throw new Error('You do not have permission to delete this task');
         }
 
