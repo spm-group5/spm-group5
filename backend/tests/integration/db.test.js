@@ -1,7 +1,11 @@
-import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-const { MongoClient } = require('mongodb');
-const dotenv = require('dotenv');
-const path = require('path');
+import { test, expect } from 'vitest';
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function testConnection(envFile, testDoc) {
   dotenv.config({ path: envFile, override: true });
@@ -18,13 +22,14 @@ async function testConnection(envFile, testDoc) {
   }
 }
 
+// Increase timeout to accommodate slower connections
 test('Test DB connection', async () => {
   const id = await testConnection(
     path.join(__dirname, '../../environments/.env.test'),
     { test: 'This is a test DB write', date: new Date() }
   );
   expect(id).toBeDefined();
-});
+}, 20000);
 
 // test('Prod DB connection', async () => {
 //   const id = await testConnection(

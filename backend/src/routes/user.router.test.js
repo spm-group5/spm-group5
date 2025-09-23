@@ -1,4 +1,4 @@
-import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
@@ -11,11 +11,6 @@ import userModel from '../models/user.model.js';
  */
 
 // Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
-const request = require('supertest');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
-const app = require('../app');
-const userModel = require('../models/user.model');
 
 describe('User Router - POST /users/register Integration Tests', () => {
     let mongoServer;
