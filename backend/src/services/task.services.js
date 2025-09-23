@@ -46,7 +46,7 @@ class TaskService {
         // STEP 1: Validate input data FIRST (before checking task existence or permissions)
         if (updateData.title !== undefined) {
             if (!updateData.title || updateData.title.trim() === '') {
-                throw new Error('Title cannot be empty');
+                throw new Error('Task title cannot be empty');
             }
         }
 
