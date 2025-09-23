@@ -10,11 +10,14 @@ const projectSchema = new Schema({
                 return typeof v === 'string' && v.trim().length > 0;
             },
             message: 'Project name must be a non-empty string'
-        }
+        },
+        trim: true
     },
     description: {
         type: String,
-        default: ''
+        default: '',
+        trim: true
+
     },
     owner: {
         type: Schema.Types.ObjectId,

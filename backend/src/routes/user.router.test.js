@@ -10,12 +10,7 @@ import userModel from '../models/user.model.js';
  * controllers, services, and database interactions using real MongoDB
  */
 
-// Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
-const request = require('supertest');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
-const app = require('../app');
-const userModel = require('../models/user.model');
+
 
 describe('User Router - POST /users/register Integration Tests', () => {
     let mongoServer;
