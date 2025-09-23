@@ -1,4 +1,4 @@
-const { describe, it, expect, beforeAll, afterAll, beforeEach } = require('vitest');
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');

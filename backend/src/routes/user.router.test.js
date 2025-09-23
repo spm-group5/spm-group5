@@ -1,3 +1,9 @@
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import request from 'supertest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import app from '../app.js';
+import userModel from '../models/user.model.js';
 /**
  * Router Integration Tests for User Account Creation
  * Tests full HTTP request/response cycle including routing, middleware,

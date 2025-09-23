@@ -1,14 +1,13 @@
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import UserServices from './user.services.js';
+import userModel from '../models/user.model.js';
 /**
  * Service Layer Tests for User Account Creation
  * Tests the UserServices.registerUser() method for business logic validation,
  * data processing, and database interactions using in-memory MongoDB
  */
-
-// Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
-const UserServices = require('./user.services');
-const userModel = require('../models/user.model');
 
 describe('UserServices - User Account Creation', () => {
     let mongoServer;
