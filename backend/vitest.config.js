@@ -1,9 +1,8 @@
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
+// Vitest configuration for CommonJS project
+module.exports = {
   test: {
     environment: 'node',
     globals: true,
     setupFiles: [],
   },
-});
+};

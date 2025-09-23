@@ -18,7 +18,12 @@ const UserServices = require('../services/user.services'); // ADD THIS LINE
 
 // Mock: Service layer to isolate controller testing
 const mockRegisterUser = vi.fn();
+const mockLoginUser = vi.fn();
+const mockGetUserById = vi.fn();
+
 UserServices.registerUser = mockRegisterUser;
+UserServices.loginUser = mockLoginUser;
+UserServices.getUserById = mockGetUserById;
 
 describe('User Controller - User Account Creation', () => {
     let mongoServer;
@@ -50,6 +55,8 @@ describe('User Controller - User Account Creation', () => {
 
         vi.clearAllMocks();
         mockRegisterUser.mockClear();
+        mockLoginUser.mockClear();
+        mockGetUserById.mockClear();
     });
 
     // Test Group: Successful HTTP responses for valid requests
@@ -306,6 +313,351 @@ describe('User Controller - User Account Creation', () => {
                 undefined,
                 'password123'
             );
+        });
+    });
+});
+
+describe('User Controller - User Authentication', () => {
+    let mongoServer;
+    let req, res, next;
+
+    // Setup: Create in-memory MongoDB instance for testing
+    beforeAll(async () => {
+        mongoServer = await MongoMemoryServer.create();
+        const mongoUri = mongoServer.getUri();
+        await mongoose.connect(mongoUri);
+    });
+
+    // Cleanup: Disconnect from database and stop MongoDB server
+    afterAll(async () => {
+        await mongoose.disconnect();
+        await mongoServer.stop();
+    });
+
+    // Reset: Mock HTTP objects and clear mocks before each test
+    beforeEach(() => {
+        req = {
+            body: {},
+            session: {}
+        };
+        res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+            clearCookie: vi.fn()
+        };
+        next = vi.fn();
+
+        vi.clearAllMocks();
+        mockLoginUser.mockClear();
+        mockGetUserById.mockClear();
+    });
+
+    // Test Group: Successful login responses
+    describe('Happy Path Tests - Login', () => {
+        // Test: Valid login should return 200 and set session
+        it('should return 200 and set session for valid login', async () => {
+            const mockUser = {
+                id: 'mockid123',
+                username: 'testuser',
+                roles: ['staff'],
+                department: 'it'
+            };
+
+            req.body = {
+                username: 'testuser',
+                password: 'password123'
+            };
+
+            mockLoginUser.mockResolvedValue(mockUser);
+
+            await userController.login(req, res, next);
+
+            expect(mockLoginUser).toHaveBeenCalledWith('testuser', 'password123');
+            expect(req.session.userId).toBe('mockid123');
+            expect(req.session.username).toBe('testuser');
+            expect(req.session.userRoles).toEqual(['staff']);
+            expect(req.session.userDepartment).toBe('it');
+            expect(req.session.authenticated).toBe(true);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Login successful",
+                user: mockUser
+            });
+        });
+
+        // Test: Login with admin role should set correct session data
+        it('should handle admin role login', async () => {
+            const mockUser = {
+                id: 'adminid123',
+                username: 'admin1',
+                roles: ['admin'],
+                department: 'it'
+            };
+
+            req.body = {
+                username: 'admin1',
+                password: 'adminpass123'
+            };
+
+            mockLoginUser.mockResolvedValue(mockUser);
+
+            await userController.login(req, res, next);
+
+            expect(req.session.userRoles).toEqual(['admin']);
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        // Test: Login with multiple roles should set correct session data
+        it('should handle multiple roles login', async () => {
+            const mockUser = {
+                id: 'multiuserid123',
+                username: 'multiuser',
+                roles: ['staff', 'manager'],
+                department: 'hr'
+            };
+
+            req.body = {
+                username: 'multiuser',
+                password: 'password123'
+            };
+
+            mockLoginUser.mockResolvedValue(mockUser);
+
+            await userController.login(req, res, next);
+
+            expect(req.session.userRoles).toEqual(['staff', 'manager']);
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+    });
+
+    // Test Group: Login validation errors
+    describe('Negative Path Tests - Login Validation Errors (400)', () => {
+        // Test: Missing username should return 400
+        it('should return 400 when username is missing', async () => {
+            req.body = {
+                password: 'password123'
+            };
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Username and password are required"
+            });
+            expect(mockLoginUser).not.toHaveBeenCalled();
+        });
+
+        // Test: Missing password should return 400
+        it('should return 400 when password is missing', async () => {
+            req.body = {
+                username: 'testuser'
+            };
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Username and password are required"
+            });
+            expect(mockLoginUser).not.toHaveBeenCalled();
+        });
+
+        // Test: Empty username should return 400
+        it('should return 400 when username is empty', async () => {
+            req.body = {
+                username: '',
+                password: 'password123'
+            };
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Username and password are required"
+            });
+        });
+
+        // Test: Empty password should return 400
+        it('should return 400 when password is empty', async () => {
+            req.body = {
+                username: 'testuser',
+                password: ''
+            };
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Username and password are required"
+            });
+        });
+    });
+
+    // Test Group: Login authentication failures
+    describe('Negative Path Tests - Login Authentication Failures (401)', () => {
+        // Test: Invalid credentials should return 401
+        it('should return 401 for invalid credentials', async () => {
+            req.body = {
+                username: 'testuser',
+                password: 'wrongpassword'
+            };
+
+            mockLoginUser.mockRejectedValue(new Error('Login failed: Invalid username or password'));
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Login failed",
+                error: 'Login failed: Invalid username or password'
+            });
+            expect(req.session.authenticated).toBeUndefined();
+        });
+
+        // Test: Non-existent user should return 401
+        it('should return 401 for non-existent user', async () => {
+            req.body = {
+                username: 'nonexistent',
+                password: 'password123'
+            };
+
+            mockLoginUser.mockRejectedValue(new Error('Login failed: Invalid username or password'));
+
+            await userController.login(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Login failed",
+                error: 'Login failed: Invalid username or password'
+            });
+        });
+    });
+
+    // Test Group: Successful logout responses
+    describe('Happy Path Tests - Logout', () => {
+        // Test: Valid logout should destroy session and clear cookie
+        it('should return 200 and destroy session for valid logout', async () => {
+            req.session = {
+                destroy: vi.fn((callback) => callback(null))
+            };
+
+            await userController.logout(req, res, next);
+
+            expect(req.session.destroy).toHaveBeenCalled();
+            expect(res.clearCookie).toHaveBeenCalledWith('connect.sid');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Logout successful"
+            });
+        });
+    });
+
+    // Test Group: Logout error handling
+    describe('Negative Path Tests - Logout Errors (500)', () => {
+        // Test: Session destruction error should return 500
+        it('should return 500 when session destruction fails', async () => {
+            req.session = {
+                destroy: vi.fn((callback) => callback(new Error('Session destruction failed')))
+            };
+
+            await userController.logout(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Error during logout",
+                error: 'Session destruction failed'
+            });
+        });
+    });
+
+    // Test Group: Successful profile retrieval
+    describe('Happy Path Tests - Get Profile', () => {
+        // Test: Authenticated user should get profile
+        it('should return 200 and user profile for authenticated user', async () => {
+            req.session = {
+                authenticated: true,
+                userId: 'mockid123',
+                username: 'testuser',
+                userRoles: ['staff'],
+                userDepartment: 'it'
+            };
+
+            await userController.getProfile(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({
+                user: {
+                    id: 'mockid123',
+                    username: 'testuser',
+                    roles: ['staff'],
+                    department: 'it'
+                }
+            });
+        });
+
+        // Test: Profile with multiple roles
+        it('should return profile with multiple roles', async () => {
+            req.session = {
+                authenticated: true,
+                userId: 'mockid123',
+                username: 'multiuser',
+                userRoles: ['staff', 'manager'],
+                userDepartment: 'hr'
+            };
+
+            await userController.getProfile(req, res, next);
+
+            expect(res.json).toHaveBeenCalledWith({
+                user: {
+                    id: 'mockid123',
+                    username: 'multiuser',
+                    roles: ['staff', 'manager'],
+                    department: 'hr'
+                }
+            });
+        });
+    });
+
+    // Test Group: Profile authentication errors
+    describe('Negative Path Tests - Get Profile Authentication Errors (401)', () => {
+        // Test: Unauthenticated user should return 401
+        it('should return 401 when user is not authenticated', async () => {
+            req.session = {};
+
+            await userController.getProfile(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Not authenticated"
+            });
+        });
+
+        // Test: Missing session should return 401
+        it('should return 401 when session is missing', async () => {
+            req.session = null;
+
+            await userController.getProfile(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Not authenticated"
+            });
+        });
+
+        // Test: Session without authenticated flag should return 401
+        it('should return 401 when session exists but not authenticated', async () => {
+            req.session = {
+                userId: 'mockid123',
+                username: 'testuser'
+                // missing authenticated: true
+            };
+
+            await userController.getProfile(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                message: "Not authenticated"
+            });
         });
     });
 });
