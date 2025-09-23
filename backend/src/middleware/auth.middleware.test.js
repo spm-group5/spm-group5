@@ -1,11 +1,11 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { requireAuth, requireRole, requireDepartment, optionalAuth } from './auth.middleware.js';
+
 /**
  * Authentication Middleware Tests
  * Tests the authentication middleware functions for proper access control,
  * session validation, role-based access, and department-based access
  */
-
-// Using Vitest globals - no need to import describe, it, expect, beforeEach, vi
-const { requireAuth, requireRole, requireDepartment, optionalAuth } = require('./auth.middleware');
 
 describe('Authentication Middleware Tests', () => {
     let req, res, next;

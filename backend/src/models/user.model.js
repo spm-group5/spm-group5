@@ -65,6 +65,7 @@ userSchema.pre('save', async function(){
         throw err;
     }
 })
-const userModel = mongoose.model('users', userSchema); //create the User model using the schema
+
+const userModel = mongoose.models.users || mongoose.model('users', userSchema); //create or reuse the User model
 
 export default userModel; //export the User model for use in other modules
