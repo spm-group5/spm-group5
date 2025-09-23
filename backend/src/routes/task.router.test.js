@@ -1,12 +1,12 @@
 import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-const request = require('supertest');
-const express = require('express');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const taskRouter = require('./task.router');
-const User = require('../models/user.model');
-const Task = require('../models/task.model');
-const Project = require('../models/project.model');
+import request from 'supertest';
+import express from 'express';
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import taskRouter from './task.router.js';
+import User from '../models/user.model.js';
+import Task from '../models/task.model.js';
+import Project from '../models/project.model.js';
 
 let app;
 let mongoServer;
