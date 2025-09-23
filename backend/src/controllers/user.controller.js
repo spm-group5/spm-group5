@@ -1,9 +1,8 @@
-const UserService = require('../services/user.services'); //import the user service for business logic
+import UserService from '../services/user.services.js'; //import the user service for business logic
 
 //Controller for user-related operations
 
-
-exports.register = async(req, res, next) => {
+const register = async(req, res, next) => {
     try{
         //extract user details from request body
         const {username, roles,department,hashed_password} = req.body
@@ -20,7 +19,7 @@ exports.register = async(req, res, next) => {
     }
 }
 
-exports.login = async(req, res, next) => {
+const login = async(req, res, next) => {
     try {
         // Extract login credentials from request body
         const { username, password } = req.body;
@@ -61,7 +60,7 @@ exports.login = async(req, res, next) => {
     }
 }
 
-exports.logout = async(req, res, next) => {
+const logout = async(req, res, next) => {
     try {
         // Destroy the session
         req.session.destroy((err) => {
@@ -87,7 +86,7 @@ exports.logout = async(req, res, next) => {
     }
 }
 
-exports.getProfile = async(req, res, next) => {
+const getProfile = async(req, res, next) => {
     try {
         // Get user profile from session
         if (!req.session || !req.session.authenticated) {
@@ -111,3 +110,10 @@ exports.getProfile = async(req, res, next) => {
         });
     }
 }
+
+export default {
+    register,
+    login,
+    logout,
+    getProfile
+};

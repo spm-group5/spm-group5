@@ -1,5 +1,5 @@
-const userModel = require ('../models/user.model'); //import the User model
-const bcrypt = require('bcrypt'); //import bcrypt for password comparison
+import userModel from '../models/user.model.js'; //import the User model
+import bcrypt from 'bcrypt'; //import bcrypt for password comparison
 
 class UserServices {
     // Define user-related service methods here
@@ -117,4 +117,4 @@ class UserServices {
     }
 }
 
-module.exports = UserServices;
+export default UserServices;

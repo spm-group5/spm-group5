@@ -9,7 +9,13 @@
  */
 const requireAuth = (req, res, next) => {
     if (req.session && req.session.authenticated && req.session.userId) {
-        // User is authenticated, proceed to next middleware/route
+        // User is authenticated, set req.user and proceed
+        req.user = {
+            _id: req.session.userId,
+            username: req.session.username,
+            roles: req.session.userRoles || [],
+            department: req.session.userDepartment
+        };
         next();
     } else {
         // User is not authenticated, return 401 Unauthorized
@@ -113,7 +119,7 @@ const optionalAuth = (req, res, next) => {
     next();
 };
 
-module.exports = {
+export {
     requireAuth,
     requireRole,
     requireDepartment,

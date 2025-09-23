@@ -1,3 +1,8 @@
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import userModel from './user.model.js';
+
 /**
  * Model Layer Tests for User Account Creation
  * Tests Mongoose schema validation, constraints, data types, enums,
@@ -5,9 +10,6 @@
  */
 
 // Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const mongoose = require('mongoose');
-const userModel = require('./user.model');
 
 describe('User Model - User Account Creation Validation', () => {
     let mongoServer;
