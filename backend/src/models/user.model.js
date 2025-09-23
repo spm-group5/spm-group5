@@ -1,6 +1,6 @@
-const mongoose = require('mongoose'); //import mongoose for MongoDB interaction
-// require('../config/db'); //import database configuration to ensure connection
-const bcrypt = require('bcrypt'); //import bcrypt for password hashing
+import mongoose from 'mongoose'; //import mongoose for MongoDB interaction
+// import '../config/db.js'; //import database configuration to ensure connection
+import bcrypt from 'bcrypt'; //import bcrypt for password hashing
 const Schema = mongoose.Schema; //create a Schema constructor
 
 //define the User schema
@@ -67,4 +67,4 @@ userSchema.pre('save', async function(){
 })
 const userModel = mongoose.model('users', userSchema); //create the User model using the schema
 
-module.exports = userModel; //export the User model for use in other modules
+export default userModel; //export the User model for use in other modules
