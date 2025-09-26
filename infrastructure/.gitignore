@@ -1,0 +1,75 @@
+# Terraform state files - these contain sensitive info and should never be committed
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform variable files with sensitive data
+*.tfvars
+terraform.tfvars
+secrets.tfvars
+*.auto.tfvars
+
+# BUT allow example/template files
+!terraform.tfvars.example
+!*.tfvars.example
+
+# Local .terraform directories
+**/.terraform/*
+.terraform/
+
+# Terraform plan files (may contain sensitive data)
+*.tfplan
+*.tfplan.*
+
+# Crash log files
+crash.log
+crash.*.log
+*.log
+*.out
+
+# Exclude override files as they are usually used to override resources locally
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# Environment-specific files
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# Provider plugins (downloaded by terraform init)
+.terraform.d/
+
+# Sensitive credential files
+credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
