@@ -1,12 +1,6 @@
 import Project from '../models/project.model.js';
-import mongoose from 'mongoose';
 
 class ProjectService {
-    validateObjectId(id, fieldName = 'ID') {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new Error(`Invalid ${fieldName} format`);
-        }
-    }
 
     async createProject(projectData, userId) {
         const { name, description, members } = projectData;
@@ -53,7 +47,6 @@ class ProjectService {
     }
 
     async updateProject(projectId, updateData, userId) {
-        this.valida
         const project = await Project.findById(projectId);
 
         if (!project) {
@@ -88,8 +81,6 @@ class ProjectService {
     }
 
     async deleteProject(projectId, userId) {
-        this.validateObjectId(projectId, 'project ID');
-        this.validateObjectId(userId, 'user ID');
 
         const project = await Project.findById(projectId);
 
