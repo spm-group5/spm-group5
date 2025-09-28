@@ -55,14 +55,28 @@ project-root/
 ├── backend/           # Node.js Express API
 │   ├── README.md      # Backend documentation
 │   ├── server.js      # Main server file
-│   ├── controllers/   # Route controllers
-│   ├── models/        # Data models
-│   └── routes/        # API routes
+│   ├── package.json   # Dependencies
+│   ├── vitest.config.js # Test configuration
+│   ├── src/           # Source code
+│   │   ├── controllers/   # Route controllers
+│   │   ├── models/        # Data models
+│   │   ├── routes/        # API routes
+│   │   ├── services/      # Business logic
+│   │   ├── middleware/    # Custom middleware
+│   │   ├── config/        # Configuration files
+│   │   └── utils/         # Utility functions
+│   ├── tests/         # Test files
+│   └── environments/  # Environment configs
 └── frontend/          # React Vite application
     ├── README.md      # Frontend documentation
+    ├── package.json   # Dependencies
+    ├── vite.config.js # Vite configuration
+    ├── eslint.config.js # Linting configuration
     ├── src/           # Source code
-    ├── public/        # Static assets
-    └── vite.config.js # Vite configuration
+    │   ├── components/    # React components
+    │   ├── services/      # API calls
+    │   └── assets/        # Static assets
+    └── public/        # Public assets
 ```
 
 Architecture
