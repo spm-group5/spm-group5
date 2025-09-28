@@ -1,6 +1,7 @@
 import Project from '../models/project.model.js';
 
 class ProjectService {
+
     async createProject(projectData, userId) {
         const { name, description, members } = projectData;
 
@@ -52,7 +53,7 @@ class ProjectService {
             throw new Error('Project not found');
         }
 
-        if (project.owner.toString() !== userId) {
+        if (project.owner.toString() !== userId.toString()) {
             throw new Error('Only project owner can update the project');
         }
 
@@ -80,13 +81,14 @@ class ProjectService {
     }
 
     async deleteProject(projectId, userId) {
+
         const project = await Project.findById(projectId);
 
         if (!project) {
             throw new Error('Project not found');
         }
 
-        if (project.owner.toString() !== userId) {
+        if (project.owner.toString() !== userId.toString()) {
             throw new Error('Only project owner can delete the project');
         }
 

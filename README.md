@@ -121,6 +121,10 @@ To run GitHub Actions workflows locally using nektos/act:
 
    ```
 
+5. By defualt, act uses local working directory of your repo, to use current working directory (use --bind flag):
+    ```sh
+    act --bind 
+
 Note: Running act locally does not affect your real GitHub repository or production environment
 
 ## Environment Setup

@@ -10,7 +10,7 @@ import userModel from '../models/user.model.js';
  * controllers, services, and database interactions using real MongoDB
  */
 
-// Using Vitest globals - no need to import describe, it, expect, beforeAll, afterAll, beforeEach
+
 
 describe('User Router - POST /users/register Integration Tests', () => {
     let mongoServer;

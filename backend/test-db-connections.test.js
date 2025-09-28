@@ -25,7 +25,7 @@ async function testConnection(envFile, testDoc) {
 // Increase timeout to accommodate slower connections
 test('Test DB connection', async () => {
   const id = await testConnection(
-    path.join(__dirname, '../../environments/.env.test'),
+    path.join(__dirname, '/environments/.env.test'),
     { test: 'This is a test DB write', date: new Date() }
   );
   expect(id).toBeDefined();
