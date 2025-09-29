@@ -133,6 +133,17 @@ Coverage includes:
 - `src/routes/**/*.js` - Route definitions
 
 To view detailed coverage reports, open `coverage/index.html` in your browser after running the coverage tests.
+=======
+## Building docker image and running locally 
+
+```bash
+cd backend
+
+docker build -t spm-backend:<tag> .
+
+docker run -d -p 80:3000 --env-file ./environments/.env.prod spm-backend:<tag>
+```
+
 
 
 
