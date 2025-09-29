@@ -102,6 +102,17 @@ Change to `backend` directory: `cd backend`
 Start the server: `node server.js`
 Run the vitest framework: `npm test`
 
+## Building docker image and running locally 
+
+```bash
+cd backend
+
+docker build -t spm-backend:<tag> .
+
+docker run -d -p 80:3000 --env-file ./environments/.env.prod spm-backend:<tag>
+```
+
+
 
 
 
