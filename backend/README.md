@@ -34,24 +34,28 @@ The server will start on `http://localhost:3000`
 
 ## Project Structure
 ```bash
-project-root/
-├── README.md          # This file
-├── backend/           
-   ├── README.md      # Backend documentation
-   ├── server.js      # Server entry point - handles startup and database connection
-   ├── src/           # Source code directory
-   │   ├── app.js     # Express application configuration - middleware, routes setup
-   │   ├── controllers/ # Route handlers - business logic for API endpoints
-   │   ├── models/    # Database models - MongoDB/Mongoose schemas
-   │   ├── routes/    # API route definitions - URL endpoints and HTTP methods
-   │   ├── middleware/ # Authentication, validation, error handling
-   │   ├── services/  # Business logic layer between controller and database, handle database interactions
-   │   ├── config/    # Configuration files - database connection, app settings
-   │   └── utils/     # Helper functions - validation, formatting, common utilities
-   ├── tests/         # Test files - unit tests, integration tests, test setup
-   ├── environments/  # Environment configuration files
-   │   └── .env       # Environment variables (development settings)│   ├── package.json   # Dependencies and scripts
-   └── node_modules/  # Installed packages
+backend/
+├── README.md                           # Backend documentation
+├── server.js                           # Server entry point - handles startup and database connection
+├── package.json                        # Dependencies and scripts
+├── package-lock.json                   # Dependency lock file
+├── vitest.config.js                    # Test configuration with coverage settings
+├── .gitignore                          # Git ignore rules
+├── test-db-connections.js              # Database connection testing utility
+├── src/                                # Source code directory
+│   ├── app.js                          # Express application configuration - middleware, routes setup
+│   ├── controllers/                    # Route handlers - business logic for API endpoints
+│   ├── models/                         # Database models - MongoDB/Mongoose schemas
+│   ├── routes/                         # API route definitions - URL endpoints and HTTP methods
+│   ├── services/                       # Business logic layer between controller and database
+│   ├── middleware/                     # Authentication, validation, error handling
+│   ├── config/                         # Configuration files - database connection, app settings
+│   └── utils/                          # Helper functions - validation, formatting, common utilities
+├── tests/                              # Test files - unit tests, integration tests, test setup
+│   └── integration/                    # Integration tests
+├── environments/                       # Environment configuration files
+└── coverage/                           # Test coverage reports (generated, not committed)
+└── node_modules/                       # Installed packages (not committed)
 ```
 
 ## Environment Variables
@@ -97,11 +101,39 @@ Open browser to `http://localhost:3000`
 You should see "Hello, Express.js Server!" message
 
 ## Running Unit Tests
-
 Change to `backend` directory: `cd backend`
 Start the server: `node server.js`
 Run the vitest framework: `npm test`
 
+## Running Coverage Tests
+
+To run tests with coverage analysis:
+
+```bash
+npm run test:coverage
+```
+
+### Expected Coverage Output
+
+The coverage test will:
+- Generate coverage reports in HTML, JSON, and text formats
+- Create a `coverage/` directory with detailed HTML reports
+- Display coverage statistics in the terminal
+
+Expected coverage thresholds (configured in `vitest.config.js`):
+- **Branches**: 80% minimum
+- **Functions**: 80% minimum
+- **Lines**: 80% minimum
+- **Statements**: 80% minimum
+
+Coverage includes:
+- `src/services/**/*.js` - Business logic layer
+- `src/controllers/**/*.js` - API route handlers
+- `src/models/**/*.js` - Database models
+- `src/routes/**/*.js` - Route definitions
+
+To view detailed coverage reports, open `coverage/index.html` in your browser after running the coverage tests.
+=======
 ## Building docker image and running locally 
 
 ```bash
