@@ -12,7 +12,7 @@ import userModel from '../models/user.model.js';
 
 
 
-describe('User Router - POST /users/register Integration Tests', () => {
+describe('User Router - POST /api/register Integration Tests', () => {
     let mongoServer;
 
     // Setup: Create in-memory MongoDB instance for integration testing
@@ -45,7 +45,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
@@ -70,7 +70,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
@@ -87,7 +87,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
@@ -104,7 +104,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
@@ -123,7 +123,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -141,7 +141,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -157,7 +157,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -174,7 +174,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -191,7 +191,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -207,7 +207,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -224,7 +224,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -241,7 +241,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -261,7 +261,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -279,7 +279,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -296,7 +296,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -316,7 +316,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(firstUser)
                 .expect(201);
 
@@ -328,7 +328,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(duplicateUser)
                 .expect(500);
 
@@ -346,7 +346,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(firstUser)
                 .expect(201);
 
@@ -358,7 +358,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(duplicateUser)
                 .expect(500);
 
@@ -371,7 +371,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
         // Test: Malformed JSON should return HTTP 400
         it('should handle malformed JSON', async () => {
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .set('Content-Type', 'application/json')
                 .send('{"username": "test", invalid json}')
                 .expect(400);
@@ -387,7 +387,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
@@ -407,7 +407,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -423,7 +423,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -440,7 +440,7 @@ describe('User Router - POST /users/register Integration Tests', () => {
             };
 
             const response = await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(500);
 
@@ -483,13 +483,13 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             // Now test login
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: 'password123'
@@ -518,12 +518,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'admin1',
                     password: 'adminpass123'
@@ -543,12 +543,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'multiuser',
                     password: 'password123'
@@ -564,7 +564,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Missing username should return 400
         it('should return 400 when username is missing', async () => {
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     password: 'password123'
                 })
@@ -576,7 +576,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Missing password should return 400
         it('should return 400 when password is missing', async () => {
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser'
                 })
@@ -588,7 +588,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Empty username should return 400
         it('should return 400 when username is empty', async () => {
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: '',
                     password: 'password123'
@@ -601,7 +601,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Empty password should return 400
         it('should return 400 when password is empty', async () => {
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: ''
@@ -624,12 +624,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await request(app)
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: 'wrongpassword'
@@ -643,7 +643,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Non-existent user should return 401
         it('should return 401 for non-existent user', async () => {
             const response = await request(app)
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'nonexistent',
                     password: 'password123'
@@ -660,7 +660,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Valid logout should return 200
         it('should return 200 for valid logout', async () => {
             const response = await request(app)
-                .post('/users/logout')
+                .post('/api/logout')
                 .expect(200);
 
             expect(response.body.message).toBe('Logout successful');
@@ -686,12 +686,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await agent
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             await agent
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: 'password123'
@@ -700,7 +700,7 @@ describe('User Router - Authentication Integration Tests', () => {
 
             // Now access profile
             const response = await agent
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(200);
 
             expect(response.body.user).toBeDefined();
@@ -712,7 +712,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Unauthenticated user should not access profile
         it('should return 401 for unauthenticated profile access', async () => {
             const response = await request(app)
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(401);
 
             expect(response.body.error).toBe('Unauthorized');
@@ -730,12 +730,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await agent
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             await agent
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: 'password123'
@@ -744,12 +744,12 @@ describe('User Router - Authentication Integration Tests', () => {
 
             // Logout
             await agent
-                .post('/users/logout')
+                .post('/api/logout')
                 .expect(200);
 
             // Try to access profile after logout
             const response = await agent
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(401);
 
             expect(response.body.error).toBe('Unauthorized');
@@ -775,12 +775,12 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await agent
-                .post('/users/register')
+                .post('/api/register')
                 .send(userData)
                 .expect(201);
 
             await agent
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'testuser',
                     password: 'password123'
@@ -789,11 +789,11 @@ describe('User Router - Authentication Integration Tests', () => {
 
             // Make multiple profile requests
             const response1 = await agent
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(200);
 
             const response2 = await agent
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(200);
 
             expect(response1.body.user.username).toBe('testuser');
@@ -821,18 +821,18 @@ describe('User Router - Authentication Integration Tests', () => {
             };
 
             await agent1
-                .post('/users/register')
+                .post('/api/register')
                 .send(user1Data)
                 .expect(201);
 
             await agent2
-                .post('/users/register')
+                .post('/api/register')
                 .send(user2Data)
                 .expect(201);
 
             // Login with different agents
             await agent1
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'user1',
                     password: 'password123'
@@ -840,7 +840,7 @@ describe('User Router - Authentication Integration Tests', () => {
                 .expect(200);
 
             await agent2
-                .post('/users/login')
+                .post('/api/login')
                 .send({
                     username: 'user2',
                     password: 'password456'
@@ -849,11 +849,11 @@ describe('User Router - Authentication Integration Tests', () => {
 
             // Check that each agent has their own session
             const response1 = await agent1
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(200);
 
             const response2 = await agent2
-                .get('/users/profile')
+                .get('/api/profile')
                 .expect(200);
 
             expect(response1.body.user.username).toBe('user1');

@@ -1,0 +1,80 @@
+import { format } from 'date-fns';
+import Button from '../../common/Button/Button';
+import Card from '../../common/Card/Card';
+import styles from './TaskCard.module.css';
+
+function TaskCard({ task, onEdit, onDelete }) {
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'To Do':
+        return styles.statusTodo;
+      case 'In Progress':
+        return styles.statusInProgress;
+      case 'Done':
+        return styles.statusDone;
+      default:
+        return styles.statusTodo;
+    }
+  };
+
+  const getPriorityBadgeClass = (priority) => {
+    if (priority >= 8) return styles.priorityHigh;
+    if (priority >= 5) return styles.priorityMedium;
+    return styles.priorityLow;
+  };
+
+  const formatDueDate = (dateString) => {
+    if (!dateString) return 'No due date';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  return (
+    <Card hoverable className={styles.taskCard}>
+      <Card.Body>
+        <div className={styles.header}>
+          <h3 className={styles.title}>{task.title}</h3>
+          <div className={styles.badges}>
+            <span className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)}`}>
+              {task.status}
+            </span>
+            <span className={`${styles.priorityBadge} ${getPriorityBadgeClass(task.priority)}`}>
+              P{task.priority}
+            </span>
+          </div>
+        </div>
+
+        {task.description && (
+          <p className={styles.description}>{task.description}</p>
+        )}
+
+        <div className={styles.metadata}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Due:</span>
+            <span className={styles.metaValue}>{formatDueDate(task.dueDate)}</span>
+          </div>
+          {task.project && (
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Project:</span>
+              <span className={styles.metaValue}>{task.project.name || task.project}</span>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.actions}>
+          <Button variant="secondary" size="small" onClick={() => onEdit(task)}>
+            Edit
+          </Button>
+          <Button variant="danger" size="small" onClick={() => onDelete(task._id)}>
+            Delete
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
+export default TaskCard;

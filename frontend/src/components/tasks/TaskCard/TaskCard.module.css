@@ -1,0 +1,104 @@
+.taskCard {
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.badges {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.statusBadge,
+.priorityBadge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.statusTodo {
+  background-color: var(--color-text-tertiary);
+  color: white;
+}
+
+.statusInProgress {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.statusDone {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.priorityLow {
+  background-color: var(--color-priority-low-bg);
+  color: var(--color-priority-low);
+  border: 1px solid var(--color-priority-low);
+}
+
+.priorityMedium {
+  background-color: var(--color-priority-medium-bg);
+  color: var(--color-priority-medium);
+  border: 1px solid var(--color-priority-medium);
+}
+
+.priorityHigh {
+  background-color: var(--color-priority-high-bg);
+  color: var(--color-priority-high);
+  border: 1px solid var(--color-priority-high);
+}
+
+.description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  line-height: var(--line-height-relaxed);
+}
+
+.metadata {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+}
+
+.metaItem {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.metaLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  min-width: 60px;
+}
+
+.metaValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}

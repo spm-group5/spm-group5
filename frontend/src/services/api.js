@@ -67,6 +67,49 @@ class ApiService {
             body: JSON.stringify(projectData),
         });
     }
+
+    // Auth Methods
+    async register(userData) {
+        return this.request('/register', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+    }
+
+    async login(credentials) {
+        return this.request('/login', {
+            method: 'POST',
+            body: JSON.stringify(credentials),
+        });
+    }
+
+    async logout() {
+        return this.request('/logout', {
+            method: 'POST',
+        });
+    }
+
+    async getProfile() {
+        return this.request('/profile');
+    }
+
+    // Additional Project Methods
+    async getProjectById(projectId) {
+        return this.request(`/projects/${projectId}`);
+    }
+
+    async updateProject(projectId, projectData) {
+        return this.request(`/projects/${projectId}`, {
+            method: 'PUT',
+            body: JSON.stringify(projectData),
+        });
+    }
+
+    async deleteProject(projectId) {
+        return this.request(`/projects/${projectId}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export default new ApiService();
