@@ -1,0 +1,331 @@
+/**
+ * Test Suite: TaskCard Component
+ *
+ * Purpose: Validates the TaskCard component display and interactions
+ *
+ * Test Coverage:
+ * - Task information rendering
+ * - Status badge display with different statuses
+ * - Priority badge display with different priority levels
+ * - Due date formatting and display
+ * - Project information display
+ * - Edit and Delete button interactions
+ * - Conditional description rendering
+ */
+
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import TaskCard from './TaskCard';
+
+const mockTask = {
+  _id: '123',
+  title: 'Test Task',
+  description: 'This is a test task description',
+  status: 'To Do',
+  priority: 7,
+  dueDate: '2025-12-31',
+  project: {
+    _id: 'proj123',
+    name: 'Test Project'
+  }
+};
+
+describe('TaskCard Component', () => {
+  describe('Basic Rendering', () => {
+    it('renders task title', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByRole('heading', { name: 'Test Task' })).toBeInTheDocument();
+    });
+
+    it('renders task description when provided', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByText('This is a test task description')).toBeInTheDocument();
+    });
+
+    it('does not render description when not provided', () => {
+      const taskWithoutDescription = { ...mockTask, description: '' };
+      render(<TaskCard task={taskWithoutDescription} />);
+      expect(screen.queryByText('This is a test task description')).not.toBeInTheDocument();
+    });
+
+    it('does not render description when undefined', () => {
+      const taskWithoutDescription = { ...mockTask, description: undefined };
+      const { container } = render(<TaskCard task={taskWithoutDescription} />);
+      const description = container.querySelector('.description');
+      expect(description).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Status Badge', () => {
+    it('displays To Do status badge', () => {
+      const todoTask = { ...mockTask, status: 'To Do' };
+      render(<TaskCard task={todoTask} />);
+      expect(screen.getByText('To Do')).toBeInTheDocument();
+    });
+
+    it('displays In Progress status badge', () => {
+      const inProgressTask = { ...mockTask, status: 'In Progress' };
+      render(<TaskCard task={inProgressTask} />);
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
+    });
+
+    it('displays Done status badge', () => {
+      const doneTask = { ...mockTask, status: 'Done' };
+      render(<TaskCard task={doneTask} />);
+      expect(screen.getByText('Done')).toBeInTheDocument();
+    });
+
+    it('applies correct class for To Do status', () => {
+      const todoTask = { ...mockTask, status: 'To Do' };
+      render(<TaskCard task={todoTask} />);
+      const badge = screen.getByText('To Do');
+      expect(badge).toHaveClass('statusTodo');
+    });
+
+    it('applies correct class for In Progress status', () => {
+      const inProgressTask = { ...mockTask, status: 'In Progress' };
+      render(<TaskCard task={inProgressTask} />);
+      const badge = screen.getByText('In Progress');
+      expect(badge).toHaveClass('statusInProgress');
+    });
+
+    it('applies correct class for Done status', () => {
+      const doneTask = { ...mockTask, status: 'Done' };
+      render(<TaskCard task={doneTask} />);
+      const badge = screen.getByText('Done');
+      expect(badge).toHaveClass('statusDone');
+    });
+
+    it('defaults to To Do class for unknown status', () => {
+      const unknownTask = { ...mockTask, status: 'Unknown' };
+      render(<TaskCard task={unknownTask} />);
+      const badge = screen.getByText('Unknown');
+      expect(badge).toHaveClass('statusTodo');
+    });
+  });
+
+  describe('Priority Badge', () => {
+    it('displays priority value', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByText('P7')).toBeInTheDocument();
+    });
+
+    it('displays low priority (1-4)', () => {
+      const lowPriorityTask = { ...mockTask, priority: 3 };
+      render(<TaskCard task={lowPriorityTask} />);
+      expect(screen.getByText('P3')).toBeInTheDocument();
+    });
+
+    it('displays medium priority (5-7)', () => {
+      const mediumPriorityTask = { ...mockTask, priority: 6 };
+      render(<TaskCard task={mediumPriorityTask} />);
+      expect(screen.getByText('P6')).toBeInTheDocument();
+    });
+
+    it('displays high priority (8-10)', () => {
+      const highPriorityTask = { ...mockTask, priority: 9 };
+      render(<TaskCard task={highPriorityTask} />);
+      expect(screen.getByText('P9')).toBeInTheDocument();
+    });
+
+    it('applies low priority class for priority < 5', () => {
+      const lowPriorityTask = { ...mockTask, priority: 2 };
+      render(<TaskCard task={lowPriorityTask} />);
+      const badge = screen.getByText('P2');
+      expect(badge).toHaveClass('priorityLow');
+    });
+
+    it('applies medium priority class for priority 5-7', () => {
+      const mediumPriorityTask = { ...mockTask, priority: 5 };
+      render(<TaskCard task={mediumPriorityTask} />);
+      const badge = screen.getByText('P5');
+      expect(badge).toHaveClass('priorityMedium');
+    });
+
+    it('applies high priority class for priority >= 8', () => {
+      const highPriorityTask = { ...mockTask, priority: 8 };
+      render(<TaskCard task={highPriorityTask} />);
+      const badge = screen.getByText('P8');
+      expect(badge).toHaveClass('priorityHigh');
+    });
+
+    it('applies medium priority class for priority 7', () => {
+      const prioritySevenTask = { ...mockTask, priority: 7 };
+      render(<TaskCard task={prioritySevenTask} />);
+      const badge = screen.getByText('P7');
+      expect(badge).toHaveClass('priorityMedium');
+    });
+  });
+
+  describe('Due Date Display', () => {
+    it('displays formatted due date', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByText('Due:')).toBeInTheDocument();
+      expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
+    });
+
+    it('displays No due date when dueDate is null', () => {
+      const taskNoDueDate = { ...mockTask, dueDate: null };
+      render(<TaskCard task={taskNoDueDate} />);
+      expect(screen.getByText('No due date')).toBeInTheDocument();
+    });
+
+    it('displays No due date when dueDate is undefined', () => {
+      const taskNoDueDate = { ...mockTask, dueDate: undefined };
+      render(<TaskCard task={taskNoDueDate} />);
+      expect(screen.getByText('No due date')).toBeInTheDocument();
+    });
+
+    it('displays Invalid date for malformed date', () => {
+      const taskInvalidDate = { ...mockTask, dueDate: 'invalid-date' };
+      render(<TaskCard task={taskInvalidDate} />);
+      expect(screen.getByText('Invalid date')).toBeInTheDocument();
+    });
+
+    it('formats different date correctly', () => {
+      const taskDifferentDate = { ...mockTask, dueDate: '2025-06-15' };
+      render(<TaskCard task={taskDifferentDate} />);
+      expect(screen.getByText('Jun 15, 2025')).toBeInTheDocument();
+    });
+  });
+
+  describe('Project Display', () => {
+    it('displays project name when project exists', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByText('Project:')).toBeInTheDocument();
+      expect(screen.getByText('Test Project')).toBeInTheDocument();
+    });
+
+    it('does not display project section when project is null', () => {
+      const taskNoProject = { ...mockTask, project: null };
+      render(<TaskCard task={taskNoProject} />);
+      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+    });
+
+    it('does not display project section when project is undefined', () => {
+      const taskNoProject = { ...mockTask, project: undefined };
+      render(<TaskCard task={taskNoProject} />);
+      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+    });
+
+    it('displays project ID when name is not populated', () => {
+      const taskProjectId = { ...mockTask, project: 'project-id-123' };
+      render(<TaskCard task={taskProjectId} />);
+      expect(screen.getByText('project-id-123')).toBeInTheDocument();
+    });
+  });
+
+  describe('Action Buttons', () => {
+    it('renders Edit button', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    });
+
+    it('renders Delete button', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    });
+
+    it('calls onEdit with task when Edit button is clicked', async () => {
+      const user = userEvent.setup();
+      const onEdit = vi.fn();
+      render(<TaskCard task={mockTask} onEdit={onEdit} />);
+
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      await user.click(editButton);
+
+      expect(onEdit).toHaveBeenCalledTimes(1);
+      expect(onEdit).toHaveBeenCalledWith(mockTask);
+    });
+
+    it('calls onDelete with task ID when Delete button is clicked', async () => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      render(<TaskCard task={mockTask} onDelete={onDelete} />);
+
+      const deleteButton = screen.getByRole('button', { name: 'Delete' });
+      await user.click(deleteButton);
+
+      expect(onDelete).toHaveBeenCalledTimes(1);
+      expect(onDelete).toHaveBeenCalledWith('123');
+    });
+
+    it('Edit button has correct variant and size', () => {
+      render(<TaskCard task={mockTask} />);
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton.className).toMatch(/secondary/);
+      expect(editButton).toHaveClass('small');
+    });
+
+    it('Delete button has correct variant and size', () => {
+      render(<TaskCard task={mockTask} />);
+      const deleteButton = screen.getByRole('button', { name: 'Delete' });
+      expect(deleteButton.className).toMatch(/danger/);
+      expect(deleteButton).toHaveClass('small');
+    });
+  });
+
+  describe('Card Properties', () => {
+    it('renders as hoverable card', () => {
+      const { container } = render(<TaskCard task={mockTask} />);
+      const card = container.querySelector('.card');
+      expect(card).toHaveClass('hoverable');
+    });
+
+    it('applies task card class', () => {
+      const { container } = render(<TaskCard task={mockTask} />);
+      expect(container.querySelector('.taskCard')).toBeInTheDocument();
+    });
+  });
+
+  describe('Complete Task Card Structure', () => {
+    it('renders all elements together', () => {
+      const onEdit = vi.fn();
+      const onDelete = vi.fn();
+
+      render(
+        <TaskCard
+          task={mockTask}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      );
+
+      // Header section
+      expect(screen.getByRole('heading', { name: 'Test Task' })).toBeInTheDocument();
+      expect(screen.getByText('To Do')).toBeInTheDocument();
+      expect(screen.getByText('P7')).toBeInTheDocument();
+
+      // Description
+      expect(screen.getByText('This is a test task description')).toBeInTheDocument();
+
+      // Metadata
+      expect(screen.getByText('Due:')).toBeInTheDocument();
+      expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
+      expect(screen.getByText('Project:')).toBeInTheDocument();
+      expect(screen.getByText('Test Project')).toBeInTheDocument();
+
+      // Actions
+      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    });
+
+    it('renders minimal task without optional fields', () => {
+      const minimalTask = {
+        _id: '456',
+        title: 'Minimal Task',
+        status: 'Done',
+        priority: 5
+      };
+
+      render(<TaskCard task={minimalTask} />);
+
+      expect(screen.getByRole('heading', { name: 'Minimal Task' })).toBeInTheDocument();
+      expect(screen.getByText('Done')).toBeInTheDocument();
+      expect(screen.getByText('P5')).toBeInTheDocument();
+      expect(screen.getByText('No due date')).toBeInTheDocument();
+      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+    });
+  });
+});
