@@ -34,7 +34,7 @@ app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
-app.use('/users', userRouter); //use the user router for routes starting with '/users'
+app.use('/api', userRouter); //use the user router for routes starting with '/api'
 app.use('/api', taskRouter); //use the task router for task-related routes
 app.use('/api', projectRouter); //use the project router for project-related routes
 

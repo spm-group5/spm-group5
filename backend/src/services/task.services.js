@@ -3,7 +3,7 @@ import Project from '../models/project.model.js';
 
 class TaskService {
     async createTask(taskData, userId) {
-        const { title, description, project, dueDate, assignee } = taskData;
+        const { title, description, project, dueDate, assignee, priority } = taskData;
 
         if (!title || title.trim() === '') {
             throw new Error('Task title is required');
@@ -13,6 +13,7 @@ class TaskService {
             title: title.trim(),
             description: description || '',
             status: 'To Do',
+            priority: priority !== undefined ? priority : 5,
             owner: userId,
             assignee: assignee || userId,
             createdAt: new Date(),
@@ -94,6 +95,10 @@ class TaskService {
 
         if (updateData.status !== undefined) {
             task.status = updateData.status;
+        }
+
+        if (updateData.priority !== undefined) {
+            task.priority = updateData.priority;
         }
 
         if (updateData.assignee !== undefined) {

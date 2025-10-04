@@ -1,28 +1,44 @@
-import { useState } from 'react'
-import TaskList from './components/TaskList'
-import './App.css'
-import './components/Tasks.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { TaskProvider } from './context/TaskContext';
+import { ProjectProvider } from './context/ProjectContext';
+import ProtectedRoute from './router/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import TasksPage from './pages/TasksPage';
+import ProjectsPage from './pages/ProjectsPage';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // For demo purposes, assuming user is logged in
-
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Task Management System</h1>
-      </header>
-
-      <main className="app-main">
-        {isLoggedIn ? (
-          <TaskList />
-        ) : (
-          <div className="login-prompt">
-            Please login to manage your tasks
-          </div>
-        )}
-      </main>
-    </div>
-  )
+    <AuthProvider>
+      <TaskProvider>
+        <ProjectProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/tasks" element={
+                <ProtectedRoute>
+                  <TasksPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/projects" element={
+                <ProtectedRoute>
+                  <ProjectsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
+        </ProjectProvider>
+      </TaskProvider>
+    </AuthProvider>
+  );
 }
 
 export default App
