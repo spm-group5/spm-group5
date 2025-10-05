@@ -25,9 +25,19 @@ const taskSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['To Do', 'In Progress', 'Done'],
+        enum: ['To Do', 'In Progress', 'Blocked', 'Done'],
         default: 'To Do',
         required: true
+    },
+    tags: {
+        type: String,
+        default: '',
+        validate: {
+            validator: function(v) {
+                return typeof v === 'string';
+            },
+            message: 'Tags must be a string'
+        }
     },
     owner: {
         type: Schema.Types.ObjectId,
