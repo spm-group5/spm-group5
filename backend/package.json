@@ -21,6 +21,7 @@
     "express-session": "^1.18.2",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
+    "socket.io": "^4.8.1",
     "puppeteer": "^24.23.0",
     "xlsx": "^0.18.5"
   },

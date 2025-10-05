@@ -5,6 +5,8 @@ class TaskService {
     async createTask(taskData, userId) {
         const { title, description, project, dueDate, assignee, priority, tags } = taskData;
 
+        const assigneeList = assignee && assignee.length > 0 ? assignee : [userId];
+
         if (!title || title.trim() === '') {
             throw new Error('Task title is required');
         }
@@ -16,7 +18,7 @@ class TaskService {
             priority: priority !== undefined ? priority : 5,
             tags: tags || '',
             owner: userId,
-            assignee: assignee || userId,
+            assignee: assigneeList,
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -103,7 +105,11 @@ class TaskService {
         }
 
         if (updateData.assignee !== undefined) {
-            task.assignee = updateData.assignee;
+            if (Array.isArray(updateData.assignee) && updateData.assignee.length > 0) {
+                task.assignee = updateData.assignee;
+            } else {
+                throw new Error('At least one assignee is required');
+            }
         }
 
         if (updateData.tags !== undefined) {
@@ -134,7 +140,7 @@ class TaskService {
         }
 
         if (filters.assignee) {
-            query.assignee = filters.assignee;
+            query.assignee = { $in: [filters.assignee] };
         }
 
         if (filters.project) {

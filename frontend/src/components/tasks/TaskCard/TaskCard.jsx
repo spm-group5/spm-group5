@@ -32,6 +32,37 @@ function TaskCard({ task, onEdit, onDelete }) {
     }
   };
 
+  const formatAssignee = (assignee) => {
+    // Handle null, undefined, or empty cases
+    if (!assignee) {
+        return 'Unassigned';
+    }
+
+    // Convert to array if it's not already an array
+    const assigneeArray = Array.isArray(assignee) ? assignee : [assignee];
+    
+    // Handle empty array
+    if (assigneeArray.length === 0) {
+        return 'Unassigned';
+    }
+    
+    // Handle both populated and non-populated assignee data
+    const names = assigneeArray.map(person => {
+        if (typeof person === 'string') {
+            return person; // If it's just an ID
+        }
+        return person.username || person.name || 'Unknown';
+    });
+
+    if (names.length === 1) {
+        return names[0];
+    } else if (names.length === 2) {
+        return `${names[0]} & ${names[1]}`;
+    } else {
+        return `${names[0]} & ${names.length - 1} others`;
+    }
+};
+
   return (
     <Card hoverable className={styles.taskCard}>
       <Card.Body>
@@ -52,6 +83,10 @@ function TaskCard({ task, onEdit, onDelete }) {
         )}
 
         <div className={styles.metadata}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Assigned:</span>
+            <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
+          </div>
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Due:</span>
             <span className={styles.metaValue}>{formatDueDate(task.dueDate)}</span>
