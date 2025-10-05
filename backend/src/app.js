@@ -28,6 +28,7 @@ app.use(session({
 import userRouter from './routes/user.router.js'; //import user router for user-related routes
 import taskRouter from './routes/task.router.js'; //import task router for task-related routes
 import projectRouter from './routes/project.router.js'; //import project router for project-related routes
+import reportRouter from './routes/report.router.js'; //import report router for report-related routes
 
 //Test route to verify server is running
 app.get("/", (req, res) => {
@@ -37,5 +38,6 @@ app.get("/", (req, res) => {
 app.use('/api', userRouter); //use the user router for routes starting with '/api'
 app.use('/api', taskRouter); //use the task router for task-related routes
 app.use('/api', projectRouter); //use the project router for project-related routes
+app.use('/api', reportRouter); //use the report router for report-related routes
 
 export default app; //export the Express application for use in server.js
