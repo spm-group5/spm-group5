@@ -3,7 +3,7 @@ import Project from '../models/project.model.js';
 
 class TaskService {
     async createTask(taskData, userId) {
-        const { title, description, project, dueDate, assignee, priority } = taskData;
+        const { title, description, project, dueDate, assignee, priority, tags } = taskData;
 
         const assigneeList = assignee && assignee.length > 0 ? assignee : [userId];
 
@@ -16,6 +16,7 @@ class TaskService {
             description: description || '',
             status: 'To Do',
             priority: priority !== undefined ? priority : 5,
+            tags: tags || '',
             owner: userId,
             assignee: assigneeList,
             createdAt: new Date(),
@@ -109,6 +110,10 @@ class TaskService {
             } else {
                 throw new Error('At least one assignee is required');
             }
+        }
+
+        if (updateData.tags !== undefined) {
+            task.tags = updateData.tags;
         }
 
         if (updateData.project !== undefined) {
