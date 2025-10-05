@@ -49,12 +49,6 @@ const taskSchema = new Schema({
         type: [Schema.Types.ObjectId], 
         ref: 'users',
         default: [],
-        validate: {
-            validator: function(v) {
-                return Array.isArray(v) && v.length >= 1; // Require at least 1 assignee
-            },
-            message: 'At least one assignee is required'
-        }
     },
     project: {
         type: Schema.Types.ObjectId,

@@ -5,59 +5,44 @@ class TaskController {
         try {
             const userId = req.user._id;
         
-            if (req.body.assignee) {
-                // If assignee is a string representation of an array, parse it
-                if (typeof req.body.assignee === 'string') {
-                    try {
-                        // Try to parse JSON string like "['id1', 'id2']"
-                        req.body.assignee = JSON.parse(req.body.assignee.replace(/'/g, '"'));
-                    } catch (parseError) {
-                        // If parsing fails, treat as single ID
-                        req.body.assignee = [req.body.assignee];
-                    }
+        if (req.body.assignee === undefined || req.body.assignee === null) {
+            req.body.assignee = [];
+        } else if (typeof req.body.assignee === 'string') {
+            req.body.assignee = [req.body.assignee];
+        } else if (!Array.isArray(req.body.assignee)) {
+            req.body.assignee = [req.body.assignee];
+        }
+
+        const task = await taskService.createTask(req.body, userId);
+
+        const io = req.app.get('io');
+        const userSockets = req.app.get('userSockets');
+
+        if (io && userSockets && task.assignee && task.assignee.length > 0) {
+            task.assignee.forEach(assigneeId => {
+                const assigneeSocketId = userSockets.get(assigneeId.toString());
+                if (assigneeSocketId) {
+                    io.to(assigneeSocketId).emit('task-assigned', {
+                        message: `You have been assigned a new task: "${task.title}"`,
+                        task: task,
+                        timestamp: new Date()
+                    });
                 }
-                
-                // Ensure it's an array
-                if (!Array.isArray(req.body.assignee)) {
-                    req.body.assignee = [req.body.assignee];
-                }
-                
-                // Clean the array - remove empty/invalid values
-                req.body.assignee = req.body.assignee
-                    .filter(id => id && typeof id === 'string' && id.trim() !== '')
-                    .map(id => id.trim());
-            }
-            const task = await taskService.createTask(req.body, userId);
-
-            const io = req.app.get('io');
-            const userSockets = req.app.get('userSockets');
-
-            // If task is created in a project
-            if (task.assignee && task.assignee.length > 0) {
-                task.assignee.forEach(assigneeId => {
-                    const assigneeSocketId = userSockets.get(assigneeId.toString());
-                    if (assigneeSocketId) {
-                        io.to(assigneeSocketId).emit('task-assigned', {
-                            message: `You have been assigned a new task: "${task.title}"`,
-                            task: task,
-                            timestamp: new Date()
-                        });
-                        console.log(`Notification sent to user ${assigneeId}`);
-                    }
-                });
-            }
-
-            res.status(201).json({
-                success: true,
-                message: 'Task created successfully',
-                data: task
-            });
-        } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message
             });
         }
+
+        res.status(201).json({
+            success: true,
+            message: 'Task created successfully',
+            data: task
+        });
+    } catch (error) {
+        console.error('❌ Error creating task:', error);
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
     }
 
     async updateTask(req, res) {
