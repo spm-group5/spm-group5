@@ -103,6 +103,12 @@ class ReportService {
 
         // Process each task
         tasks.forEach(task => {
+            // Format assignees - handle array of assignees
+            let assigneeStr = 'Unassigned';
+            if (task.assignee && task.assignee.length > 0) {
+                assigneeStr = task.assignee.map(a => a.username).join(', ');
+            }
+
             const formattedTask = {
                 id: task._id.toString(),
                 title: task.title,
@@ -111,7 +117,7 @@ class ReportService {
                 tags: (task.tags && task.tags.trim()) || 'No tags',
                 description: (task.description && task.description.trim()) || 'No description',
                 owner: task.owner ? task.owner.username : 'No owner',
-                assignee: task.assignee ? task.assignee.username : 'Unassigned',
+                assignee: assigneeStr,
                 project: task.project ? task.project.name : 'No project',
                 createdAt: this.formatDate(task.createdAt)
             };

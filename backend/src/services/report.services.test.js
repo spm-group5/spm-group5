@@ -94,7 +94,7 @@ describe('Report Service Test', () => {
                 priority: 8, // High priority (was 'High')
                 tags: 'feature,frontend',
                 owner: testUser1._id,
-                assignee: testUser2._id,
+                assignee: [testUser2._id],
                 project: testProject._id,
                 dueDate: futureDueDate1, // Future date
                 createdAt: baseDate
@@ -106,7 +106,7 @@ describe('Report Service Test', () => {
                 priority: 5, // Medium priority (was 'Medium')
                 tags: 'backend,api',
                 owner: testUser1._id,
-                assignee: testUser1._id,
+                assignee: [testUser1._id],
                 project: testProject._id,
                 dueDate: futureDueDate2, // Future date
                 createdAt: new Date(baseDate.getTime() + 24 * 60 * 60 * 1000) // +1 day
@@ -118,7 +118,7 @@ describe('Report Service Test', () => {
                 priority: 3, // Low priority (was 'Low')
                 tags: 'testing',
                 owner: testUser2._id,
-                assignee: testUser1._id,
+                assignee: [testUser1._id],
                 project: testProject._id,
                 createdAt: new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000) // +2 days
             },
@@ -128,7 +128,7 @@ describe('Report Service Test', () => {
                 status: 'Done',
                 priority: 9, // High priority (was 'High')
                 owner: testUser2._id,
-                assignee: testUser2._id,
+                assignee: [testUser2._id],
                 project: testProject._id,
                 // No dueDate for completed task
                 createdAt: new Date(baseDate.getTime() + 3 * 24 * 60 * 60 * 1000) // +3 days
@@ -148,7 +148,7 @@ describe('Report Service Test', () => {
                 status: 'Done',
                 priority: 7,
                 owner: testUser1._id,
-                assignee: testUser1._id,
+                assignee: [testUser1._id],
                 // No project - standalone task
                 createdAt: baseDate
             }

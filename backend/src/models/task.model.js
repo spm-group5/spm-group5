@@ -44,11 +44,17 @@ const taskSchema = new Schema({
         ref: 'users',
         required: true
     },
-    // Task assignee should be 1 or more 
+    // Task assignee should be 1 or more
     assignee: {
-        type: [Schema.Types.ObjectId], 
+        type: [Schema.Types.ObjectId],
         ref: 'users',
         default: [],
+        validate: {
+            validator: function(v) {
+                return v.length <= 5;
+            },
+            message: 'A task can have a maximum of 5 assignees'
+        }
     },
     project: {
         type: Schema.Types.ObjectId,
