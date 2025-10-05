@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import apiService from '../services/api';
 
-const ProjectContext = createContext();
+export const ProjectContext = createContext();
 
 export function ProjectProvider({ children }) {
   const [projects, setProjects] = useState([]);

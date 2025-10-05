@@ -1,4 +1,8 @@
-# Environment variables
+# ----------------------------
+# Backend .gitignore
+# ----------------------------
+
+# Environment files
 .env
 .env.local
 .env.*.local
@@ -8,9 +12,19 @@
 # Dependencies
 node_modules/
 
-# .DS_Store
+# System files
 .DS_Store
-*/.DS_Store
+**/.DS_Store
 
-# Coverage files
+# Logs
+logs/
+*.log
+
+# Coverage reports
 coverage/
+backend/coverage/
+frontend/coverage/
+
+# Build artifacts (if applicable)
+dist/
+build/
