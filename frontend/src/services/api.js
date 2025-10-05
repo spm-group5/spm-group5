@@ -29,15 +29,15 @@ class ApiService {
 
     async createTask(taskData) {
         return this.request('/tasks', {
-            method: 'POST',
-            body: JSON.stringify(taskData),
+        method: 'POST',
+        body: JSON.stringify(taskData)
         });
     }
 
     async updateTask(taskId, taskData) {
         return this.request(`/tasks/${taskId}`, {
-            method: 'PUT',
-            body: JSON.stringify(taskData),
+        method: 'PUT',
+        body: JSON.stringify(taskData)
         });
     }
 

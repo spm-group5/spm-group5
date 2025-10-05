@@ -1,8 +1,46 @@
 import express from 'express'; //for Express.js framework
 import session from 'express-session'; //for session management
 import cors from 'cors'; //for handling CORS
+import { createServer } from 'http'; //for HTTP server
+import { Server } from 'socket.io'; //for WebSocket support
 
 const app = express(); //create the Express application
+
+// Create HTTP server and Socket.IO server
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        credentials: true,
+        methods: ["GET", "POST"]
+    }
+});
+
+// Store user socket connections (in-memory for project)
+const userSockets = new Map();
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    // When user authenticates, store their socket connection
+    socket.on('user-authenticate', (userId) => {
+        userSockets.set(userId, socket.id);
+        socket.userId = userId;
+        console.log(`User ${userId} authenticated with socket ${socket.id}`);
+    });
+
+    socket.on('disconnect', () => {
+        if (socket.userId) {
+            userSockets.delete(socket.userId);
+            console.log(`User ${socket.userId} disconnected`);
+        }
+    });
+});
+
+// Make io and userSockets available to controllers
+app.set('io', io);
+app.set('userSockets', userSockets);
 
 // CORS configuration
 app.use(cors({
@@ -38,4 +76,4 @@ app.use('/api', userRouter); //use the user router for routes starting with '/ap
 app.use('/api', taskRouter); //use the task router for task-related routes
 app.use('/api', projectRouter); //use the project router for project-related routes
 
-export default app; //export the Express application for use in server.js
+export { app as default, server }; //export both app and server
