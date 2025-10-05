@@ -43,6 +43,9 @@ beforeAll(async () => {
     // Setup Express app
     app = express();
     app.use(express.json());
+    
+    app.set('io', null);
+    app.set('userSockets', null);
 
     // Create test user
     testUser = await User.create({

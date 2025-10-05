@@ -12,7 +12,10 @@ describe('Task Controller Test', () => {
 			user: { _id: 'userId123' },
 			body: {},
 			params: {},
-			query: {}
+			query: {},
+			app: {
+                get: vi.fn().mockReturnValue(null) // Return null for 'io' and 'userSockets'
+            }
 		};
 		res = {
 			status: vi.fn().mockReturnThis(),
@@ -27,14 +30,14 @@ describe('Task Controller Test', () => {
 				_id: 'taskId123',
 				title: 'New Task',
 				status: 'To Do',
-				owner: 'userId123'
+				owner: 'userId123',
+				assignee: []
 			};
 
 			req.body = { title: 'New Task' };
 			taskService.createTask.mockResolvedValue(mockTask);
 
 			await taskController.createTask(req, res);
-
 			expect(taskService.createTask).toHaveBeenCalledWith(req.body, 'userId123');
 			expect(res.status).toHaveBeenCalledWith(201);
 			expect(res.json).toHaveBeenCalledWith({
@@ -63,12 +66,20 @@ describe('Task Controller Test', () => {
 			const mockUpdatedTask = {
 				_id: 'taskId123',
 				title: 'Updated Task',
-				status: 'In Progress'
+				status: 'In Progress',
+				assignee: []
 			};
+
+			const mockOriginalTask = {
+                _id: 'taskId123',
+                title: 'Original Task',
+                assignee: []
+            };
 
 			req.params = { taskId: 'taskId123' };
 			req.body = { title: 'Updated Task', status: 'In Progress' };
-			taskService.updateTask.mockResolvedValue(mockUpdatedTask);
+			taskService.getTaskById.mockResolvedValue(mockOriginalTask);
+            taskService.updateTask.mockResolvedValue(mockUpdatedTask);
 
 			await taskController.updateTask(req, res);
 
@@ -84,7 +95,8 @@ describe('Task Controller Test', () => {
 		it('should handle update error', async () => {
 			req.params = { taskId: 'taskId123' };
 			req.body = { title: '' };
-			taskService.updateTask.mockRejectedValue(new Error('Task title cannot be empty'));
+			taskService.getTaskById.mockResolvedValue({ assignee: [] });
+            taskService.updateTask.mockRejectedValue(new Error('Task title cannot be empty'));
 
 			await taskController.updateTask(req, res);
 

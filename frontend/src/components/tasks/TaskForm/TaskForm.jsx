@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react'; 
 import { useProjects } from '../../../context/ProjectContext';
 import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
@@ -9,9 +10,12 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const { projects } = useProjects();
   const isEditing = !!task;
 
+  const [projectMembers, setProjectMembers] = useState([]);
+
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
@@ -21,18 +25,47 @@ function TaskForm({ task, onSubmit, onCancel }) {
       priority: task?.priority || 5,
       dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
       project: task?.project?._id || task?.project || '',
+      assignee: task?.assignee || [],
     },
   });
 
-  const onFormSubmit = async (data) => {
-    const formattedData = {
-      ...data,
-      priority: parseInt(data.priority, 10),
-      dueDate: data.dueDate || null,
-    };
+  const watchedProject = watch('project');
 
-    await onSubmit(formattedData);
-  };
+  useEffect(() => {
+    if (watchedProject) {
+      const project = projects.find(p => p._id === watchedProject);
+      if (project?.members) {
+        setProjectMembers(project.members);
+      } else {
+        setProjectMembers([]);
+      }
+    } else {
+      setProjectMembers([]);
+    }
+  }, [watchedProject, projects]);
+
+  const onFormSubmit = async (data) => {
+    try {
+        const formattedData = {
+            ...data,
+            priority: parseInt(data.priority, 10),
+            dueDate: data.dueDate || null,
+            // Ensure assignee is properly formatted as array
+            assignee: (() => {
+                if (!data.assignee) return [];
+                if (Array.isArray(data.assignee)) {
+                    return data.assignee.filter(id => id && id.trim() !== '');
+                }
+                return data.assignee.trim() !== '' ? [data.assignee] : [];
+            })()
+        };
+
+        console.log('Submitting task data:', formattedData);
+        await onSubmit(formattedData);
+    } catch (error) {
+        console.error('Form submission error:', error);
+    }
+};
 
   return (
     <Card className={styles.formCard}>
@@ -125,6 +158,32 @@ function TaskForm({ task, onSubmit, onCancel }) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className={styles.selectContainer}>
+              <label className={styles.selectLabel}>
+                Assign To <span className={styles.required}>*</span>
+              </label>
+              <select
+                className={styles.select}
+                multiple // Enable multiple selection
+                size="4" // Show 4 options at once
+                {...register('assignee', {
+                  required: 'At least one assignee is required'
+                })}
+              >
+                {projectMembers?.map((member) => (
+                  <option key={member._id} value={member._id}>
+                    {member.username}
+                  </option>
+                ))}
+              </select>
+              {errors.assignee && (
+                <div className={styles.errorMessage}>{errors.assignee.message}</div>
+              )}
+              <small className={styles.helpText}>
+                Hold Ctrl/Cmd to select multiple assignees
+              </small>
             </div>
           </div>
 

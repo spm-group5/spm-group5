@@ -44,10 +44,11 @@ const taskSchema = new Schema({
         ref: 'users',
         required: true
     },
+    // Task assignee should be 1 or more 
     assignee: {
-        type: Schema.Types.ObjectId,
+        type: [Schema.Types.ObjectId], 
         ref: 'users',
-        default: null
+        default: [],
     },
     project: {
         type: Schema.Types.ObjectId,
