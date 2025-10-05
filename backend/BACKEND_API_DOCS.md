@@ -140,6 +140,116 @@ Delete a specific project.
 
 ---
 
+## Report Endpoints
+
+### Admin Routes (Authentication + Admin Role Required)
+
+#### GET `/reports/task-completion/project/:projectId`
+Generate task completion report for a specific project. Only accessible by users with 'admin' role.
+- **File**: `backend/src/routes/report.router.js:7`
+- **Controller**: `reportController.generateProjectTaskCompletionReport`
+- **Authentication**: Required (`requireAuth` + `requireRole(['admin'])` middleware)
+- **URL Parameters**: 
+  - `projectId` (required): MongoDB ObjectId of the project
+- **Query Parameters** (ALL REQUIRED): 
+  - `startDate`: Start date for filtering tasks by creation date (ISO format: YYYY-MM-DD)
+  - `endDate`: End date for filtering tasks by creation date (ISO format: YYYY-MM-DD)
+  - `format`: Output format - 'json', 'pdf', or 'excel'
+- **Response**: 
+  - `format=json`: JSON object with report data
+  - `format=pdf`: PDF file download
+  - `format=excel`: Excel (.xlsx) file download
+
+#### GET `/reports/task-completion/user/:userId`
+Generate task completion report for a specific user (tasks where user is owner or assignee). Only accessible by users with 'admin' role.
+- **File**: `backend/src/routes/report.router.js:13`
+- **Controller**: `reportController.generateUserTaskCompletionReport`
+- **Authentication**: Required (`requireAuth` + `requireRole(['admin'])` middleware)
+- **URL Parameters**: 
+  - `userId` (required): MongoDB ObjectId of the user
+- **Query Parameters** (ALL REQUIRED): 
+  - `startDate`: Start date for filtering tasks by creation date (ISO format: YYYY-MM-DD)
+  - `endDate`: End date for filtering tasks by creation date (ISO format: YYYY-MM-DD)
+  - `format`: Output format - 'json', 'pdf', or 'excel'
+- **Response**: 
+  - `format=json`: JSON object with report data
+  - `format=pdf`: PDF file download
+  - `format=excel`: Excel (.xlsx) file download
+
+**Example Usage:**
+```
+GET /api/reports/task-completion/project/64abc123def456789?startDate=2024-01-01&endDate=2024-12-31&format=pdf
+GET /api/reports/task-completion/user/64xyz789abc123def?startDate=2024-10-01&endDate=2024-10-31&format=excel
+GET /api/reports/task-completion/project/64abc123def456789?startDate=2024-01-01&endDate=2024-12-31&format=json
+```
+
+**JSON Response Structure:**
+```javascript
+{
+  "success": true,
+  "data": {
+    "data": {
+      "To Do": [array of tasks],
+      "In Progress": [array of tasks], 
+      "Blocked": [array of tasks],
+      "Done": [array of tasks]
+    },
+    "aggregates": {
+      "To Do": number,
+      "In Progress": number,
+      "Blocked": number,
+      "Done": number,
+      "total": number
+    },
+    "metadata": {
+      "type": "project" | "user",
+      "dateRange": {
+        "startDate": "DD-MM-YYYY",
+        "endDate": "DD-MM-YYYY"
+      },
+      "generatedAt": "DD-MM-YYYY at HH:MM",
+      // Project-specific metadata (if type="project")
+      "projectId": "project_id",
+      "projectName": "project_name",
+      "projectOwner": "owner_username",
+      // User-specific metadata (if type="user")
+      "userId": "user_id",
+      "username": "username"
+    }
+  }
+}
+```
+
+**Task Object in Report:**
+```javascript
+{
+  "id": "task_id",
+  "title": "task_title",
+  "deadline": "DD-MM-YYYY or 'No deadline'",
+  "priority": number,
+  "tags": "comma,separated,tags or 'No tags'",
+  "description": "task_description or 'No description'",
+  "owner": "owner_username or 'No owner'",
+  "assignee": "assignee_username or 'Unassigned'",
+  "project": "project_name or 'No project'",
+  "createdAt": "DD-MM-YYYY"
+}
+```
+
+**Filtering Logic:**
+- **Project Reports**: Include tasks where `task.project = projectId` and `task.createdAt` falls within the date range
+- **User Reports**: Include tasks where user is either `task.owner` OR `task.assignee` and `task.createdAt` falls within the date range
+- **Date Filtering**: Based on `task.createdAt` field (when the task was created)
+- **Sorting**: Tasks are sorted by `dueDate` first (earliest to latest), then by `createdAt`
+
+**Error Responses:**
+- `400 Bad Request`: Missing required parameters or invalid date format
+- `404 Not Found`: Project or user not found
+- `403 Forbidden`: User doesn't have admin role
+- `500 Internal Server Error`: PDF/Excel generation failure or server error
+
+---
+
 ## Data Schemas
 
 ### Task Schema
@@ -150,7 +260,9 @@ Delete a specific project.
   _id: ObjectId,                    // MongoDB document ID
   title: String,                    // Required, non-empty string
   description: String,              // Optional, defaults to empty string
-  status: String,                   // Enum: ['To Do', 'In Progress', 'Done'], default: 'To Do'
+  priority: Number,                 // Required, integer 1-10, default: 5
+  status: String,                   // Enum: ['To Do', 'In Progress', 'Blocked', 'Done'], default: 'To Do'
+  tags: String,                     // Optional, comma-separated tags, defaults to empty string
   owner: ObjectId,                  // Required, references User document
   assignee: ObjectId,               // Optional, references User document, defaults to null
   project: ObjectId,                // Optional, references Project document, defaults to null
@@ -162,7 +274,9 @@ Delete a specific project.
 
 #### Task Validation Rules
 - `title`: Must be a non-empty string after trimming
-- `status`: Must be one of: 'To Do', 'In Progress', 'Done'
+- `priority`: Must be a number between 1 and 10 (inclusive)
+- `status`: Must be one of: 'To Do', 'In Progress', 'Blocked', 'Done'
+- `tags`: Must be a string (can be empty)
 - `dueDate`: Cannot be in the past (if provided)
 - `owner`: Must be a valid User ObjectId
 - `assignee`: Must be a valid User ObjectId (if provided)
