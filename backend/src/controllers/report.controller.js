@@ -7,7 +7,7 @@ class ReportController {
      * Query parameters (REQUIRED):
      * - startDate: Start date for filtering (ISO format YYYY-MM-DD)
      * - endDate: End date for filtering (ISO format YYYY-MM-DD)
-     * - format: 'json', 'pdf', or 'excel'
+     * - format: 'pdf' or 'excel'
      */
     generateProjectTaskCompletionReport = async (req, res) => {
         try {
@@ -19,6 +19,14 @@ class ReportController {
                 return res.status(400).json({
                     error: 'Missing required parameters',
                     message: 'startDate, endDate, and format are required parameters'
+                });
+            }
+
+            // Validate format parameter (only PDF and Excel supported)
+            if (!['pdf', 'excel'].includes(format.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
                 });
             }
 
@@ -76,7 +84,7 @@ class ReportController {
      * Query parameters (REQUIRED):
      * - startDate: Start date for filtering (ISO format YYYY-MM-DD)
      * - endDate: End date for filtering (ISO format YYYY-MM-DD)
-     * - format: 'json', 'pdf', or 'excel'
+     * - format: 'pdf' or 'excel'
      */
     generateUserTaskCompletionReport = async (req, res) => {
         try {
@@ -88,6 +96,14 @@ class ReportController {
                 return res.status(400).json({
                     error: 'Missing required parameters',
                     message: 'startDate, endDate, and format are required parameters'
+                });
+            }
+
+            // Validate format parameter (only PDF and Excel supported)
+            if (!['pdf', 'excel'].includes(format.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
                 });
             }
 
@@ -140,20 +156,14 @@ class ReportController {
     }
 
     /**
-     * Handle different report formats (JSON, PDF, Excel)
+     * Handle different report formats (PDF, Excel)
      * @param {Object} res - Express response object
      * @param {Object} reportData - Report data
-     * @param {String} format - Format type
+     * @param {String} format - Format type (pdf or excel)
      * @param {String} identifier - File identifier for naming
      */
     handleReportFormat = async (res, reportData, format, identifier) => {
         switch (format.toLowerCase()) {
-            case 'json':
-                return res.json({
-                    success: true,
-                    data: reportData
-                });
-
             case 'pdf':
                 try {
                     const pdfBuffer = await reportService.generatePdfReport(reportData);
@@ -193,7 +203,7 @@ class ReportController {
             default:
                 return res.status(400).json({
                     error: 'Invalid format parameter',
-                    message: 'Format must be one of: json, pdf, excel'
+                    message: 'Format must be either pdf or excel'
                 });
         }
     }
