@@ -20,7 +20,8 @@
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "mongodb": "^6.19.0",
-    "mongoose": "^8.18.1"
+    "mongoose": "^8.18.1",
+    "nodemailer": "^7.0.6"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.4",
