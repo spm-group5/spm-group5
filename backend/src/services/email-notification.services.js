@@ -6,7 +6,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '../../environments/.env.test') });
+// Dynamically select the environment file based on ENV_FILE or NODE_ENV
+const envFile =
+    process.env.ENV_FILE
+        ? process.env.ENV_FILE
+        : `.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`;
+dotenv.config({ path: path.join(__dirname, '../../environments', envFile) });
 
 console.log('SMTP Config:');
 console.log('Host:', process.env.SMTP_HOST);
