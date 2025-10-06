@@ -72,12 +72,22 @@ class TaskController {
                 console.log('Processed assignee:', req.body.assignee);
             }
             
-            // Get original task to compare assignees
+            // Get original task to compare assignees and check recurrence
             const originalTask = await taskService.getTaskById(taskId);
             const originalAssignees = originalTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
-            
+            const originalStatus = originalTask.status;
+
             const updatedTask = await taskService.updateTask(taskId, req.body, userId);
             const newAssignees = updatedTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
+
+            // Check if task was just marked as Done and is recurring
+            if (originalStatus !== 'Done' && updatedTask.status === 'Done' && updatedTask.isRecurring) {
+                console.log('Creating recurring task instance...');
+                const newRecurringTask = await taskService.createRecurringTask(updatedTask);
+                if (newRecurringTask) {
+                    console.log(`✅ New recurring task created: ${newRecurringTask._id}`);
+                }
+            }
 
             // Get Socket.IO instance
             const io = req.app.get('io');
@@ -191,10 +201,6 @@ class TaskController {
 
             if (req.query.project) {
                 filters.project = req.query.project;
-            }
-
-            if (req.query.standalone === 'true') {
-                filters.standalone = true;
             }
 
             if (req.query.status) {
