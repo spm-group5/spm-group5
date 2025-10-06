@@ -5,6 +5,11 @@ import { fileURLToPath } from 'url';
 
 // Load environment variables if not already loaded
 if (!process.env.MONGO_URI) {
+    // Set NODE_ENV to 'test' if not already set
+    if (!process.env.NODE_ENV) {
+        process.env.NODE_ENV = 'test';
+    }
+
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     dotenv.config({path: path.join(__dirname, '..', '..', 'environments', '.env.test')});

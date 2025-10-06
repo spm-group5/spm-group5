@@ -5,6 +5,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Set NODE_ENV to 'test' if not already set
+if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'test';
+}
+
 // Load environment variables FIRST
 dotenv.config({path: path.join(__dirname, 'environments', '.env.test')}); //define path to .env file
 
