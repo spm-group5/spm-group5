@@ -13,10 +13,12 @@ const envFile =
         : `.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV}` : ''}`;
 dotenv.config({ path: path.join(__dirname, '../../environments', envFile) });
 
-console.log('SMTP Config:');
-console.log('Host:', process.env.SMTP_HOST);
-console.log('Port:', process.env.SMTP_PORT);
-console.log('User:', process.env.SMTP_LOGIN);
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    console.log('SMTP Config:');
+    console.log('Host:', process.env.SMTP_HOST);
+    console.log('Port:', process.env.SMTP_PORT);
+    console.log('User:', process.env.SMTP_LOGIN);
+}
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
