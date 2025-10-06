@@ -46,7 +46,8 @@ describe('Task Service Test', () => {
         it('should create a task with valid data', async () => {
             const taskData = {
                 title: 'New Task',
-                description: 'Task description'
+                description: 'Task description',
+                project: testProject._id
             };
 
             const task = await taskService.createTask(taskData, testUser._id);
@@ -54,15 +55,80 @@ describe('Task Service Test', () => {
             expect(task.title).toBe('New Task');
             expect(task.status).toBe('To Do');
             expect(task.owner.toString()).toBe(testUser._id.toString());
+            expect(task.project.toString()).toBe(testProject._id.toString());
+            expect(task.assignee).toHaveLength(1);
+            expect(task.assignee[0].toString()).toBe(testUser._id.toString());
+        });
+
+        it('should set creator as default assignee', async () => {
+            const taskData = {
+                title: 'Task',
+                project: testProject._id
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+
+            expect(task.assignee).toHaveLength(1);
+            expect(task.assignee[0].toString()).toBe(testUser._id.toString());
+        });
+
+        it('should include creator when additional assignees are provided', async () => {
+            const otherUser = await User.create({
+                username: 'otheruser',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'password456'
+            });
+
+            const taskData = {
+                title: 'Task',
+                project: testProject._id,
+                assignee: [otherUser._id]
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+
+            expect(task.assignee).toHaveLength(2);
+            expect(task.assignee.map(a => a.toString())).toContain(testUser._id.toString());
+            expect(task.assignee.map(a => a.toString())).toContain(otherUser._id.toString());
+        });
+
+        it('should throw error when more than 5 assignees', async () => {
+            const users = await Promise.all([
+                User.create({ username: 'user1', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user2', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user3', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user4', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user5', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
+            ]);
+
+            const taskData = {
+                title: 'Task',
+                project: testProject._id,
+                assignee: users.map(u => u._id)
+            };
+
+            await expect(taskService.createTask(taskData, testUser._id))
+                .rejects.toThrow('A task can have a maximum of 5 assignees');
         });
 
         it('should throw error for empty title', async () => {
             const taskData = {
-                title: ''
+                title: '',
+                project: testProject._id
             };
 
             await expect(taskService.createTask(taskData, testUser._id))
                 .rejects.toThrow('Task title is required');
+        });
+
+        it('should throw error for missing project', async () => {
+            const taskData = {
+                title: 'Task without project'
+            };
+
+            await expect(taskService.createTask(taskData, testUser._id))
+                .rejects.toThrow('Project is required');
         });
 
         it('should throw error for past due date', async () => {
@@ -71,6 +137,7 @@ describe('Task Service Test', () => {
 
             const taskData = {
                 title: 'Task',
+                project: testProject._id,
                 dueDate: yesterday
             };
 
@@ -78,15 +145,16 @@ describe('Task Service Test', () => {
                 .rejects.toThrow('Due date cannot be in the past');
         });
 
-        it('should create task with project', async () => {
+        it('should create task with tags', async () => {
             const taskData = {
-                title: 'Project Task',
-                project: testProject._id
+                title: 'Task with tags',
+                project: testProject._id,
+                tags: 'bug#urgent#frontend'
             };
 
             const task = await taskService.createTask(taskData, testUser._id);
 
-            expect(task.project.toString()).toBe(testProject._id.toString());
+            expect(task.tags).toBe('bug#urgent#frontend');
         });
 
         it('should throw error for non-existent project', async () => {
@@ -98,16 +166,41 @@ describe('Task Service Test', () => {
             await expect(taskService.createTask(taskData, testUser._id))
                 .rejects.toThrow('Selected project does not exist');
         });
+
+        it('should throw error for inactive project', async () => {
+            const inactiveProject = await Project.create({
+                name: 'Inactive Project',
+                owner: testUser._id,
+                status: 'Completed'
+            });
+
+            const taskData = {
+                title: 'Task',
+                project: inactiveProject._id
+            };
+
+            await expect(taskService.createTask(taskData, testUser._id))
+                .rejects.toThrow('Project must be Active');
+        });
     });
 
     describe('updateTask', () => {
         let existingTask;
+        let managerUser;
 
         beforeEach(async () => {
+            managerUser = await User.create({
+                username: 'manager',
+                roles: ['manager'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
             existingTask = await Task.create({
                 title: 'Original Task',
                 owner: testUser._id,
-                assignee: testUser._id
+                assignee: [testUser._id],
+                project: testProject._id
             });
         });
 
@@ -189,26 +282,323 @@ describe('Task Service Test', () => {
 
             expect(updatedTask.dueDate).toBeNull();
         });
+
+        it('should update tags', async () => {
+            const updateData = {
+                tags: 'updated#urgent#backend'
+            };
+
+            const updatedTask = await taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            );
+
+            expect(updatedTask.tags).toBe('updated#urgent#backend');
+        });
+
+        it('should throw error when trying to change project', async () => {
+            const newProject = await Project.create({
+                name: 'New Project',
+                owner: testUser._id,
+                status: 'Active'
+            });
+
+            const updateData = {
+                project: newProject._id
+            };
+
+            await expect(taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            )).rejects.toThrow('Project cannot be changed after task creation');
+        });
+
+        it('should allow assignee to add new assignees', async () => {
+            const newUser = await User.create({
+                username: 'newuser',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'password789'
+            });
+
+            const updateData = {
+                assignee: [testUser._id, newUser._id]
+            };
+
+            const updatedTask = await taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            );
+
+            expect(updatedTask.assignee).toHaveLength(2);
+            expect(updatedTask.assignee.map(a => a.toString())).toContain(newUser._id.toString());
+        });
+
+        it('should throw error when non-manager tries to remove assignee', async () => {
+            const otherUser = await User.create({
+                username: 'other',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'pass'
+            });
+
+            existingTask.assignee = [testUser._id, otherUser._id];
+            await existingTask.save();
+
+            const updateData = {
+                assignee: [testUser._id] // Removing otherUser
+            };
+
+            await expect(taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            )).rejects.toThrow('Only managers can remove assignees from a task');
+        });
+
+        it('should allow manager to remove assignees', async () => {
+            const otherUser = await User.create({
+                username: 'other',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'pass'
+            });
+
+            existingTask.assignee = [testUser._id, otherUser._id, managerUser._id];
+            await existingTask.save();
+
+            const updateData = {
+                assignee: [testUser._id] // Manager removing others
+            };
+
+            const updatedTask = await taskService.updateTask(
+                existingTask._id,
+                updateData,
+                managerUser._id.toString()
+            );
+
+            expect(updatedTask.assignee).toHaveLength(1);
+            expect(updatedTask.assignee[0].toString()).toBe(testUser._id.toString());
+        });
+
+        it('should throw error when trying to have more than 5 assignees', async () => {
+            const users = await Promise.all([
+                User.create({ username: 'u1', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u2', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u3', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u4', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u5', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
+            ]);
+
+            const updateData = {
+                assignee: [testUser._id, ...users.map(u => u._id)]
+            };
+
+            await expect(taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            )).rejects.toThrow('A task can have a maximum of 5 assignees');
+        });
+
+        it('should throw error when trying to remove all assignees', async () => {
+            const updateData = {
+                assignee: []
+            };
+
+            await expect(taskService.updateTask(
+                existingTask._id,
+                updateData,
+                testUser._id.toString()
+            )).rejects.toThrow('At least one assignee is required');
+        });
+    });
+
+    describe('Task Recurrence', () => {
+        it('should create recurring task with valid interval and due date', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const taskData = {
+                title: 'Recurring Task',
+                project: testProject._id,
+                dueDate: futureDate,
+                isRecurring: true,
+                recurrenceInterval: 7
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+
+            expect(task.isRecurring).toBe(true);
+            expect(task.recurrenceInterval).toBe(7);
+        });
+
+        it('should throw error for recurring task without interval', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const taskData = {
+                title: 'Recurring Task',
+                project: testProject._id,
+                dueDate: futureDate,
+                isRecurring: true
+            };
+
+            await expect(taskService.createTask(taskData, testUser._id))
+                .rejects.toThrow('Recurrence interval must be a positive number for recurring tasks');
+        });
+
+        it('should throw error for recurring task without due date', async () => {
+            const taskData = {
+                title: 'Recurring Task',
+                project: testProject._id,
+                isRecurring: true,
+                recurrenceInterval: 7
+            };
+
+            await expect(taskService.createTask(taskData, testUser._id))
+                .rejects.toThrow('Due date is required for recurring tasks');
+        });
+
+        it('should turn off recurrence when updating', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const recurringTask = await Task.create({
+                title: 'Recurring Task',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                dueDate: futureDate,
+                isRecurring: true,
+                recurrenceInterval: 7
+            });
+
+            const updateData = {
+                isRecurring: false
+            };
+
+            const updatedTask = await taskService.updateTask(
+                recurringTask._id,
+                updateData,
+                testUser._id.toString()
+            );
+
+            expect(updatedTask.isRecurring).toBe(false);
+            expect(updatedTask.recurrenceInterval).toBeNull();
+        });
+
+        it('should turn on recurrence when updating', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const task = await Task.create({
+                title: 'Task',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                dueDate: futureDate
+            });
+
+            const updateData = {
+                isRecurring: true,
+                recurrenceInterval: 14
+            };
+
+            const updatedTask = await taskService.updateTask(
+                task._id,
+                updateData,
+                testUser._id.toString()
+            );
+
+            expect(updatedTask.isRecurring).toBe(true);
+            expect(updatedTask.recurrenceInterval).toBe(14);
+        });
+
+        it('should create new recurring task instance', async () => {
+            const originalDueDate = new Date();
+            originalDueDate.setDate(originalDueDate.getDate() + 7);
+
+            const originalTask = await Task.create({
+                title: 'Weekly Report',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                dueDate: originalDueDate,
+                isRecurring: true,
+                recurrenceInterval: 7,
+                status: 'Done',
+                description: 'Submit weekly report',
+                priority: 8,
+                tags: 'report#weekly'
+            });
+
+            const newTask = await taskService.createRecurringTask(originalTask);
+
+            expect(newTask).toBeDefined();
+            expect(newTask.title).toBe(originalTask.title);
+            expect(newTask.description).toBe(originalTask.description);
+            expect(newTask.priority).toBe(originalTask.priority);
+            expect(newTask.tags).toBe(originalTask.tags);
+            expect(newTask.isRecurring).toBe(true);
+            expect(newTask.recurrenceInterval).toBe(7);
+            expect(newTask.status).toBe('To Do');
+            expect(newTask.assignee.map(a => a.toString())).toEqual(
+                originalTask.assignee.map(a => a.toString())
+            );
+
+            // Check due date is 7 days after original
+            const expectedDueDate = new Date(originalDueDate);
+            expectedDueDate.setDate(expectedDueDate.getDate() + 7);
+            expect(newTask.dueDate.toDateString()).toBe(expectedDueDate.toDateString());
+        });
+
+        it('should not create recurring task for non-recurring task', async () => {
+            const task = await Task.create({
+                title: 'One-time Task',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                status: 'Done'
+            });
+
+            const newTask = await taskService.createRecurringTask(task);
+
+            expect(newTask).toBeNull();
+        });
     });
 
     describe('getTasks', () => {
+        let anotherProject;
+
         beforeEach(async () => {
+            anotherProject = await Project.create({
+                name: 'Another Project',
+                owner: testUser._id,
+                status: 'Active'
+            });
+
             await Task.create([
                 {
                     title: 'Task 1',
                     owner: testUser._id,
-                    status: 'To Do'
+                    status: 'To Do',
+                    project: testProject._id
                 },
                 {
                     title: 'Task 2',
                     owner: testUser._id,
                     status: 'In Progress',
-                    project: testProject._id
+                    project: anotherProject._id
                 },
                 {
                     title: 'Task 3',
                     owner: testUser._id,
-                    status: 'Done'
+                    status: 'Done',
+                    project: testProject._id
                 }
             ]);
         });
@@ -224,15 +614,9 @@ describe('Task Service Test', () => {
             expect(tasks[0].title).toBe('Task 1');
         });
 
-        it('should filter standalone tasks', async () => {
-            const tasks = await taskService.getTasks({ standalone: true });
-            expect(tasks).toHaveLength(2);
-        });
-
         it('should filter tasks by project', async () => {
             const tasks = await taskService.getTasks({ project: testProject._id });
-            expect(tasks).toHaveLength(1);
-            expect(tasks[0].title).toBe('Task 2');
+            expect(tasks).toHaveLength(2);
         });
     });
 
@@ -242,7 +626,8 @@ describe('Task Service Test', () => {
         beforeEach(async () => {
             taskToDelete = await Task.create({
                 title: 'Task to Delete',
-                owner: testUser._id
+                owner: testUser._id,
+                project: testProject._id
             });
         });
 

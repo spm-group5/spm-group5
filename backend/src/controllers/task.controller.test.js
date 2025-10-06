@@ -31,10 +31,11 @@ describe('Task Controller Test', () => {
 				title: 'New Task',
 				status: 'To Do',
 				owner: 'userId123',
-				assignee: []
+				assignee: [],
+				project: 'projectId123'
 			};
 
-			req.body = { title: 'New Task' };
+			req.body = { title: 'New Task', project: 'projectId123' };
 			taskService.createTask.mockResolvedValue(mockTask);
 
 			await taskController.createTask(req, res);
@@ -57,6 +58,19 @@ describe('Task Controller Test', () => {
 			expect(res.json).toHaveBeenCalledWith({
 				success: false,
 				message: 'Task title is required'
+			});
+		});
+
+		it('should handle missing project error', async () => {
+			req.body = { title: 'New Task' };
+			taskService.createTask.mockRejectedValue(new Error('Project is required'));
+
+			await taskController.createTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Project is required'
 			});
 		});
 	});
@@ -159,17 +173,6 @@ describe('Task Controller Test', () => {
 			await taskController.getTasks(req, res);
 
 			expect(taskService.getTasks).toHaveBeenCalledWith({ project: 'projectId123' });
-		});
-
-		it('should filter standalone tasks', async () => {
-			req.query = { standalone: 'true' };
-			const mockTasks = [{ _id: 'task1', title: 'Standalone Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ standalone: true });
 		});
 
 		it('should filter tasks by status', async () => {
