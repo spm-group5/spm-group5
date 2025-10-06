@@ -143,13 +143,13 @@ describe('Report Service Test', () => {
                 createdAt: new Date('2024-03-01') // Outside our test range
             },
             {
-                title: 'Task 6 - Standalone User Task',
-                description: 'Standalone task for user',
+                title: 'Task 6 - User Task',
+                description: 'Task for user',
                 status: 'Done',
                 priority: 7,
                 owner: testUser1._id,
                 assignee: [testUser1._id],
-                // No project - standalone task
+                project: testProject._id, // Project is now required
                 createdAt: baseDate
             }
         ]);

@@ -107,8 +107,11 @@ class TaskService {
         }
 
         // STEP 3: Check permissions AFTER validation
-        const hasPermission = task.owner.toString() === userId.toString() ||
-                            task.assignee?.toString() === userId.toString();
+        const isOwner = task.owner.toString() === userId.toString();
+        const isAssignee = task.assignee && task.assignee.some(
+            assigneeId => assigneeId.toString() === userId.toString()
+        );
+        const hasPermission = isOwner || isAssignee;
 
         if (!hasPermission) {
             throw new Error('You do not have permission to modify this task');
