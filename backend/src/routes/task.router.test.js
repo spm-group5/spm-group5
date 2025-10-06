@@ -70,6 +70,8 @@ afterAll(async () => {
 beforeEach(async () => {
     await Task.deleteMany({});
     await Project.deleteMany({});
+    // Clean up dynamically created users (excluding testUser)
+    await User.deleteMany({ username: { $ne: 'testuser' } });
 });
 
 describe('Task Router Test', () => {

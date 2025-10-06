@@ -363,11 +363,13 @@ describe('Report Service Test', () => {
                 owner: testUser1._id,
                 status: 'To Do',
                 priority: 5, // Required field with default value
+                project: testProject._id, // Required field
                 createdAt: new Date('2024-01-15')
-                // No project, assignee, dueDate, tags, or description
+                // No assignee, dueDate, tags, or description
             });
 
             await minimalTask.populate('owner', 'username');
+            await minimalTask.populate('project', 'name');
 
             const reportData = reportService.processTasksForReport([minimalTask], 'user', {
                 userId: testUser1._id.toString(),
@@ -382,7 +384,7 @@ describe('Report Service Test', () => {
             expect(task.tags).toBe('No tags'); // Empty string becomes 'No tags'
             expect(task.description).toBe('No description'); // Empty string becomes 'No description'
             expect(task.assignee).toBe('Unassigned');
-            expect(task.project).toBe('No project');
+            expect(task.project).toBe('Test Project'); // Now has a project
         });
     });
 
