@@ -74,7 +74,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     (async() => {
         console.log('Sending test email...');
         const result = await sendEmail(
-            'dominiclau2002@gmail.com',
+            process.env.TEST_EMAIL_TO,
             'Test Email from All-In-One STMS',
             'This is a test email sent using Nodemailer.',
             '<b>This is a test email sent using Nodemailer.</b>'
