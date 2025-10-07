@@ -224,7 +224,13 @@ class TaskService {
         }
 
         task.updatedAt = new Date();
-        return await task.save();
+        await task.save();
+
+        // Re-populate the fields before returning
+        return await Task.findById(task._id)
+            .populate('owner', 'username')
+            .populate('assignee', 'username')
+            .populate('project', 'name');
     }
 
     async createRecurringTask(originalTask) {
@@ -294,6 +300,63 @@ class TaskService {
         return task;
     }
 
+    async archiveTask(taskId, userId) {
+        const task = await Task.findById(taskId);
+
+        if (!task) {
+            throw new Error('Task not found');
+        }
+
+        // Check permissions - only owner or assignees can archive
+        const isOwner = task.owner.toString() === userId.toString();
+        const isAssignee = task.assignee && task.assignee.some(
+            assigneeId => assigneeId.toString() === userId.toString()
+        );
+
+        if (!isOwner && !isAssignee) {
+            throw new Error('You do not have permission to archive this task');
+        }
+
+        task.archived = true;
+        task.archivedAt = new Date();
+        await task.save();
+
+        // Return populated task
+        return await Task.findById(task._id)
+            .populate('owner', 'username')
+            .populate('assignee', 'username')
+            .populate('project', 'name');
+    }
+
+    async unarchiveTask(taskId, userId) {
+        const task = await Task.findById(taskId);
+
+        if (!task) {
+            throw new Error('Task not found');
+        }
+
+        // Check permissions
+        const isOwner = task.owner.toString() === userId.toString();
+        const isAssignee = task.assignee && task.assignee.some(
+            assigneeId => assigneeId.toString() === userId.toString()
+        );
+
+        if (!isOwner && !isAssignee) {
+            throw new Error('You do not have permission to unarchive this task');
+        }
+
+        task.archived = false;
+        task.archivedAt = null;
+        await task.save();
+
+        // Return populated task
+        return await Task.findById(task._id)
+            .populate('owner', 'username')
+            .populate('assignee', 'username')
+            .populate('project', 'name');
+    }
+
+    // Keep delete for admin purposes only (can be restricted later)
     async deleteTask(taskId, userId) {
         const task = await Task.findById(taskId);
 

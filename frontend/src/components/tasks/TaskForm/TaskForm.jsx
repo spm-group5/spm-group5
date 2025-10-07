@@ -91,6 +91,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
             recurrenceInterval: data.isRecurring ? parseInt(data.recurrenceInterval, 10) || null : null,
         };
 
+        // Remove project field when editing (project cannot be changed after creation)
+        if (isEditing) {
+            delete formattedData.project;
+        }
+
         console.log('Submitting task data:', formattedData);
         await onSubmit(formattedData);
     } catch (error) {

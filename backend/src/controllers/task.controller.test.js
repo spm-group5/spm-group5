@@ -297,4 +297,142 @@ describe('Task Controller Test', () => {
 			});
 		});
 	});
+
+	describe('archiveTask', () => {
+		it('should archive a task successfully', async () => {
+			const mockTask = {
+				_id: 'taskId123',
+				title: 'Test Task',
+				archived: true,
+				archivedAt: new Date()
+			};
+
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockResolvedValue(mockTask);
+
+			await taskController.archiveTask(req, res);
+
+			expect(taskService.archiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task archived successfully',
+				data: mockTask
+			});
+		});
+
+		it('should return 404 for non-existent task', async () => {
+			req.params = { taskId: 'nonexistent' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockRejectedValue(new Error('Task not found'));
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Task not found'
+			});
+		});
+
+		it('should return 403 for permission error', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'unauthorizedUser' };
+			taskService.archiveTask.mockRejectedValue(
+				new Error('You do not have permission to archive this task')
+			);
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(403);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'You do not have permission to archive this task'
+			});
+		});
+
+		it('should handle other archive errors', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockRejectedValue(new Error('Database error'));
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Database error'
+			});
+		});
+	});
+
+	describe('unarchiveTask', () => {
+		it('should unarchive a task successfully', async () => {
+			const mockTask = {
+				_id: 'taskId123',
+				title: 'Test Task',
+				archived: false,
+				archivedAt: null
+			};
+
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockResolvedValue(mockTask);
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(taskService.unarchiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task unarchived successfully',
+				data: mockTask
+			});
+		});
+
+		it('should return 404 for non-existent task', async () => {
+			req.params = { taskId: 'nonexistent' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockRejectedValue(new Error('Task not found'));
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Task not found'
+			});
+		});
+
+		it('should return 403 for permission error', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'unauthorizedUser' };
+			taskService.unarchiveTask.mockRejectedValue(
+				new Error('You do not have permission to unarchive this task')
+			);
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(403);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'You do not have permission to unarchive this task'
+			});
+		});
+
+		it('should handle other unarchive errors', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockRejectedValue(new Error('Database error'));
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Database error'
+			});
+		});
+	});
 });

@@ -28,7 +28,8 @@ import { ProjectContext } from '../context/ProjectContext';
 const mockFetchTasks = vi.fn();
 const mockCreateTask = vi.fn();
 const mockUpdateTask = vi.fn();
-const mockDeleteTask = vi.fn();
+const mockArchiveTask = vi.fn();
+const mockUnarchiveTask = vi.fn();
 const mockFetchProjects = vi.fn();
 
 const mockTasks = [
@@ -58,7 +59,7 @@ const mockTasks = [
     _id: 'task3',
     title: 'Task Gamma',
     description: 'Description for Gamma',
-    status: 'Done',
+    status: 'To Do',
     priority: 3,
     dueDate: '2025-10-10',
     tags: 'frontend#testing',
@@ -88,17 +89,14 @@ const renderWithContexts = (taskValue, projectValue) => {
   );
 };
 
-// Mock window.confirm
-global.confirm = vi.fn();
-
 describe('TasksPage', () => {
   beforeEach(() => {
     mockFetchTasks.mockClear();
     mockCreateTask.mockClear();
     mockUpdateTask.mockClear();
-    mockDeleteTask.mockClear();
+    mockArchiveTask.mockClear();
+    mockUnarchiveTask.mockClear();
     mockFetchProjects.mockClear();
-    global.confirm.mockClear();
   });
 
   describe('Page Rendering', () => {
@@ -110,7 +108,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -130,7 +129,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -150,7 +150,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -172,7 +173,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -194,7 +196,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: vi.fn(),
+        unarchiveTask: vi.fn()
       };
 
       const projectValue = {
@@ -203,8 +206,13 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
+
+      // Check that Edit and Archive buttons are visible in collapsed view
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      expect(editButtons).toHaveLength(3);
+      const archiveButtons = screen.getAllByRole('button', { name: 'Archive' });
+
+      expect(editButtons.length).toBeGreaterThanOrEqual(mockTasks.length);
+      expect(archiveButtons.length).toBeGreaterThanOrEqual(mockTasks.length);
     });
   });
 
@@ -218,7 +226,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -242,7 +251,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -268,7 +278,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -306,7 +317,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -344,7 +356,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -353,8 +366,9 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
+
+      // Get first Edit button (buttons visible in collapsed view)
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      // First task shown is now Task Beta (priority 8)
       await user.click(editButtons[0]);
 
       expect(screen.getByRole('heading', { name: 'Edit Task' })).toBeInTheDocument();
@@ -372,7 +386,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -381,6 +396,8 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
+
+      // Get first Edit button
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
       // First task is now Task Beta (task2)
       await user.click(editButtons[0]);
@@ -411,7 +428,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -420,6 +438,8 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
+
+      // Get first Edit button
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
       await user.click(editButtons[0]);
 
@@ -432,10 +452,9 @@ describe('TasksPage', () => {
     });
   });
 
-  describe('Delete Task Flow', () => {
-    it('shows confirmation dialog when Delete is clicked', async () => {
+  describe('Archive Task Flow', () => {
+    it('shows modal when Archive is clicked', async () => {
       const user = userEvent.setup();
-      global.confirm.mockReturnValue(true);
 
       const taskValue = {
         tasks: mockTasks,
@@ -444,7 +463,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -453,16 +473,19 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
-      const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
-      await user.click(deleteButtons[0]);
 
-      expect(global.confirm).toHaveBeenCalledWith('Are you sure you want to delete this task?');
+      // Get first Archive button (visible in collapsed view)
+      const archiveButtons = screen.getAllByRole('button', { name: 'Archive' });
+      await user.click(archiveButtons[0]);
+
+      // Check modal is displayed
+      expect(screen.getByText('Archive Task')).toBeInTheDocument();
+      expect(screen.getByText(/Are you sure you want to archive this task/)).toBeInTheDocument();
     });
 
-    it('calls deleteTask when confirmed', async () => {
+    it('calls archiveTask when confirmed in modal', async () => {
       const user = userEvent.setup();
-      global.confirm.mockReturnValue(true);
-      mockDeleteTask.mockResolvedValue({ success: true });
+      mockArchiveTask.mockResolvedValue({ success: true });
 
       const taskValue = {
         tasks: mockTasks,
@@ -471,7 +494,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -480,18 +504,24 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
-      const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
-      // First task is now Task Beta (task2)
-      await user.click(deleteButtons[0]);
+
+      // Click first Archive button (visible in collapsed view)
+      const archiveButtons = screen.getAllByRole('button', { name: 'Archive' });
+      await user.click(archiveButtons[0]);
+
+      // Click confirm in modal
+      const confirmButtons = screen.getAllByRole('button', { name: 'Archive' });
+      const modalConfirmButton = confirmButtons[confirmButtons.length - 1]; // Last Archive button is in modal
+      await user.click(modalConfirmButton);
 
       await waitFor(() => {
-        expect(mockDeleteTask).toHaveBeenCalledWith('task2');
+        // First task shown is Task Beta (task2) - priority 8
+        expect(mockArchiveTask).toHaveBeenCalledWith('task2');
       });
     });
 
-    it('does not delete when cancelled', async () => {
+    it('does not archive when cancelled in modal', async () => {
       const user = userEvent.setup();
-      global.confirm.mockReturnValue(false);
 
       const taskValue = {
         tasks: mockTasks,
@@ -500,7 +530,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -509,10 +540,55 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
-      const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
-      await user.click(deleteButtons[0]);
 
-      expect(mockDeleteTask).not.toHaveBeenCalled();
+      // Click first Archive button (visible in collapsed view)
+      const archiveButtons = screen.getAllByRole('button', { name: 'Archive' });
+      await user.click(archiveButtons[0]);
+
+      // Click cancel in modal
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(mockArchiveTask).not.toHaveBeenCalled();
+    });
+
+    it('closes modal when close button is clicked', async () => {
+      const user = userEvent.setup();
+
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+
+      // Click first Archive button (visible in collapsed view)
+      const archiveButtons = screen.getAllByRole('button', { name: 'Archive' });
+      await user.click(archiveButtons[0]);
+
+      // Modal should be visible
+      expect(screen.getByText('Archive Task')).toBeInTheDocument();
+
+      // Click close button
+      const closeButton = screen.getByLabelText('Close');
+      await user.click(closeButton);
+
+      // Modal should be closed
+      await waitFor(() => {
+        expect(screen.queryByText('Archive Task')).not.toBeInTheDocument();
+      });
+      expect(mockArchiveTask).not.toHaveBeenCalled();
     });
   });
 
@@ -526,7 +602,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -554,7 +631,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -563,6 +641,8 @@ describe('TasksPage', () => {
       };
 
       renderWithContexts(taskValue, projectValue);
+
+      // Click first Edit button (visible in collapsed view)
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
       await user.click(editButtons[0]);
 
@@ -586,7 +666,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -607,7 +688,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -630,7 +712,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -650,7 +733,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -672,7 +756,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -694,7 +779,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -714,7 +800,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -736,7 +823,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -756,7 +844,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -780,7 +869,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -808,7 +898,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -828,7 +919,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -849,7 +941,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -875,7 +968,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -901,7 +995,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -925,7 +1020,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {
@@ -954,7 +1050,8 @@ describe('TasksPage', () => {
         fetchTasks: mockFetchTasks,
         createTask: mockCreateTask,
         updateTask: mockUpdateTask,
-        deleteTask: mockDeleteTask
+        archiveTask: mockArchiveTask,
+        unarchiveTask: mockUnarchiveTask
       };
 
       const projectValue = {

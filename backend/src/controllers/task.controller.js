@@ -239,6 +239,50 @@ class TaskController {
         }
     }
 
+    async archiveTask(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user._id;
+
+            const archivedTask = await taskService.archiveTask(taskId, userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task archived successfully',
+                data: archivedTask
+            });
+        } catch (error) {
+            const statusCode = error.message === 'Task not found' ? 404 :
+                error.message.includes('permission') ? 403 : 500;
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    async unarchiveTask(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user._id;
+
+            const unarchivedTask = await taskService.unarchiveTask(taskId, userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task unarchived successfully',
+                data: unarchivedTask
+            });
+        } catch (error) {
+            const statusCode = error.message === 'Task not found' ? 404 :
+                error.message.includes('permission') ? 403 : 500;
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
     async deleteTask(req, res) {
         try {
             const { taskId } = req.params;

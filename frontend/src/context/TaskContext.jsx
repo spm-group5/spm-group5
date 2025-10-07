@@ -41,12 +41,55 @@ export function TaskProvider({ children }) {
       setError(null);
       const response = await apiService.updateTask(taskId, taskData);
       const updatedTask = response.data || response;
+
+      // Fetch the updated task again to ensure we have all populated fields
+      const freshTaskResponse = await apiService.getTaskById(taskId);
+      const freshTask = freshTaskResponse.data || freshTaskResponse;
+
       setTasks(prevTasks =>
         prevTasks.map(task =>
-          task._id === taskId ? updatedTask : task
+          task._id === taskId ? freshTask : task
         )
       );
-      return { success: true, data: updatedTask };
+      return { success: true, data: freshTask };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const archiveTask = async (taskId) => {
+    try {
+      setError(null);
+      const response = await apiService.archiveTask(taskId);
+      const archivedTask = response.data || response;
+
+      // Update task in state
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task._id === taskId ? archivedTask : task
+        )
+      );
+      return { success: true, data: archivedTask };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const unarchiveTask = async (taskId) => {
+    try {
+      setError(null);
+      const response = await apiService.unarchiveTask(taskId);
+      const unarchivedTask = response.data || response;
+
+      // Update task in state
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task._id === taskId ? unarchivedTask : task
+        )
+      );
+      return { success: true, data: unarchivedTask };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -85,6 +128,8 @@ export function TaskProvider({ children }) {
     updateTask,
     deleteTask,
     getTaskById,
+    archiveTask,
+    unarchiveTask,
   };
 
   return (
