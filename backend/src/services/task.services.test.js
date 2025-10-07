@@ -661,4 +661,221 @@ describe('Task Service Test', () => {
             )).rejects.toThrow('Task not found');
         });
     });
+
+    describe('archiveTask', () => {
+        it('should archive a task successfully by owner', async () => {
+            const task = await Task.create({
+                title: 'Task to Archive',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: []
+            });
+
+            const archivedTask = await taskService.archiveTask(
+                task._id.toString(),
+                testUser._id.toString()
+            );
+
+            expect(archivedTask.archived).toBe(true);
+            expect(archivedTask.archivedAt).toBeDefined();
+            expect(archivedTask.archivedAt).toBeInstanceOf(Date);
+        });
+
+        it('should archive a task successfully by assignee', async () => {
+            const assignee = await User.create({
+                username: 'assignee',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            const task = await Task.create({
+                title: 'Task to Archive',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [assignee._id]
+            });
+
+            const archivedTask = await taskService.archiveTask(
+                task._id.toString(),
+                assignee._id.toString()
+            );
+
+            expect(archivedTask.archived).toBe(true);
+            expect(archivedTask.archivedAt).toBeDefined();
+        });
+
+        it('should throw error when non-owner/non-assignee tries to archive', async () => {
+            const otherUser = await User.create({
+                username: 'otheruser',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            const task = await Task.create({
+                title: 'Task to Archive',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: []
+            });
+
+            await expect(taskService.archiveTask(
+                task._id.toString(),
+                otherUser._id.toString()
+            )).rejects.toThrow('You do not have permission to archive this task');
+        });
+
+        it('should throw error for non-existent task', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+
+            await expect(taskService.archiveTask(
+                fakeId.toString(),
+                testUser._id.toString()
+            )).rejects.toThrow('Task not found');
+        });
+
+        it('should return populated fields after archiving', async () => {
+            const task = await Task.create({
+                title: 'Task to Archive',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [testUser._id]
+            });
+
+            const archivedTask = await taskService.archiveTask(
+                task._id.toString(),
+                testUser._id.toString()
+            );
+
+            expect(archivedTask.owner).toBeDefined();
+            expect(archivedTask.owner.username).toBe('testuser');
+            expect(archivedTask.project).toBeDefined();
+            expect(archivedTask.project.name).toBe('Test Project');
+        });
+    });
+
+    describe('unarchiveTask', () => {
+        it('should unarchive a task successfully by owner', async () => {
+            const task = await Task.create({
+                title: 'Archived Task',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [],
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            const unarchivedTask = await taskService.unarchiveTask(
+                task._id.toString(),
+                testUser._id.toString()
+            );
+
+            expect(unarchivedTask.archived).toBe(false);
+            expect(unarchivedTask.archivedAt).toBeNull();
+        });
+
+        it('should unarchive a task successfully by assignee', async () => {
+            const assignee = await User.create({
+                username: 'assignee',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            const task = await Task.create({
+                title: 'Archived Task',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [assignee._id],
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            const unarchivedTask = await taskService.unarchiveTask(
+                task._id.toString(),
+                assignee._id.toString()
+            );
+
+            expect(unarchivedTask.archived).toBe(false);
+            expect(unarchivedTask.archivedAt).toBeNull();
+        });
+
+        it('should throw error when non-owner/non-assignee tries to unarchive', async () => {
+            const otherUser = await User.create({
+                username: 'otheruser',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            const task = await Task.create({
+                title: 'Archived Task',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [],
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            await expect(taskService.unarchiveTask(
+                task._id.toString(),
+                otherUser._id.toString()
+            )).rejects.toThrow('You do not have permission to unarchive this task');
+        });
+
+        it('should throw error for non-existent task', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+
+            await expect(taskService.unarchiveTask(
+                fakeId.toString(),
+                testUser._id.toString()
+            )).rejects.toThrow('Task not found');
+        });
+
+        it('should return populated fields after unarchiving', async () => {
+            const task = await Task.create({
+                title: 'Archived Task',
+                description: 'Test description',
+                status: 'To Do',
+                priority: 5,
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [testUser._id],
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            const unarchivedTask = await taskService.unarchiveTask(
+                task._id.toString(),
+                testUser._id.toString()
+            );
+
+            expect(unarchivedTask.owner).toBeDefined();
+            expect(unarchivedTask.owner.username).toBe('testuser');
+            expect(unarchivedTask.project).toBeDefined();
+            expect(unarchivedTask.project.name).toBe('Test Project');
+        });
+    });
 });

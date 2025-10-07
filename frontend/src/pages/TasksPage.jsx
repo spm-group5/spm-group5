@@ -6,16 +6,21 @@ import Button from '../components/common/Button/Button';
 import Spinner from '../components/common/Spinner/Spinner';
 import TaskCard from '../components/tasks/TaskCard/TaskCard';
 import TaskForm from '../components/tasks/TaskForm/TaskForm';
+import Modal from '../components/common/Modal/Modal';
 import styles from './TasksPage.module.css';
 
 function TasksPage() {
-  const { tasks, loading, error, fetchTasks, createTask, updateTask, deleteTask } = useTasks();
+  const { tasks, loading, error, fetchTasks, createTask, updateTask, archiveTask, unarchiveTask } = useTasks();
   const { fetchProjects } = useProjects();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
   const [filterTag, setFilterTag] = useState('');
   const [filterProject, setFilterProject] = useState('');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'done', or 'archived'
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [taskToArchive, setTaskToArchive] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -32,10 +37,26 @@ function TasksPage() {
     setShowForm(true);
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      await deleteTask(taskId);
+  const handleArchiveTask = (taskId) => {
+    setTaskToArchive(taskId);
+    setShowArchiveModal(true);
+  };
+
+  const confirmArchive = async () => {
+    if (taskToArchive) {
+      await archiveTask(taskToArchive);
+      setShowArchiveModal(false);
+      setTaskToArchive(null);
     }
+  };
+
+  const cancelArchive = () => {
+    setShowArchiveModal(false);
+    setTaskToArchive(null);
+  };
+
+  const handleUnarchiveTask = async (taskId) => {
+    await unarchiveTask(taskId);
   };
 
   const handleFormSubmit = async (formData) => {
@@ -85,6 +106,15 @@ function TasksPage() {
   const filteredAndSortedTasks = useMemo(() => {
     let filtered = [...tasks];
 
+    // Apply tab filter
+    if (activeTab === 'active') {
+      filtered = filtered.filter(task => !task.archived && task.status !== 'Done');
+    } else if (activeTab === 'done') {
+      filtered = filtered.filter(task => !task.archived && task.status === 'Done');
+    } else if (activeTab === 'archived') {
+      filtered = filtered.filter(task => task.archived);
+    }
+
     // Apply tag filter
     if (filterTag) {
       filtered = filtered.filter(task => {
@@ -131,7 +161,7 @@ function TasksPage() {
     });
 
     return filtered;
-  }, [tasks, sortBy, filterTag, filterProject]);
+  }, [tasks, sortBy, filterTag, filterProject, activeTab]);
 
   if (loading && tasks.length === 0) {
     return (
@@ -170,7 +200,44 @@ function TasksPage() {
             )}
 
             {tasks.length > 0 && (
-              <div className={styles.filterSection}>
+              <>
+                <div className={styles.tabs}>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'active' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('active')}
+                  >
+                    Active
+                  </button>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'done' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('done')}
+                  >
+                    Done
+                  </button>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'archived' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('archived')}
+                  >
+                    Archived
+                  </button>
+                </div>
+
+                <div className={styles.viewToggle}>
+                  <button
+                    className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    ☰ List View
+                  </button>
+                  <button
+                    className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    ▦ Grid View
+                  </button>
+                </div>
+
+                <div className={styles.filterSection}>
                 <div className={styles.filterGroup}>
                   <label htmlFor="sortBy" className={styles.filterLabel}>Sort by:</label>
                   <select
@@ -232,6 +299,7 @@ function TasksPage() {
                   </button>
                 )}
               </div>
+              </>
             )}
 
             {tasks.length === 0 ? (
@@ -248,19 +316,32 @@ function TasksPage() {
                 <p>Try adjusting your filters or create a new task.</p>
               </div>
             ) : (
-              <div className={styles.taskGrid}>
+              <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
                 {filteredAndSortedTasks.map((task) => (
                   <TaskCard
                     key={task._id}
                     task={task}
                     onEdit={handleEditTask}
-                    onDelete={handleDeleteTask}
+                    onArchive={handleArchiveTask}
+                    onUnarchive={handleUnarchiveTask}
+                    isArchived={task.archived}
                   />
                 ))}
               </div>
             )}
           </>
         )}
+
+        <Modal
+          isOpen={showArchiveModal}
+          onClose={cancelArchive}
+          onConfirm={confirmArchive}
+          title="Archive Task"
+          message="Are you sure you want to archive this task? You can unarchive it later from the Archived tab."
+          confirmText="Archive"
+          cancelText="Cancel"
+          variant="warning"
+        />
       </div>
     </div>
   );

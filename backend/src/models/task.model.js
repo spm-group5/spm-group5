@@ -98,6 +98,14 @@ const taskSchema = new Schema({
             message: 'Recurrence interval must be a positive number for recurring tasks'
         }
     },
+    archived: {
+        type: Boolean,
+        default: false
+    },
+    archivedAt: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
