@@ -334,7 +334,7 @@ describe('Task Service Test', () => {
             );
 
             expect(updatedTask.assignee).toHaveLength(2);
-            expect(updatedTask.assignee.map(a => a.toString())).toContain(newUser._id.toString());
+            expect(updatedTask.assignee.map(a => a._id?.toString ? a._id.toString() : a.toString())).toContain(newUser._id.toString());
         });
 
         it('should throw error when non-manager tries to remove assignee', async () => {
@@ -381,7 +381,7 @@ describe('Task Service Test', () => {
             );
 
             expect(updatedTask.assignee).toHaveLength(1);
-            expect(updatedTask.assignee[0].toString()).toBe(testUser._id.toString());
+            expect(updatedTask.assignee[0]._id?.toString ? updatedTask.assignee[0]._id.toString() : updatedTask.assignee[0].toString()).toBe(testUser._id.toString());
         });
 
         it('should throw error when trying to have more than 5 assignees', async () => {
