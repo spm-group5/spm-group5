@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTasks } from '../context/TaskContext';
 import { useProjects } from '../context/ProjectContext';
 import Header from '../components/common/Header/Header';
@@ -13,6 +13,9 @@ function TasksPage() {
   const { fetchProjects } = useProjects();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [sortBy, setSortBy] = useState('priority');
+  const [filterTag, setFilterTag] = useState('');
+  const [filterProject, setFilterProject] = useState('');
 
   useEffect(() => {
     fetchTasks();
@@ -54,6 +57,82 @@ function TasksPage() {
     setEditingTask(null);
   };
 
+  // Get all unique tags from all tasks
+  const availableTags = useMemo(() => {
+    const tagsSet = new Set();
+    tasks.forEach(task => {
+      if (task.tags) {
+        const taskTags = task.tags.split('#').map(tag => tag.trim()).filter(Boolean);
+        taskTags.forEach(tag => tagsSet.add(tag));
+      }
+    });
+    return Array.from(tagsSet).sort();
+  }, [tasks]);
+
+  // Get all unique projects from all tasks
+  const availableProjects = useMemo(() => {
+    const projectsSet = new Set();
+    tasks.forEach(task => {
+      if (task.project) {
+        const projectName = typeof task.project === 'object' ? task.project.name : task.project;
+        if (projectName) projectsSet.add(projectName);
+      }
+    });
+    return Array.from(projectsSet).sort();
+  }, [tasks]);
+
+  // Filter and sort tasks
+  const filteredAndSortedTasks = useMemo(() => {
+    let filtered = [...tasks];
+
+    // Apply tag filter
+    if (filterTag) {
+      filtered = filtered.filter(task => {
+        if (!task.tags) return false;
+        const taskTags = task.tags.split('#').map(tag => tag.trim()).filter(Boolean);
+        return taskTags.includes(filterTag);
+      });
+    }
+
+    // Apply project filter
+    if (filterProject) {
+      filtered = filtered.filter(task => {
+        if (!task.project) return false;
+        const projectName = typeof task.project === 'object' ? task.project.name : task.project;
+        return projectName === filterProject;
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'priority':
+          // Higher priority (10) should come first
+          return (b.priority || 0) - (a.priority || 0);
+
+        case 'dueDate':
+          // Tasks with no due date go to the end
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate) - new Date(b.dueDate);
+
+        case 'dateCreated':
+          // Most recent first
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+
+        case 'project':
+          const projectA = typeof a.project === 'object' ? (a.project?.name || '') : (a.project || '');
+          const projectB = typeof b.project === 'object' ? (b.project?.name || '') : (b.project || '');
+          return projectA.localeCompare(projectB);
+
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [tasks, sortBy, filterTag, filterProject]);
+
   if (loading && tasks.length === 0) {
     return (
       <div>
@@ -90,6 +169,71 @@ function TasksPage() {
               </div>
             )}
 
+            {tasks.length > 0 && (
+              <div className={styles.filterSection}>
+                <div className={styles.filterGroup}>
+                  <label htmlFor="sortBy" className={styles.filterLabel}>Sort by:</label>
+                  <select
+                    id="sortBy"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="priority">Priority (High to Low)</option>
+                    <option value="dueDate">Due Date (Nearest First)</option>
+                    <option value="dateCreated">Date Created (Newest First)</option>
+                    <option value="project">Project (A-Z)</option>
+                  </select>
+                </div>
+
+                {availableTags.length > 0 && (
+                  <div className={styles.filterGroup}>
+                    <label htmlFor="filterTag" className={styles.filterLabel}>Filter by tag:</label>
+                    <select
+                      id="filterTag"
+                      value={filterTag}
+                      onChange={(e) => setFilterTag(e.target.value)}
+                      className={styles.filterSelect}
+                    >
+                      <option value="">All Tags</option>
+                      {availableTags.map(tag => (
+                        <option key={tag} value={tag}>{tag}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {availableProjects.length > 0 && (
+                  <div className={styles.filterGroup}>
+                    <label htmlFor="filterProject" className={styles.filterLabel}>Filter by project:</label>
+                    <select
+                      id="filterProject"
+                      value={filterProject}
+                      onChange={(e) => setFilterProject(e.target.value)}
+                      className={styles.filterSelect}
+                    >
+                      <option value="">All Projects</option>
+                      {availableProjects.map(project => (
+                        <option key={project} value={project}>{project}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {(filterTag || filterProject) && (
+                  <button
+                    onClick={() => {
+                      setFilterTag('');
+                      setFilterProject('');
+                    }}
+                    className={styles.clearFilters}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
+
             {tasks.length === 0 ? (
               <div className={styles.emptyState}>
                 <h3>No tasks yet</h3>
@@ -98,9 +242,14 @@ function TasksPage() {
                   Create Task
                 </Button>
               </div>
+            ) : filteredAndSortedTasks.length === 0 ? (
+              <div className={styles.emptyState}>
+                <h3>No tasks match your filters</h3>
+                <p>Try adjusting your filters or create a new task.</p>
+              </div>
             ) : (
               <div className={styles.taskGrid}>
-                {tasks.map((task) => (
+                {filteredAndSortedTasks.map((task) => (
                   <TaskCard
                     key={task._id}
                     task={task}
