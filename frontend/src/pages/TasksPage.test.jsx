@@ -39,6 +39,8 @@ const mockTasks = [
     status: 'To Do',
     priority: 5,
     dueDate: '2025-12-31',
+    tags: 'frontend#react',
+    createdAt: '2024-01-01',
     project: { _id: 'proj1', name: 'Project 1' }
   },
   {
@@ -47,13 +49,27 @@ const mockTasks = [
     description: 'Description for Beta',
     status: 'In Progress',
     priority: 8,
-    project: null
+    dueDate: '2025-11-15',
+    tags: 'backend#api',
+    createdAt: '2024-01-15',
+    project: { _id: 'proj2', name: 'Project 2' }
+  },
+  {
+    _id: 'task3',
+    title: 'Task Gamma',
+    description: 'Description for Gamma',
+    status: 'Done',
+    priority: 3,
+    dueDate: '2025-10-10',
+    tags: 'frontend#testing',
+    createdAt: '2024-02-01',
+    project: { _id: 'proj1', name: 'Project 1' }
   }
 ];
 
 const mockProjects = [
-  { _id: 'proj1', name: 'Project 1' },
-  { _id: 'proj2', name: 'Project 2' }
+  { _id: 'proj1', name: 'Project 1', status: 'Active', members: [] },
+  { _id: 'proj2', name: 'Project 2', status: 'Active', members: [] }
 ];
 
 const renderWithContexts = (taskValue, projectValue) => {
@@ -167,6 +183,7 @@ describe('TasksPage', () => {
       renderWithContexts(taskValue, projectValue);
       expect(screen.getByText('Task Alpha')).toBeInTheDocument();
       expect(screen.getByText('Task Beta')).toBeInTheDocument();
+      expect(screen.getByText('Task Gamma')).toBeInTheDocument();
     });
 
     it('renders TaskCard for each task', () => {
@@ -187,7 +204,7 @@ describe('TasksPage', () => {
 
       renderWithContexts(taskValue, projectValue);
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      expect(editButtons).toHaveLength(2);
+      expect(editButtons).toHaveLength(3);
     });
   });
 
@@ -259,12 +276,16 @@ describe('TasksPage', () => {
         fetchProjects: mockFetchProjects
       };
 
-      renderWithContexts(taskValue, projectValue);
+      const { container } = renderWithContexts(taskValue, projectValue);
       const newTaskButton = screen.getByRole('button', { name: 'New Task' });
       await user.click(newTaskButton);
 
       const titleInput = screen.getByLabelText(/Title/i);
       await user.type(titleInput, 'New Test Task');
+
+      // Find project select by name attribute
+      const projectSelect = container.querySelector('select[name="project"]');
+      await user.selectOptions(projectSelect, 'proj1');
 
       const submitButton = screen.getByRole('button', { name: 'Create Task' });
       await user.click(submitButton);
@@ -293,12 +314,16 @@ describe('TasksPage', () => {
         fetchProjects: mockFetchProjects
       };
 
-      renderWithContexts(taskValue, projectValue);
+      const { container } = renderWithContexts(taskValue, projectValue);
       const newTaskButton = screen.getByRole('button', { name: 'New Task' });
       await user.click(newTaskButton);
 
       const titleInput = screen.getByLabelText(/Title/i);
       await user.type(titleInput, 'New Test Task');
+
+      // Find project select by name attribute
+      const projectSelect = container.querySelector('select[name="project"]');
+      await user.selectOptions(projectSelect, 'proj1');
 
       const submitButton = screen.getByRole('button', { name: 'Create Task' });
       await user.click(submitButton);
@@ -329,10 +354,11 @@ describe('TasksPage', () => {
 
       renderWithContexts(taskValue, projectValue);
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+      // First task shown is now Task Beta (priority 8)
       await user.click(editButtons[0]);
 
       expect(screen.getByRole('heading', { name: 'Edit Task' })).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Task Alpha')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Task Beta')).toBeInTheDocument();
     });
 
     it('calls updateTask when edited form is submitted', async () => {
@@ -356,6 +382,7 @@ describe('TasksPage', () => {
 
       renderWithContexts(taskValue, projectValue);
       const editButtons = screen.getAllByRole('button', { name: 'Edit' });
+      // First task is now Task Beta (task2)
       await user.click(editButtons[0]);
 
       const titleInput = screen.getByLabelText(/Title/i);
@@ -367,7 +394,7 @@ describe('TasksPage', () => {
 
       await waitFor(() => {
         expect(mockUpdateTask).toHaveBeenCalledWith(
-          'task1',
+          'task2',
           expect.objectContaining({ title: 'Updated Task' })
         );
       });
@@ -454,10 +481,11 @@ describe('TasksPage', () => {
 
       renderWithContexts(taskValue, projectValue);
       const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
+      // First task is now Task Beta (task2)
       await user.click(deleteButtons[0]);
 
       await waitFor(() => {
-        expect(mockDeleteTask).toHaveBeenCalledWith('task1');
+        expect(mockDeleteTask).toHaveBeenCalledWith('task2');
       });
     });
 
@@ -696,6 +724,253 @@ describe('TasksPage', () => {
 
       renderWithContexts(taskValue, projectValue);
       expect(mockFetchProjects).toHaveBeenCalled();
+    });
+  });
+
+  describe('Sorting Functionality', () => {
+    it('displays sort dropdown when tasks exist', () => {
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      expect(screen.getByLabelText(/Sort by:/i)).toBeInTheDocument();
+    });
+
+    it('sorts by priority by default (highest first)', () => {
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const taskTitles = screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
+      expect(taskTitles[0]).toBe('Task Beta'); // Priority 8
+      expect(taskTitles[1]).toBe('Task Alpha'); // Priority 5
+      expect(taskTitles[2]).toBe('Task Gamma'); // Priority 3
+    });
+
+    it('changes sort order when dropdown value changes', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const sortSelect = screen.getByLabelText(/Sort by:/i);
+      await user.selectOptions(sortSelect, 'dueDate');
+
+      const taskTitles = screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
+      expect(taskTitles[0]).toBe('Task Gamma'); // 2025-10-10
+      expect(taskTitles[1]).toBe('Task Beta'); // 2025-11-15
+      expect(taskTitles[2]).toBe('Task Alpha'); // 2025-12-31
+    });
+  });
+
+  describe('Filtering Functionality', () => {
+    it('displays tag filter dropdown when tasks have tags', () => {
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      expect(screen.getByLabelText(/Filter by tag:/i)).toBeInTheDocument();
+    });
+
+    it('displays project filter dropdown when tasks exist', () => {
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      expect(screen.getByLabelText(/Filter by project:/i)).toBeInTheDocument();
+    });
+
+    it('filters tasks by tag', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const tagFilter = screen.getByLabelText(/Filter by tag:/i);
+      await user.selectOptions(tagFilter, 'frontend');
+
+      expect(screen.getByText('Task Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Task Gamma')).toBeInTheDocument();
+      expect(screen.queryByText('Task Beta')).not.toBeInTheDocument();
+    });
+
+    it('filters tasks by project', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const projectFilter = screen.getByLabelText(/Filter by project:/i);
+      await user.selectOptions(projectFilter, 'Project 1');
+
+      expect(screen.getByText('Task Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Task Gamma')).toBeInTheDocument();
+      expect(screen.queryByText('Task Beta')).not.toBeInTheDocument();
+    });
+
+    it('shows clear filters button when filters are applied', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const tagFilter = screen.getByLabelText(/Filter by tag:/i);
+      await user.selectOptions(tagFilter, 'frontend');
+
+      expect(screen.getByRole('button', { name: /Clear Filters/i })).toBeInTheDocument();
+    });
+
+    it('clears filters when clear button is clicked', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const tagFilter = screen.getByLabelText(/Filter by tag:/i);
+      await user.selectOptions(tagFilter, 'frontend');
+
+      const clearButton = screen.getByRole('button', { name: /Clear Filters/i });
+      await user.click(clearButton);
+
+      expect(screen.getByText('Task Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Task Beta')).toBeInTheDocument();
+      expect(screen.getByText('Task Gamma')).toBeInTheDocument();
+    });
+
+    it('shows empty state when no tasks match filters', async () => {
+      const user = userEvent.setup();
+      const taskValue = {
+        tasks: mockTasks,
+        loading: false,
+        error: null,
+        fetchTasks: mockFetchTasks,
+        createTask: mockCreateTask,
+        updateTask: mockUpdateTask,
+        deleteTask: mockDeleteTask
+      };
+
+      const projectValue = {
+        projects: mockProjects,
+        fetchProjects: mockFetchProjects
+      };
+
+      renderWithContexts(taskValue, projectValue);
+      const tagFilter = screen.getByLabelText(/Filter by tag:/i);
+      // Filter for a tag that exists but combine with a project that doesn't have that tag
+      await user.selectOptions(tagFilter, 'backend');
+
+      const projectFilter = screen.getByLabelText(/Filter by project:/i);
+      await user.selectOptions(projectFilter, 'Project 1');
+
+      expect(screen.getByText('No tasks match your filters')).toBeInTheDocument();
     });
   });
 });
