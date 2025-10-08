@@ -1,4 +1,5 @@
 import taskService from '../services/task.services.js';
+import notificationModel from '../models/notification.model.js';
 
 class TaskController {
     async createTask(req, res) {
@@ -71,7 +72,7 @@ class TaskController {
 
                 console.log('Processed assignee:', req.body.assignee);
             }
-            
+            // Will not be in notification controller because socket.io is directly related to task update.
             // Get original task to compare assignees and check recurrence
             const originalTask = await taskService.getTaskById(taskId);
             const originalAssignees = originalTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
