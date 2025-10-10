@@ -24,7 +24,7 @@ describe('Task Model Test', () => {
 
     beforeAll(async () => {
         testUser = await User.create({
-            username: 'testuser',
+            username: 'testuser@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'password123'

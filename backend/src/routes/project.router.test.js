@@ -47,14 +47,14 @@ describe('Project Router Test', () => {
     beforeAll(async () => {
         // Create test users
         testUser = await User.create({
-            username: 'projectuser',
+            username: 'projectuser@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'hashedpassword123'
         });
 
         otherUser = await User.create({
-            username: 'otheruser',
+            username: 'otheruser@example.com',
             roles: ['staff'],
             department: 'hr',
             hashed_password: 'hashedpassword456'

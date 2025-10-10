@@ -29,7 +29,7 @@ describe('Task Service Test', () => {
         await Project.deleteMany({});
 
         testUser = await User.create({
-            username: 'testuser',
+            username: 'testuser@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'password123'
@@ -74,7 +74,7 @@ describe('Task Service Test', () => {
 
         it('should include creator when additional assignees are provided', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -95,11 +95,11 @@ describe('Task Service Test', () => {
 
         it('should throw error when more than 5 assignees', async () => {
             const users = await Promise.all([
-                User.create({ username: 'user1', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user2', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user3', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user4', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user5', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
+                User.create({ username: 'user1@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user2@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user3@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user4@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'user5@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
             ]);
 
             const taskData = {
@@ -190,7 +190,7 @@ describe('Task Service Test', () => {
 
         beforeEach(async () => {
             managerUser = await User.create({
-                username: 'manager',
+                username: 'manager@example.com',
                 roles: ['manager'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -232,7 +232,7 @@ describe('Task Service Test', () => {
 
         it('should throw error for unauthorized update', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -317,7 +317,7 @@ describe('Task Service Test', () => {
 
         it('should allow assignee to add new assignees', async () => {
             const newUser = await User.create({
-                username: 'newuser',
+                username: 'newuser@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password789'
@@ -339,7 +339,7 @@ describe('Task Service Test', () => {
 
         it('should throw error when non-manager tries to remove assignee', async () => {
             const otherUser = await User.create({
-                username: 'other',
+                username: 'other@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'pass'
@@ -361,7 +361,7 @@ describe('Task Service Test', () => {
 
         it('should allow manager to remove assignees', async () => {
             const otherUser = await User.create({
-                username: 'other',
+                username: 'other@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'pass'
@@ -386,11 +386,11 @@ describe('Task Service Test', () => {
 
         it('should throw error when trying to have more than 5 assignees', async () => {
             const users = await Promise.all([
-                User.create({ username: 'u1', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u2', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u3', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u4', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u5', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
+                User.create({ username: 'u1@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u2@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u3@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u4@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
+                User.create({ username: 'u5@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
             ]);
 
             const updateData = {
@@ -640,7 +640,7 @@ describe('Task Service Test', () => {
 
         it('should throw error for unauthorized deletion', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -686,7 +686,7 @@ describe('Task Service Test', () => {
 
         it('should archive a task successfully by assignee', async () => {
             const assignee = await User.create({
-                username: 'assignee',
+                username: 'assignee@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -713,7 +713,7 @@ describe('Task Service Test', () => {
 
         it('should throw error when non-owner/non-assignee tries to archive', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -761,7 +761,7 @@ describe('Task Service Test', () => {
             );
 
             expect(archivedTask.owner).toBeDefined();
-            expect(archivedTask.owner.username).toBe('testuser');
+            expect(archivedTask.owner.username).toBe('testuser@example.com');
             expect(archivedTask.project).toBeDefined();
             expect(archivedTask.project.name).toBe('Test Project');
         });
@@ -792,7 +792,7 @@ describe('Task Service Test', () => {
 
         it('should unarchive a task successfully by assignee', async () => {
             const assignee = await User.create({
-                username: 'assignee',
+                username: 'assignee@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -821,7 +821,7 @@ describe('Task Service Test', () => {
 
         it('should throw error when non-owner/non-assignee tries to unarchive', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -873,7 +873,7 @@ describe('Task Service Test', () => {
             );
 
             expect(unarchivedTask.owner).toBeDefined();
-            expect(unarchivedTask.owner.username).toBe('testuser');
+            expect(unarchivedTask.owner.username).toBe('testuser@example.com');
             expect(unarchivedTask.project).toBeDefined();
             expect(unarchivedTask.project.name).toBe('Test Project');
         });
