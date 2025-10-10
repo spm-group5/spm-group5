@@ -82,14 +82,14 @@ beforeAll(async () => {
 
     // Create test users
     adminUser = await User.create({
-        username: 'adminuser',
+        username: 'adminuser@example.com',
         roles: ['admin'],
         department: 'it',
         hashed_password: 'password123'
     });
 
     staffUser = await User.create({
-        username: 'staffuser',
+        username: 'staffuser@example.com',
         roles: ['staff'],
         department: 'hr',
         hashed_password: 'password456'
@@ -454,7 +454,7 @@ describe('Report Router Test', () => {
             it('should handle user with no tasks', async () => {
                 // Create a user with no tasks
                 const userWithNoTasks = await User.create({
-                    username: 'userwithnot asks',
+                    username: 'userwithnotasks@example.com',
                     roles: ['staff'],
                     department: 'finance',
                     hashed_password: 'password789'
