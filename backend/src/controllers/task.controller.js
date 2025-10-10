@@ -72,12 +72,22 @@ class TaskController {
                 console.log('Processed assignee:', req.body.assignee);
             }
             
-            // Get original task to compare assignees
+            // Get original task to compare assignees and check recurrence
             const originalTask = await taskService.getTaskById(taskId);
             const originalAssignees = originalTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
-            
+            const originalStatus = originalTask.status;
+
             const updatedTask = await taskService.updateTask(taskId, req.body, userId);
             const newAssignees = updatedTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
+
+            // Check if task was just marked as Done and is recurring
+            if (originalStatus !== 'Done' && updatedTask.status === 'Done' && updatedTask.isRecurring) {
+                console.log('Creating recurring task instance...');
+                const newRecurringTask = await taskService.createRecurringTask(updatedTask);
+                if (newRecurringTask) {
+                    console.log(`✅ New recurring task created: ${newRecurringTask._id}`);
+                }
+            }
 
             // Get Socket.IO instance
             const io = req.app.get('io');
@@ -193,10 +203,6 @@ class TaskController {
                 filters.project = req.query.project;
             }
 
-            if (req.query.standalone === 'true') {
-                filters.standalone = true;
-            }
-
             if (req.query.status) {
                 filters.status = req.query.status;
             }
@@ -226,6 +232,50 @@ class TaskController {
             });
         } catch (error) {
             const statusCode = error.message === 'Task not found' ? 404 : 500;
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    async archiveTask(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user._id;
+
+            const archivedTask = await taskService.archiveTask(taskId, userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task archived successfully',
+                data: archivedTask
+            });
+        } catch (error) {
+            const statusCode = error.message === 'Task not found' ? 404 :
+                error.message.includes('permission') ? 403 : 500;
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    async unarchiveTask(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user._id;
+
+            const unarchivedTask = await taskService.unarchiveTask(taskId, userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task unarchived successfully',
+                data: unarchivedTask
+            });
+        } catch (error) {
+            const statusCode = error.message === 'Task not found' ? 404 :
+                error.message.includes('permission') ? 403 : 500;
             res.status(statusCode).json({
                 success: false,
                 message: error.message

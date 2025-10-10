@@ -1,9 +1,11 @@
 import { format } from 'date-fns';
+import { useState } from 'react';
 import Button from '../../common/Button/Button';
 import Card from '../../common/Card/Card';
 import styles from './TaskCard.module.css';
 
-function TaskCard({ task, onEdit, onDelete }) {
+function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'To Do':
@@ -64,11 +66,17 @@ function TaskCard({ task, onEdit, onDelete }) {
 };
 
   return (
-    <Card hoverable className={styles.taskCard}>
-      <Card.Body>
-        <div className={styles.header}>
-          <h3 className={styles.title}>{task.title}</h3>
-          <div className={styles.badges}>
+    <Card hoverable className={`${styles.taskCard} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+      <Card.Body className={styles.cardBody}>
+        {/* Compact header - always visible */}
+        <div className={styles.compactHeader} onClick={() => setIsExpanded(!isExpanded)}>
+          <div className={styles.headerLeft}>
+            <button className={styles.expandButton} type="button">
+              <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
+            </button>
+            <h3 className={styles.compactTitle}>{task.title}</h3>
+          </div>
+          <div className={styles.compactBadges}>
             <span className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)}`}>
               {task.status}
             </span>
@@ -78,35 +86,86 @@ function TaskCard({ task, onEdit, onDelete }) {
           </div>
         </div>
 
-        {task.description && (
-          <p className={styles.description}>{task.description}</p>
-        )}
+        {/* Compact info - always visible */}
+        <div className={styles.compactInfo}>
+          <div className={styles.compactMeta}>
+            <span>
+              <strong>Due:</strong> {formatDueDate(task.dueDate)}
+            </span>
+            <span>
+              <strong>Project:</strong> {task.project?.name || task.project || 'N/A'}
+            </span>
+          </div>
+          <div className={styles.compactActions}>
+            {!isArchived && (
+              <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onEdit(task); }}>
+                Edit
+              </Button>
+            )}
+            {isArchived ? (
+              <Button variant="primary" size="small" onClick={(e) => { e.stopPropagation(); onUnarchive(task._id); }}>
+                Unarchive
+              </Button>
+            ) : (
+              <Button variant="warning" size="small" onClick={(e) => { e.stopPropagation(); onArchive(task._id); }}>
+                Archive
+              </Button>
+            )}
+          </div>
+        </div>
 
-        <div className={styles.metadata}>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Assigned:</span>
-            <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
-          </div>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Due:</span>
-            <span className={styles.metaValue}>{formatDueDate(task.dueDate)}</span>
-          </div>
-          {task.project && (
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Project:</span>
-              <span className={styles.metaValue}>{task.project.name || task.project}</span>
+        {/* Expandable details */}
+        {isExpanded && (
+          <div className={styles.expandedContent}>
+            {task.description && (
+              <div className={styles.descriptionSection}>
+                <p className={styles.description}>{task.description}</p>
+              </div>
+            )}
+
+            <div className={styles.metadata}>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>Owner:</span>
+                <span className={styles.metaValue}>
+                  {task.owner?.username || task.owner?.name || 'Unknown'}
+                </span>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>Assigned:</span>
+                <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
+              </div>
+              {task.tags && (
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Tags:</span>
+                  <span className={styles.metaValue}>{task.tags}</span>
+                </div>
+              )}
+              {task.isRecurring && (
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Recurring:</span>
+                  <span className={styles.metaValue}>Every {task.recurrenceInterval} days</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className={styles.actions}>
-          <Button variant="secondary" size="small" onClick={() => onEdit(task)}>
-            Edit
-          </Button>
-          <Button variant="danger" size="small" onClick={() => onDelete(task._id)}>
-            Delete
-          </Button>
-        </div>
+            <div className={styles.actions}>
+              {!isArchived && (
+                <Button variant="secondary" size="small" onClick={() => onEdit(task)}>
+                  Edit
+                </Button>
+              )}
+              {isArchived ? (
+                <Button variant="primary" size="small" onClick={() => onUnarchive(task._id)}>
+                  Unarchive
+                </Button>
+              ) : (
+                <Button variant="warning" size="small" onClick={() => onArchive(task._id)}>
+                  Archive
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </Card.Body>
     </Card>
   );

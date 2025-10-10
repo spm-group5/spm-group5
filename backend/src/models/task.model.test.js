@@ -40,7 +40,8 @@ describe('Task Model Test', () => {
     it('should create a task with required fields', async () => {
         const taskData = {
             title: 'Test Task',
-            owner: testUser._id
+            owner: testUser._id,
+            project: testProject._id
         };
 
         const task = await Task.create(taskData);
@@ -48,12 +49,23 @@ describe('Task Model Test', () => {
         expect(task.title).toBe('Test Task');
         expect(task.status).toBe('To Do');
         expect(task.owner.toString()).toBe(testUser._id.toString());
+        expect(task.project.toString()).toBe(testProject._id.toString());
         expect(task.createdAt).toBeDefined();
         expect(task.updatedAt).toBeDefined();
     });
 
     it('should fail to create task without title', async () => {
         const taskData = {
+            owner: testUser._id,
+            project: testProject._id
+        };
+
+        await expect(Task.create(taskData)).rejects.toThrow();
+    });
+
+    it('should fail to create task without project', async () => {
+        const taskData = {
+            title: 'Test Task',
             owner: testUser._id
         };
 
@@ -71,7 +83,8 @@ describe('Task Model Test', () => {
             assignee: testUser._id,
             project: testProject._id,
             dueDate: dueDate,
-            status: 'In Progress'
+            status: 'In Progress',
+            tags: 'urgent#bug#frontend'
         };
 
         const task = await Task.create(taskData);
@@ -81,12 +94,14 @@ describe('Task Model Test', () => {
         expect(task.status).toBe('In Progress');
         expect(task.project.toString()).toBe(testProject._id.toString());
         expect(task.dueDate).toBeDefined();
+        expect(task.tags).toBe('urgent#bug#frontend');
     });
 
     it('should fail to create task with invalid status', async () => {
         const taskData = {
             title: 'Invalid Status Task',
             owner: testUser._id,
+            project: testProject._id,
             status: 'Invalid'
         };
 
@@ -100,6 +115,7 @@ describe('Task Model Test', () => {
         const taskData = {
             title: 'Past Due Task',
             owner: testUser._id,
+            project: testProject._id,
             dueDate: yesterday
         };
 
@@ -109,7 +125,8 @@ describe('Task Model Test', () => {
     it('should update updatedAt field on save', async () => {
         const task = await Task.create({
             title: 'Update Test',
-            owner: testUser._id
+            owner: testUser._id,
+            project: testProject._id
         });
 
         const originalUpdatedAt = task.updatedAt;
@@ -120,5 +137,69 @@ describe('Task Model Test', () => {
         await task.save();
 
         expect(task.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+    });
+
+    it('should create recurring task with valid interval', async () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const taskData = {
+            title: 'Recurring Task',
+            owner: testUser._id,
+            project: testProject._id,
+            dueDate: tomorrow,
+            isRecurring: true,
+            recurrenceInterval: 7
+        };
+
+        const task = await Task.create(taskData);
+
+        expect(task.isRecurring).toBe(true);
+        expect(task.recurrenceInterval).toBe(7);
+    });
+
+    it('should fail to create recurring task without interval', async () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const taskData = {
+            title: 'Recurring Task',
+            owner: testUser._id,
+            project: testProject._id,
+            dueDate: tomorrow,
+            isRecurring: true
+        };
+
+        await expect(Task.create(taskData)).rejects.toThrow();
+    });
+
+    it('should fail to create recurring task with negative interval', async () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const taskData = {
+            title: 'Recurring Task',
+            owner: testUser._id,
+            project: testProject._id,
+            dueDate: tomorrow,
+            isRecurring: true,
+            recurrenceInterval: -5
+        };
+
+        await expect(Task.create(taskData)).rejects.toThrow();
+    });
+
+    it('should create non-recurring task without interval', async () => {
+        const taskData = {
+            title: 'Non-Recurring Task',
+            owner: testUser._id,
+            project: testProject._id,
+            isRecurring: false
+        };
+
+        const task = await Task.create(taskData);
+
+        expect(task.isRecurring).toBe(false);
+        expect(task.recurrenceInterval).toBeNull();
     });
 });

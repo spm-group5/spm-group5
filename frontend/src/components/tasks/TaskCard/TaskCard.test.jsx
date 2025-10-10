@@ -25,6 +25,12 @@ const mockTask = {
   status: 'To Do',
   priority: 7,
   dueDate: '2025-12-31',
+  owner: {
+    _id: 'user123',
+    username: 'testuser',
+    name: 'Test User'
+  },
+  assignee: [],
   project: {
     _id: 'proj123',
     name: 'Test Project'
@@ -38,21 +44,32 @@ describe('TaskCard Component', () => {
       expect(screen.getByRole('heading', { name: 'Test Task' })).toBeInTheDocument();
     });
 
-    it('renders task description when provided', () => {
+    it('does not show description when collapsed', () => {
       render(<TaskCard task={mockTask} />);
-      expect(screen.getByText('This is a test task description')).toBeInTheDocument();
-    });
-
-    it('does not render description when not provided', () => {
-      const taskWithoutDescription = { ...mockTask, description: '' };
-      render(<TaskCard task={taskWithoutDescription} />);
       expect(screen.queryByText('This is a test task description')).not.toBeInTheDocument();
     });
 
-    it('does not render description when undefined', () => {
-      const taskWithoutDescription = { ...mockTask, description: undefined };
+    it('shows description when expanded', async () => {
+      const user = userEvent.setup();
+      render(<TaskCard task={mockTask} />);
+
+      // Click to expand - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
+      expect(screen.getByText('This is a test task description')).toBeInTheDocument();
+    });
+
+    it('does not render description section when no description and expanded', async () => {
+      const user = userEvent.setup();
+      const taskWithoutDescription = { ...mockTask, description: '' };
       const { container } = render(<TaskCard task={taskWithoutDescription} />);
-      const description = container.querySelector('.description');
+
+      // Click to expand - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
+      const description = container.querySelector('.descriptionSection');
       expect(description).not.toBeInTheDocument();
     });
   });
@@ -80,28 +97,28 @@ describe('TaskCard Component', () => {
       const todoTask = { ...mockTask, status: 'To Do' };
       render(<TaskCard task={todoTask} />);
       const badge = screen.getByText('To Do');
-      expect(badge).toHaveClass('statusTodo');
+      expect(badge.className).toMatch(/statusTodo/);
     });
 
     it('applies correct class for In Progress status', () => {
       const inProgressTask = { ...mockTask, status: 'In Progress' };
       render(<TaskCard task={inProgressTask} />);
       const badge = screen.getByText('In Progress');
-      expect(badge).toHaveClass('statusInProgress');
+      expect(badge.className).toMatch(/statusInProgress/);
     });
 
     it('applies correct class for Done status', () => {
       const doneTask = { ...mockTask, status: 'Done' };
       render(<TaskCard task={doneTask} />);
       const badge = screen.getByText('Done');
-      expect(badge).toHaveClass('statusDone');
+      expect(badge.className).toMatch(/statusDone/);
     });
 
     it('defaults to To Do class for unknown status', () => {
       const unknownTask = { ...mockTask, status: 'Unknown' };
       render(<TaskCard task={unknownTask} />);
       const badge = screen.getByText('Unknown');
-      expect(badge).toHaveClass('statusTodo');
+      expect(badge.className).toMatch(/statusTodo/);
     });
   });
 
@@ -133,28 +150,28 @@ describe('TaskCard Component', () => {
       const lowPriorityTask = { ...mockTask, priority: 2 };
       render(<TaskCard task={lowPriorityTask} />);
       const badge = screen.getByText('P2');
-      expect(badge).toHaveClass('priorityLow');
+      expect(badge.className).toMatch(/priorityLow/);
     });
 
     it('applies medium priority class for priority 5-7', () => {
       const mediumPriorityTask = { ...mockTask, priority: 5 };
       render(<TaskCard task={mediumPriorityTask} />);
       const badge = screen.getByText('P5');
-      expect(badge).toHaveClass('priorityMedium');
+      expect(badge.className).toMatch(/priorityMedium/);
     });
 
     it('applies high priority class for priority >= 8', () => {
       const highPriorityTask = { ...mockTask, priority: 8 };
       render(<TaskCard task={highPriorityTask} />);
       const badge = screen.getByText('P8');
-      expect(badge).toHaveClass('priorityHigh');
+      expect(badge.className).toMatch(/priorityHigh/);
     });
 
     it('applies medium priority class for priority 7', () => {
       const prioritySevenTask = { ...mockTask, priority: 7 };
       render(<TaskCard task={prioritySevenTask} />);
       const badge = screen.getByText('P7');
-      expect(badge).toHaveClass('priorityMedium');
+      expect(badge.className).toMatch(/priorityMedium/);
     });
   });
 
@@ -191,22 +208,22 @@ describe('TaskCard Component', () => {
   });
 
   describe('Project Display', () => {
-    it('displays project name when project exists', () => {
+    it('displays project name in compact view', () => {
       render(<TaskCard task={mockTask} />);
-      expect(screen.getByText('Project:')).toBeInTheDocument();
+      expect(screen.getByText(/Project:/)).toBeInTheDocument();
       expect(screen.getByText('Test Project')).toBeInTheDocument();
     });
 
-    it('does not display project section when project is null', () => {
+    it('displays N/A when project is null in compact view', () => {
       const taskNoProject = { ...mockTask, project: null };
       render(<TaskCard task={taskNoProject} />);
-      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument();
     });
 
-    it('does not display project section when project is undefined', () => {
+    it('displays N/A when project is undefined in compact view', () => {
       const taskNoProject = { ...mockTask, project: undefined };
       render(<TaskCard task={taskNoProject} />);
-      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument();
     });
 
     it('displays project ID when name is not populated', () => {
@@ -217,20 +234,46 @@ describe('TaskCard Component', () => {
   });
 
   describe('Action Buttons', () => {
-    it('renders Edit button', () => {
+    it('does not show Edit button when collapsed', () => {
       render(<TaskCard task={mockTask} />);
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    });
+
+    it('does not show Delete button when collapsed', () => {
+      render(<TaskCard task={mockTask} />);
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    });
+
+    it('shows Edit button when expanded', async () => {
+      const user = userEvent.setup();
+      render(<TaskCard task={mockTask} />);
+
+      // Expand the card - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
       expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     });
 
-    it('renders Delete button', () => {
+    it('shows Archive button when expanded', async () => {
+      const user = userEvent.setup();
       render(<TaskCard task={mockTask} />);
-      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+
+      // Expand the card - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
+      expect(screen.getByRole('button', { name: 'Archive' })).toBeInTheDocument();
     });
 
     it('calls onEdit with task when Edit button is clicked', async () => {
       const user = userEvent.setup();
       const onEdit = vi.fn();
       render(<TaskCard task={mockTask} onEdit={onEdit} />);
+
+      // Expand the card first - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
 
       const editButton = screen.getByRole('button', { name: 'Edit' });
       await user.click(editButton);
@@ -239,58 +282,101 @@ describe('TaskCard Component', () => {
       expect(onEdit).toHaveBeenCalledWith(mockTask);
     });
 
-    it('calls onDelete with task ID when Delete button is clicked', async () => {
+    it('calls onArchive with task ID when Archive button is clicked', async () => {
       const user = userEvent.setup();
-      const onDelete = vi.fn();
-      render(<TaskCard task={mockTask} onDelete={onDelete} />);
+      const onArchive = vi.fn();
+      render(<TaskCard task={mockTask} onArchive={onArchive} />);
 
-      const deleteButton = screen.getByRole('button', { name: 'Delete' });
-      await user.click(deleteButton);
+      // Expand the card first - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
 
-      expect(onDelete).toHaveBeenCalledTimes(1);
-      expect(onDelete).toHaveBeenCalledWith('123');
+      const archiveButton = screen.getByRole('button', { name: 'Archive' });
+      await user.click(archiveButton);
+
+      expect(onArchive).toHaveBeenCalledTimes(1);
+      expect(onArchive).toHaveBeenCalledWith('123');
     });
 
-    it('Edit button has correct variant and size', () => {
+    it('Edit button has correct variant and size when expanded', async () => {
+      const user = userEvent.setup();
       render(<TaskCard task={mockTask} />);
+
+      // Expand the card first - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
       const editButton = screen.getByRole('button', { name: 'Edit' });
       expect(editButton.className).toMatch(/secondary/);
-      expect(editButton).toHaveClass('small');
+      expect(editButton.className).toMatch(/small/);
     });
 
-    it('Delete button has correct variant and size', () => {
+    it('Archive button has correct variant and size when expanded', async () => {
+      const user = userEvent.setup();
       render(<TaskCard task={mockTask} />);
-      const deleteButton = screen.getByRole('button', { name: 'Delete' });
-      expect(deleteButton.className).toMatch(/danger/);
-      expect(deleteButton).toHaveClass('small');
+
+      // Expand the card first - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
+
+      const archiveButton = screen.getByRole('button', { name: 'Archive' });
+      expect(archiveButton.className).toMatch(/warning/);
+      expect(archiveButton.className).toMatch(/small/);
     });
   });
 
   describe('Card Properties', () => {
     it('renders as hoverable card', () => {
       const { container } = render(<TaskCard task={mockTask} />);
-      const card = container.querySelector('.card');
-      expect(card).toHaveClass('hoverable');
+      const card = container.querySelector('[class*="card"]');
+      expect(card.className).toMatch(/hoverable/);
     });
 
     it('applies task card class', () => {
       const { container } = render(<TaskCard task={mockTask} />);
-      expect(container.querySelector('.taskCard')).toBeInTheDocument();
+      const taskCard = container.querySelector('[class*="taskCard"]');
+      expect(taskCard).toBeInTheDocument();
     });
   });
 
   describe('Complete Task Card Structure', () => {
-    it('renders all elements together', () => {
-      const onEdit = vi.fn();
-      const onDelete = vi.fn();
+    it('renders compact view by default', () => {
+      render(<TaskCard task={mockTask} />);
 
+      // Header section - always visible
+      expect(screen.getByRole('heading', { name: 'Test Task' })).toBeInTheDocument();
+      expect(screen.getByText('To Do')).toBeInTheDocument();
+      expect(screen.getByText('P7')).toBeInTheDocument();
+
+      // Compact info - always visible
+      expect(screen.getByText(/Due:/)).toBeInTheDocument();
+      expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
+      expect(screen.getByText(/Project:/)).toBeInTheDocument();
+      expect(screen.getByText('Test Project')).toBeInTheDocument();
+
+      // Description - not visible when collapsed
+      expect(screen.queryByText('This is a test task description')).not.toBeInTheDocument();
+
+      // Actions - not visible when collapsed
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Archive' })).not.toBeInTheDocument();
+    });
+
+    it('renders all elements when expanded', async () => {
+      const user = userEvent.setup();
+      const onEdit = vi.fn();
+      const onArchive = vi.fn();
       render(
         <TaskCard
           task={mockTask}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onArchive={onArchive}
         />
       );
+
+      // Expand the card - click the heading
+      const heading = screen.getByRole('heading', { name: 'Test Task' });
+      await user.click(heading);
 
       // Header section
       expect(screen.getByRole('heading', { name: 'Test Task' })).toBeInTheDocument();
@@ -300,15 +386,13 @@ describe('TaskCard Component', () => {
       // Description
       expect(screen.getByText('This is a test task description')).toBeInTheDocument();
 
-      // Metadata
-      expect(screen.getByText('Due:')).toBeInTheDocument();
-      expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
-      expect(screen.getByText('Project:')).toBeInTheDocument();
-      expect(screen.getByText('Test Project')).toBeInTheDocument();
+      // Metadata (now includes Owner)
+      expect(screen.getByText(/Owner:/)).toBeInTheDocument();
+      expect(screen.getByText('testuser')).toBeInTheDocument();
 
       // Actions
       expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Archive' })).toBeInTheDocument();
     });
 
     it('renders minimal task without optional fields', () => {
@@ -316,7 +400,9 @@ describe('TaskCard Component', () => {
         _id: '456',
         title: 'Minimal Task',
         status: 'Done',
-        priority: 5
+        priority: 5,
+        owner: { username: 'owner' },
+        assignee: []
       };
 
       render(<TaskCard task={minimalTask} />);
@@ -325,7 +411,7 @@ describe('TaskCard Component', () => {
       expect(screen.getByText('Done')).toBeInTheDocument();
       expect(screen.getByText('P5')).toBeInTheDocument();
       expect(screen.getByText('No due date')).toBeInTheDocument();
-      expect(screen.queryByText('Project:')).not.toBeInTheDocument();
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument(); // Project shows N/A
     });
   });
 });

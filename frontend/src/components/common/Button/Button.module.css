@@ -72,6 +72,17 @@
   box-shadow: var(--shadow-md);
 }
 
+.warning {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.warning:hover:not(.disabled) {
+  background-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 .ghost {
   background-color: transparent;
   color: var(--color-text-secondary);
