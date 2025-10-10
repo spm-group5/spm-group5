@@ -31,10 +31,11 @@ describe('Task Controller Test', () => {
 				title: 'New Task',
 				status: 'To Do',
 				owner: 'userId123',
-				assignee: []
+				assignee: [],
+				project: 'projectId123'
 			};
 
-			req.body = { title: 'New Task' };
+			req.body = { title: 'New Task', project: 'projectId123' };
 			taskService.createTask.mockResolvedValue(mockTask);
 
 			await taskController.createTask(req, res);
@@ -57,6 +58,19 @@ describe('Task Controller Test', () => {
 			expect(res.json).toHaveBeenCalledWith({
 				success: false,
 				message: 'Task title is required'
+			});
+		});
+
+		it('should handle missing project error', async () => {
+			req.body = { title: 'New Task' };
+			taskService.createTask.mockRejectedValue(new Error('Project is required'));
+
+			await taskController.createTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Project is required'
 			});
 		});
 	});
@@ -159,17 +173,6 @@ describe('Task Controller Test', () => {
 			await taskController.getTasks(req, res);
 
 			expect(taskService.getTasks).toHaveBeenCalledWith({ project: 'projectId123' });
-		});
-
-		it('should filter standalone tasks', async () => {
-			req.query = { standalone: 'true' };
-			const mockTasks = [{ _id: 'task1', title: 'Standalone Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ standalone: true });
 		});
 
 		it('should filter tasks by status', async () => {
@@ -286,6 +289,144 @@ describe('Task Controller Test', () => {
 			taskService.deleteTask.mockRejectedValue(new Error('Database error'));
 
 			await taskController.deleteTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Database error'
+			});
+		});
+	});
+
+	describe('archiveTask', () => {
+		it('should archive a task successfully', async () => {
+			const mockTask = {
+				_id: 'taskId123',
+				title: 'Test Task',
+				archived: true,
+				archivedAt: new Date()
+			};
+
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockResolvedValue(mockTask);
+
+			await taskController.archiveTask(req, res);
+
+			expect(taskService.archiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task archived successfully',
+				data: mockTask
+			});
+		});
+
+		it('should return 404 for non-existent task', async () => {
+			req.params = { taskId: 'nonexistent' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockRejectedValue(new Error('Task not found'));
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Task not found'
+			});
+		});
+
+		it('should return 403 for permission error', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'unauthorizedUser' };
+			taskService.archiveTask.mockRejectedValue(
+				new Error('You do not have permission to archive this task')
+			);
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(403);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'You do not have permission to archive this task'
+			});
+		});
+
+		it('should handle other archive errors', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.archiveTask.mockRejectedValue(new Error('Database error'));
+
+			await taskController.archiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Database error'
+			});
+		});
+	});
+
+	describe('unarchiveTask', () => {
+		it('should unarchive a task successfully', async () => {
+			const mockTask = {
+				_id: 'taskId123',
+				title: 'Test Task',
+				archived: false,
+				archivedAt: null
+			};
+
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockResolvedValue(mockTask);
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(taskService.unarchiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task unarchived successfully',
+				data: mockTask
+			});
+		});
+
+		it('should return 404 for non-existent task', async () => {
+			req.params = { taskId: 'nonexistent' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockRejectedValue(new Error('Task not found'));
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Task not found'
+			});
+		});
+
+		it('should return 403 for permission error', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'unauthorizedUser' };
+			taskService.unarchiveTask.mockRejectedValue(
+				new Error('You do not have permission to unarchive this task')
+			);
+
+			await taskController.unarchiveTask(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(403);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'You do not have permission to unarchive this task'
+			});
+		});
+
+		it('should handle other unarchive errors', async () => {
+			req.params = { taskId: 'taskId123' };
+			req.user = { _id: 'userId123' };
+			taskService.unarchiveTask.mockRejectedValue(new Error('Database error'));
+
+			await taskController.unarchiveTask(req, res);
 
 			expect(res.status).toHaveBeenCalledWith(500);
 			expect(res.json).toHaveBeenCalledWith({

@@ -70,14 +70,35 @@ afterAll(async () => {
 beforeEach(async () => {
     await Task.deleteMany({});
     await Project.deleteMany({});
+    // Clean up dynamically created users (excluding testUser)
+    await User.deleteMany({ username: { $ne: 'testuser' } });
 });
 
 describe('Task Router Test', () => {
+    let testProject;
+    let managerUser;
+
+    beforeEach(async () => {
+        testProject = await Project.create({
+            name: 'Active Test Project',
+            owner: testUser._id,
+            status: 'Active'
+        });
+
+        managerUser = await User.create({
+            username: 'manageruser',
+            roles: ['manager'],
+            department: 'it',
+            hashed_password: 'password456'
+        });
+    });
+
     describe('POST /api/tasks', () => {
         it('should create a new task', async () => {
             const taskData = {
                 title: 'New Task',
-                description: 'Task description'
+                description: 'Task description',
+                project: testProject._id
             };
 
             const response = await request(app)
@@ -89,11 +110,47 @@ describe('Task Router Test', () => {
             expect(response.body.data.title).toBe('New Task');
             expect(response.body.data.status).toBe('To Do');
             expect(response.body.data.owner).toBe(testUser._id.toString());
+            expect(response.body.data.project).toBe(testProject._id.toString());
+            expect(response.body.data.assignee).toHaveLength(1);
+            expect(response.body.data.assignee[0]).toBe(testUser._id.toString());
+        });
+
+        it('should set creator as default assignee', async () => {
+            const taskData = {
+                title: 'Task',
+                project: testProject._id
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(201);
+
+            expect(response.body.data.assignee).toHaveLength(1);
+            expect(response.body.data.assignee[0]).toBe(testUser._id.toString());
+        });
+
+        it('should include creator when additional assignees provided', async () => {
+            const taskData = {
+                title: 'Task',
+                project: testProject._id,
+                assignee: [managerUser._id]
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(201);
+
+            expect(response.body.data.assignee).toHaveLength(2);
+            expect(response.body.data.assignee).toContain(testUser._id.toString());
+            expect(response.body.data.assignee).toContain(managerUser._id.toString());
         });
 
         it('should return 400 for missing title', async () => {
             const taskData = {
-                description: 'No title'
+                description: 'No title',
+                project: testProject._id
             };
 
             const response = await request(app)
@@ -105,15 +162,25 @@ describe('Task Router Test', () => {
             expect(response.body.message).toContain('title');
         });
 
-        it('should create task with project', async () => {
-            const project = await Project.create({
-                name: 'Test Project',
-                owner: testUser._id
-            });
-
+        it('should return 400 for missing project', async () => {
             const taskData = {
-                title: 'Project Task',
-                project: project._id
+                title: 'Task without project'
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toContain('Project is required');
+        });
+
+        it('should create task with tags', async () => {
+            const taskData = {
+                title: 'Task with tags',
+                project: testProject._id,
+                tags: 'bug#urgent#frontend'
             };
 
             const response = await request(app)
@@ -121,7 +188,7 @@ describe('Task Router Test', () => {
                 .send(taskData)
                 .expect(201);
 
-            expect(response.body.data.project).toBe(project._id.toString());
+            expect(response.body.data.tags).toBe('bug#urgent#frontend');
         });
 
         it('should return 400 for past due date', async () => {
@@ -130,6 +197,7 @@ describe('Task Router Test', () => {
 
             const taskData = {
                 title: 'Past Due Task',
+                project: testProject._id,
                 dueDate: yesterday
             };
 
@@ -141,20 +209,43 @@ describe('Task Router Test', () => {
             expect(response.body.success).toBe(false);
             expect(response.body.message).toContain('past');
         });
+
+        it('should return 400 for inactive project', async () => {
+            const inactiveProject = await Project.create({
+                name: 'Inactive Project',
+                owner: testUser._id,
+                status: 'Completed'
+            });
+
+            const taskData = {
+                title: 'Task for inactive project',
+                project: inactiveProject._id
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toContain('Active');
+        });
     });
 
     describe('GET /api/tasks', () => {
         beforeEach(async () => {
             const project = await Project.create({
                 name: 'Test Project',
-                owner: testUser._id
+                owner: testUser._id,
+                status: 'Active'
             });
 
             await Task.create([
                 {
                     title: 'Task 1',
                     owner: testUser._id,
-                    status: 'To Do'
+                    status: 'To Do',
+                    project: testProject._id
                 },
                 {
                     title: 'Task 2',
@@ -165,7 +256,8 @@ describe('Task Router Test', () => {
                 {
                     title: 'Task 3',
                     owner: testUser._id,
-                    status: 'Done'
+                    status: 'Done',
+                    project: testProject._id
                 }
             ]);
         });
@@ -199,23 +291,14 @@ describe('Task Router Test', () => {
             });
         });
 
-        it('should filter standalone tasks', async () => {
-            const response = await request(app)
-                .get('/api/tasks?standalone=true')
-                .expect(200);
-
-            expect(response.body.data).toHaveLength(2);
-            response.body.data.forEach(task => {
-                expect(task.project).toBeNull();
-            });
-        });
     });
 
     describe('GET /api/tasks/:taskId', () => {
         it('should get task by ID', async () => {
             const task = await Task.create({
                 title: 'Test Task',
-                owner: testUser._id
+                owner: testUser._id,
+                project: testProject._id
             });
 
             const response = await request(app)
@@ -245,7 +328,8 @@ describe('Task Router Test', () => {
             existingTask = await Task.create({
                 title: 'Original Title',
                 owner: testUser._id,
-                assignee: testUser._id
+                assignee: testUser._id,
+                project: testProject._id
             });
         });
 
@@ -311,13 +395,47 @@ describe('Task Router Test', () => {
             expect(response.body.success).toBe(false);
             expect(response.body.message).toContain('past');
         });
+
+        it('should update tags successfully', async () => {
+            const updateData = {
+                tags: 'updated#urgent#backend'
+            };
+
+            const response = await request(app)
+                .put(`/api/tasks/${existingTask._id}`)
+                .send(updateData)
+                .expect(200);
+
+            expect(response.body.data.tags).toBe('updated#urgent#backend');
+        });
+
+        it('should return 400 when trying to change project', async () => {
+            const newProject = await Project.create({
+                name: 'Another Project',
+                owner: testUser._id,
+                status: 'Active'
+            });
+
+            const updateData = {
+                project: newProject._id
+            };
+
+            const response = await request(app)
+                .put(`/api/tasks/${existingTask._id}`)
+                .send(updateData)
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toContain('Project cannot be changed');
+        });
     });
 
     describe('DELETE /api/tasks/:taskId', () => {
         it('should delete task successfully', async () => {
             const task = await Task.create({
                 title: 'Task to Delete',
-                owner: testUser._id
+                owner: testUser._id,
+                project: testProject._id
             });
 
             const response = await request(app)
@@ -356,7 +474,8 @@ describe('Task Router Test', () => {
             const task = await Task.create({
                 title: 'Not My Task',
                 owner: otherUser._id,
-                assignee: otherUser._id
+                assignee: otherUser._id,
+                project: testProject._id
             });
 
             const updateData = {
@@ -383,7 +502,8 @@ describe('Task Router Test', () => {
             const task = await Task.create({
                 title: 'Assigned to Me',
                 owner: otherUser._id,
-                assignee: testUser._id
+                assignee: testUser._id,
+                project: testProject._id
             });
 
             const updateData = {
@@ -409,7 +529,8 @@ describe('Task Router Test', () => {
 
             const task = await Task.create({
                 title: 'Not My Task',
-                owner: otherUser._id
+                owner: otherUser._id,
+                project: testProject._id
             });
 
             const response = await request(app)
@@ -418,6 +539,115 @@ describe('Task Router Test', () => {
 
             expect(response.body.success).toBe(false);
             expect(response.body.message).toContain('permission');
+        });
+    });
+
+    describe('Task Recurrence', () => {
+        it('should create recurring task', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const taskData = {
+                title: 'Recurring Weekly Task',
+                project: testProject._id,
+                dueDate: futureDate.toISOString(),
+                isRecurring: true,
+                recurrenceInterval: 7
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(201);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.isRecurring).toBe(true);
+            expect(response.body.data.recurrenceInterval).toBe(7);
+        });
+
+        it('should return 400 for recurring task without interval', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const taskData = {
+                title: 'Recurring Task',
+                project: testProject._id,
+                dueDate: futureDate.toISOString(),
+                isRecurring: true
+            };
+
+            const response = await request(app)
+                .post('/api/tasks')
+                .send(taskData)
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toContain('interval');
+        });
+
+        it('should turn off recurrence when updating task', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const task = await Task.create({
+                title: 'Recurring Task',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                dueDate: futureDate,
+                isRecurring: true,
+                recurrenceInterval: 7
+            });
+
+            const updateData = {
+                isRecurring: false
+            };
+
+            const response = await request(app)
+                .put(`/api/tasks/${task._id}`)
+                .send(updateData)
+                .expect(200);
+
+            expect(response.body.data.isRecurring).toBe(false);
+            expect(response.body.data.recurrenceInterval).toBeNull();
+        });
+
+        it('should create new task instance when recurring task is completed', async () => {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+
+            const task = await Task.create({
+                title: 'Daily Standup',
+                owner: testUser._id,
+                assignee: [testUser._id],
+                project: testProject._id,
+                dueDate: futureDate,
+                isRecurring: true,
+                recurrenceInterval: 1,
+                status: 'In Progress'
+            });
+
+            const updateData = {
+                status: 'Done'
+            };
+
+            const response = await request(app)
+                .put(`/api/tasks/${task._id}`)
+                .send(updateData)
+                .expect(200);
+
+            expect(response.body.data.status).toBe('Done');
+
+            // Check that a new task was created
+            const tasks = await Task.find({
+                title: 'Daily Standup',
+                status: 'To Do'
+            });
+
+            expect(tasks.length).toBeGreaterThan(0);
+            const newTask = tasks[0];
+            expect(newTask.isRecurring).toBe(true);
+            expect(newTask.recurrenceInterval).toBe(1);
         });
     });
 });

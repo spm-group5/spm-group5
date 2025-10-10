@@ -59,7 +59,7 @@ const taskSchema = new Schema({
     project: {
         type: Schema.Types.ObjectId,
         ref: 'projects',
-        default: null
+        required: true
     },
     dueDate: {
         type: Date,
@@ -75,6 +75,36 @@ const taskSchema = new Schema({
             },
             message: 'Due date cannot be in the past'
         }
+    },
+    isRecurring: {
+        type: Boolean,
+        default: false
+    },
+    recurrenceInterval: {
+        type: Number,
+        default: null,
+        validate: {
+            validator: function(v) {
+                // If task is recurring, interval must be positive
+                if (this.isRecurring && (!v || v <= 0)) {
+                    return false;
+                }
+                // If not recurring, interval should be null or undefined
+                if (!this.isRecurring && v) {
+                    return false;
+                }
+                return true;
+            },
+            message: 'Recurrence interval must be a positive number for recurring tasks'
+        }
+    },
+    archived: {
+        type: Boolean,
+        default: false
+    },
+    archivedAt: {
+        type: Date,
+        default: null
     },
     createdAt: {
         type: Date,

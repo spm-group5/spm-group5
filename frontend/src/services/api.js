@@ -51,6 +51,18 @@ class ApiService {
         return this.request(`/tasks/${taskId}`);
     }
 
+    async archiveTask(taskId) {
+        return this.request(`/tasks/${taskId}/archive`, {
+            method: 'PATCH',
+        });
+    }
+
+    async unarchiveTask(taskId) {
+        return this.request(`/tasks/${taskId}/unarchive`, {
+            method: 'PATCH',
+        });
+    }
+
     async deleteTask(taskId) {
         return this.request(`/tasks/${taskId}`, {
             method: 'DELETE',

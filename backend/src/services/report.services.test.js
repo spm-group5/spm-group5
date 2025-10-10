@@ -143,13 +143,13 @@ describe('Report Service Test', () => {
                 createdAt: new Date('2024-03-01') // Outside our test range
             },
             {
-                title: 'Task 6 - Standalone User Task',
-                description: 'Standalone task for user',
+                title: 'Task 6 - User Task',
+                description: 'Task for user',
                 status: 'Done',
                 priority: 7,
                 owner: testUser1._id,
                 assignee: [testUser1._id],
-                // No project - standalone task
+                project: testProject._id, // Project is now required
                 createdAt: baseDate
             }
         ]);
@@ -180,18 +180,18 @@ describe('Report Service Test', () => {
             expect(reportData.metadata.projectOwner).toBe('testuser1');
             expect(reportData.metadata.projectId).toBe(testProject._id.toString());
 
-            // Check aggregates - should include 4 project tasks within date range (excluding task 5)
-            expect(reportData.aggregates.total).toBe(4);
+            // Check aggregates - should include 5 project tasks within date range (excluding task 5)
+            expect(reportData.aggregates.total).toBe(5);
             expect(reportData.aggregates['To Do']).toBe(1);
             expect(reportData.aggregates['In Progress']).toBe(1);
             expect(reportData.aggregates['Blocked']).toBe(1);
-            expect(reportData.aggregates['Done']).toBe(1);
+            expect(reportData.aggregates['Done']).toBe(2);
 
             // Check data structure
             expect(reportData.data['To Do']).toHaveLength(1);
             expect(reportData.data['In Progress']).toHaveLength(1);
             expect(reportData.data['Blocked']).toHaveLength(1);
-            expect(reportData.data['Done']).toHaveLength(1);
+            expect(reportData.data['Done']).toHaveLength(2);
 
             // Verify task data format
             const todoTask = reportData.data['To Do'][0];
@@ -293,7 +293,7 @@ describe('Report Service Test', () => {
             expect(taskTitles).toContain('Task 1 - To Do');
             expect(taskTitles).toContain('Task 2 - In Progress');
             expect(taskTitles).toContain('Task 3 - Blocked');
-            expect(taskTitles).toContain('Task 6 - Standalone User Task');
+            expect(taskTitles).toContain('Task 6 - User Task');
         });
 
         it('should include tasks where user is assignee', async () => {
@@ -363,11 +363,13 @@ describe('Report Service Test', () => {
                 owner: testUser1._id,
                 status: 'To Do',
                 priority: 5, // Required field with default value
+                project: testProject._id, // Required field
                 createdAt: new Date('2024-01-15')
-                // No project, assignee, dueDate, tags, or description
+                // No assignee, dueDate, tags, or description
             });
 
             await minimalTask.populate('owner', 'username');
+            await minimalTask.populate('project', 'name');
 
             const reportData = reportService.processTasksForReport([minimalTask], 'user', {
                 userId: testUser1._id.toString(),
@@ -382,7 +384,7 @@ describe('Report Service Test', () => {
             expect(task.tags).toBe('No tags'); // Empty string becomes 'No tags'
             expect(task.description).toBe('No description'); // Empty string becomes 'No description'
             expect(task.assignee).toBe('Unassigned');
-            expect(task.project).toBe('No project');
+            expect(task.project).toBe('Test Project'); // Now has a project
         });
     });
 

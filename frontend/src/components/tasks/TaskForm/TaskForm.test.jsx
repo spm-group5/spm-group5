@@ -19,18 +19,39 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TaskForm from './TaskForm';
 import { ProjectContext } from '../../../context/ProjectContext';
+import { AuthContext } from '../../../context/AuthContext';
 
-const mockProjects = [
-  { _id: 'proj1', name: 'Project Alpha' },
-  { _id: 'proj2', name: 'Project Beta' },
-  { _id: 'proj3', name: 'Project Gamma' }
+const mockUser = {
+  _id: 'user1',
+  username: 'testuser',
+  roles: ['staff']
+};
+
+const mockManagerUser = {
+  _id: 'user1',
+  username: 'manager',
+  roles: ['manager']
+};
+
+const mockMembers = [
+  { _id: 'user1', username: 'testuser' },
+  { _id: 'user2', username: 'member1' },
+  { _id: 'user3', username: 'member2' }
 ];
 
-const renderWithContext = (component) => {
+const mockProjects = [
+  { _id: 'proj1', name: 'Project Alpha', status: 'Active', members: mockMembers },
+  { _id: 'proj2', name: 'Project Beta', status: 'Active', members: mockMembers },
+  { _id: 'proj3', name: 'Project Gamma', status: 'Completed', members: [] }
+];
+
+const renderWithContext = (component, user = mockUser) => {
   return render(
-    <ProjectContext.Provider value={{ projects: mockProjects }}>
-      {component}
-    </ProjectContext.Provider>
+    <AuthContext.Provider value={{ user, isAuthenticated: true }}>
+      <ProjectContext.Provider value={{ projects: mockProjects }}>
+        {component}
+      </ProjectContext.Provider>
+    </AuthContext.Provider>
   );
 };
 
@@ -50,6 +71,7 @@ describe('TaskForm Component', () => {
       expect(screen.getByLabelText(/Priority/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Due Date/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Project/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Tags/i)).toBeInTheDocument();
     });
 
     it('has default values in create mode', () => {
@@ -78,7 +100,8 @@ describe('TaskForm Component', () => {
       status: 'In Progress',
       priority: 8,
       dueDate: '2025-12-31',
-      project: { _id: 'proj1', name: 'Project Alpha' }
+      project: { _id: 'proj1', name: 'Project Alpha' },
+      tags: 'bug#urgent'
     };
 
     it('renders form in edit mode when task is provided', () => {
@@ -95,6 +118,7 @@ describe('TaskForm Component', () => {
       const priorityInput = screen.getByLabelText(/Priority/i);
       const dueDateInput = screen.getByLabelText(/Due Date/i);
       const projectSelect = screen.getByLabelText(/Project/i);
+      const tagsInput = screen.getByLabelText(/Tags/i);
 
       expect(titleInput).toHaveValue('Existing Task');
       expect(descriptionInput).toHaveValue('Existing description');
@@ -102,6 +126,20 @@ describe('TaskForm Component', () => {
       expect(priorityInput).toHaveValue(8);
       expect(dueDateInput).toHaveValue('2025-12-31');
       expect(projectSelect).toHaveValue('proj1');
+      expect(tagsInput).toHaveValue('bug#urgent');
+    });
+
+    it('disables project field in edit mode', () => {
+      renderWithContext(<TaskForm task={mockTask} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const projectSelect = screen.getByLabelText(/Project/i);
+      expect(projectSelect).toBeDisabled();
+    });
+
+    it('shows helper text for disabled project in edit mode', () => {
+      renderWithContext(<TaskForm task={mockTask} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      expect(screen.getByText(/Project cannot be changed after creation/i)).toBeInTheDocument();
     });
 
     it('displays Update Task button in edit mode', () => {
@@ -302,18 +340,18 @@ describe('TaskForm Component', () => {
   });
 
   describe('Project Dropdown', () => {
-    it('includes No Project option', () => {
+    it('includes Select Project placeholder option', () => {
       renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
       const projectSelect = screen.getByLabelText(/Project/i);
-      expect(projectSelect).toContainHTML('<option value="">No Project</option>');
+      expect(projectSelect).toContainHTML('<option value="">Select Project</option>');
     });
 
-    it('displays all available projects', () => {
+    it('displays only Active projects', () => {
       renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
       expect(screen.getByRole('option', { name: 'Project Alpha' })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'Project Beta' })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: 'Project Gamma' })).toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: 'Project Gamma' })).not.toBeInTheDocument();
     });
 
     it('allows selecting a project', async () => {
@@ -324,6 +362,27 @@ describe('TaskForm Component', () => {
       await user.selectOptions(projectSelect, 'proj2');
 
       expect(projectSelect).toHaveValue('proj2');
+    });
+
+    it('marks project as required in create mode', () => {
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      const projectLabel = screen.getByLabelText(/Project/i).closest('div');
+      expect(projectLabel).toContainHTML('*');
+    });
+
+    it('shows error when project is not selected', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      await user.type(titleInput, 'Test Task');
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Project is required')).toBeInTheDocument();
+      });
     });
   });
 
@@ -337,12 +396,16 @@ describe('TaskForm Component', () => {
       const descriptionInput = screen.getByLabelText(/Description/i);
       const statusSelect = screen.getByLabelText(/Status/i);
       const priorityInput = screen.getByLabelText(/Priority/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const tagsInput = screen.getByLabelText(/Tags/i);
 
       await user.type(titleInput, 'New Task');
       await user.type(descriptionInput, 'Task description');
       await user.selectOptions(statusSelect, 'In Progress');
       await user.clear(priorityInput);
       await user.type(priorityInput, '7');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.type(tagsInput, 'bug#urgent');
 
       const submitButton = screen.getByRole('button', { name: 'Create Task' });
       await user.click(submitButton);
@@ -354,7 +417,9 @@ describe('TaskForm Component', () => {
           status: 'In Progress',
           priority: 7,
           dueDate: null,
-          project: ''
+          project: 'proj1',
+          assignee: [],
+          tags: 'bug#urgent'
         });
       });
     });
@@ -516,21 +581,296 @@ describe('TaskForm Component', () => {
       });
     });
 
-    it('project field is optional', async () => {
+  });
+
+  describe('Tags Field', () => {
+    it('renders tags input field', () => {
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByLabelText(/Tags/i)).toBeInTheDocument();
+    });
+
+    it('accepts tags with # separator', async () => {
       const user = userEvent.setup();
       const onSubmit = vi.fn();
       renderWithContext(<TaskForm onSubmit={onSubmit} onCancel={vi.fn()} />);
 
       const titleInput = screen.getByLabelText(/Title/i);
-      await user.type(titleInput, 'Standalone Task');
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const tagsInput = screen.getByLabelText(/Tags/i);
+
+      await user.type(titleInput, 'Tagged Task');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.type(tagsInput, 'bug#urgent#frontend');
 
       const submitButton = screen.getByRole('button', { name: 'Create Task' });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({ project: '' })
+          expect.objectContaining({ tags: 'bug#urgent#frontend' })
         );
+      });
+    });
+
+    it('tags field is optional', async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn();
+      renderWithContext(<TaskForm onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+
+      await user.type(titleInput, 'Task Without Tags');
+      await user.selectOptions(projectSelect, 'proj1');
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ tags: '' })
+        );
+      });
+    });
+  });
+
+  describe('Assignment Rules', () => {
+    it('shows creator will be automatically assigned in create mode', () => {
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByText(/You \(creator\) will be automatically assigned/i)).toBeInTheDocument();
+    });
+
+    it('shows max 5 assignees limit', () => {
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByText(/max 5/i)).toBeInTheDocument();
+    });
+
+    it('shows different message for managers in edit mode', () => {
+      const mockTask = {
+        title: 'Existing Task',
+        status: 'To Do',
+        priority: 5,
+        project: { _id: 'proj1', name: 'Project Alpha' },
+        assignee: [{ _id: 'user1', username: 'testuser' }]
+      };
+
+      renderWithContext(<TaskForm task={mockTask} onSubmit={vi.fn()} onCancel={vi.fn()} />, mockManagerUser);
+      expect(screen.getByText(/You can add or remove assignees/i)).toBeInTheDocument();
+    });
+
+    it('shows restriction message for non-managers in edit mode', () => {
+      const mockTask = {
+        title: 'Existing Task',
+        status: 'To Do',
+        priority: 5,
+        project: { _id: 'proj1', name: 'Project Alpha' },
+        assignee: [{ _id: 'user1', username: 'testuser' }]
+      };
+
+      renderWithContext(<TaskForm task={mockTask} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByText(/You can only add new assignees/i)).toBeInTheDocument();
+    });
+
+    it('validates maximum 5 assignees', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+
+      await user.type(titleInput, 'Test Task');
+      await user.selectOptions(projectSelect, 'proj1');
+
+      // Form should show size="5" for the select
+      const assigneeSelect = screen.getByLabelText(/Assign To/i);
+      expect(assigneeSelect).toHaveAttribute('size', '5');
+    });
+  });
+
+  describe('Task Recurrence', () => {
+    it('renders recurring task checkbox', () => {
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByText('Recurring Task')).toBeInTheDocument();
+    });
+
+    it('shows recurrence interval field when recurring is checked', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+      await user.click(recurringCheckbox);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Recurrence Interval/i)).toBeInTheDocument();
+      });
+    });
+
+    it('hides recurrence interval field when recurring is unchecked', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+
+      // Check
+      await user.click(recurringCheckbox);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Recurrence Interval/i)).toBeInTheDocument();
+      });
+
+      // Uncheck
+      await user.click(recurringCheckbox);
+      await waitFor(() => {
+        expect(screen.queryByLabelText(/Recurrence Interval/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('requires recurrence interval when recurring is enabled', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+
+      await user.type(titleInput, 'Recurring Task');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.click(recurringCheckbox);
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Recurrence interval is required/i)).toBeInTheDocument();
+      });
+    });
+
+    it('requires due date for recurring tasks', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+
+      await user.type(titleInput, 'Recurring Task');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.click(recurringCheckbox);
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Due date is required for recurring tasks/i)).toBeInTheDocument();
+      });
+    });
+
+    it('submits recurring task with valid data', async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn();
+      renderWithContext(<TaskForm onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const dueDateInput = screen.getByLabelText(/Due Date/i);
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+
+      await user.type(titleInput, 'Weekly Report');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.type(dueDateInput, tomorrowStr);
+      await user.click(recurringCheckbox);
+
+      const intervalInput = screen.getByLabelText(/Recurrence Interval/i);
+      await user.type(intervalInput, '7');
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Weekly Report',
+            isRecurring: true,
+            recurrenceInterval: 7
+          })
+        );
+      });
+    });
+
+    it('populates recurrence fields in edit mode', () => {
+      const mockTask = {
+        title: 'Weekly Task',
+        status: 'To Do',
+        priority: 5,
+        project: { _id: 'proj1', name: 'Project Alpha' },
+        assignee: [{ _id: 'user1', username: 'testuser' }],
+        isRecurring: true,
+        recurrenceInterval: 7
+      };
+
+      renderWithContext(<TaskForm task={mockTask} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+      expect(recurringCheckbox).toBeChecked();
+
+      const intervalInput = screen.getByLabelText(/Recurrence Interval/i);
+      expect(intervalInput).toHaveValue(7);
+    });
+
+    it('allows turning off recurrence in edit mode', async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn();
+      const mockTask = {
+        title: 'Weekly Task',
+        status: 'To Do',
+        priority: 5,
+        project: { _id: 'proj1', name: 'Project Alpha' },
+        assignee: [{ _id: 'user1', username: 'testuser' }],
+        isRecurring: true,
+        recurrenceInterval: 7
+      };
+
+      renderWithContext(<TaskForm task={mockTask} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+      await user.click(recurringCheckbox);
+
+      const submitButton = screen.getByRole('button', { name: 'Update Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isRecurring: false,
+            recurrenceInterval: null
+          })
+        );
+      });
+    });
+
+    it('validates interval is a positive number', async () => {
+      const user = userEvent.setup();
+      renderWithContext(<TaskForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      const titleInput = screen.getByLabelText(/Title/i);
+      const projectSelect = screen.getByLabelText(/Project/i);
+      const recurringCheckbox = screen.getByRole('checkbox', { name: /Recurring Task/i });
+
+      await user.type(titleInput, 'Test');
+      await user.selectOptions(projectSelect, 'proj1');
+      await user.click(recurringCheckbox);
+
+      const intervalInput = screen.getByLabelText(/Recurrence Interval/i);
+      await user.type(intervalInput, '0');
+
+      const submitButton = screen.getByRole('button', { name: 'Create Task' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Interval must be at least 1 day/i)).toBeInTheDocument();
       });
     });
   });
