@@ -38,6 +38,36 @@ const transporter = nodemailer.createTransport({
 });
 
 
+/**
+ * Generate a HTML email format for upcoming/overdue tasks
+ */
+function generateTaskEmail({ taskTitle, taskId, deadline, type }) {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const taskUrl = `${baseUrl}/tasks`;
+    const subject =
+        type === 'upcoming'
+            ? `REMINDER: Task "${taskTitle}" Deadline Approaching`
+            : `URGENT: Task "${taskTitle}" Overdue`;
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; line-height:1.6; color:#333;">
+        <h2 style="color:#2E86DE;">${type === 'upcoming' ? 'Reminder!' : 'Urgent!'}</h2>
+        <p>The task "<strong>${taskTitle}</strong>" is ${type === 'upcoming' ? 'approaching its deadline' : 'overdue'}.</p>
+        <p>Deadline: <strong>${new Date(deadline).toLocaleString()}</strong></p>
+        <p>Please take the necessary action.</p>
+        <p>
+            <a href="${taskUrl}" style="display:inline-block;padding:10px 15px;background-color:#2E86DE;color:#fff;text-decoration:none;border-radius:5px;">
+                Open Task in All-In-One Task Management System
+            </a>
+        </p>
+        <hr style="border:none;border-top:1px solid #ccc;">
+        <p style="font-size:0.85em;color:#555;">This is an automated notification. Please do not reply.</p>
+    </div>
+    `;
+    return { subject, html };
+}
+
+
 //checkd if deadline if within 24 hours
 function checkIfUpcomingDeadline(dueDate){
     const now = new Date();
@@ -57,57 +87,60 @@ function checkIfOverdue(dueDate){
 // Function to check if any tasks are nearing their deadlines or overdue
 export async function checkTasksAndNotify() {
     try {
-        const taskList = await Task.find({ status: {$in: ['In Progress', 'To Do', 'Blocked']} });
-        for (const task of taskList) {
-            if (task.dueDate) {
-                const isUpcoming = await checkIfUpcomingDeadline(task.dueDate);
-                const isOverdue = await checkIfOverdue(task.dueDate);
-                if (isUpcoming){
-                    // Notify assignees about upcoming deadline
-                    for (const assigneeId of task.assignee) {
-                        // Fetch assignee email from User model (not shown here)
-                        const assignee = await User.findById(assigneeId);
-                        if (assignee?.username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee.username)) {
-                            // Only send if username looks like an email
-                            await sendEmail(
-                                assignee.username,
-                                'REMINDER: Task Deadline Approaching',
-                                `The deadline for task "${task.title}" is within the next 24 hours. Please ensure it is completed on time.`
-                            );
-                        } else {
-                            console.warn(`Skipped ${assignee?.username} — not a valid email.`);
-                        }
+        const tasks = await Task.find({ status: { $in: ['To Do', 'In Progress', 'Blocked'] } });
 
-                    }
-                }
-            
-            if (isOverdue){
-                // Notify assignees about overdue task
-                for (const assigneeId of task.assignee) {
-                    // Fetch assignee email from User model (not shown here)
-                    const assignee = await User.findById(assigneeId);
+        // For parallel email sending, collect all promises
+        const emailPromises = [];
 
-                    if (assignee?.username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee.username)) {
-                        // Only send if username looks like an email
-                        await sendEmail(
-                            assignee.username,
-                            'URGENT: Task Overdue',
-                            `The task "${task.title}" is overdue by more than 24 hours. Please complete it as soon as possible.`
-                        );
-                    } else {
-                        console.warn(`Assignee with ID ${assigneeId} not found or has no email.`);
-                    }
+        for (const task of tasks) {
+            if (!task.dueDate) continue;
+
+            const isUpcoming = checkIfUpcomingDeadline(task.dueDate);
+            const isOverdue = checkIfOverdue(task.dueDate);
+
+            if (!isUpcoming && !isOverdue) continue;
+
+            for (const assigneeId of task.assignee) {
+                const assignee = await User.findById(assigneeId);
+
+                if (!assignee?.username || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee.username)) {
+                    console.warn(`Skipped ${assignee?.username || assigneeId} — not a valid email.`);
+                    continue;
                 }
+
+                const emailContent = generateTaskEmail({
+                    taskTitle: task.title,
+                    taskId: task._id,
+                    deadline: task.dueDate,
+                    type: isUpcoming ? 'upcoming' : 'overdue'
+                });
+
+                emailPromises.push(
+                    sendEmail(
+                        assignee.username,
+                        emailContent.subject,
+                        emailContent.html, // fallback text
+                        emailContent.html
+                    )
+                );
             }
         }
-    }
 
+        // Send all emails in parallel
+        const results = await Promise.allSettled(emailPromises);
+        results.forEach((r, i) => {
+            if (r.status === 'fulfilled') {
+                console.log(`Email #${i + 1} sent successfully.`);
+            } else {
+                console.error(`Email #${i + 1} failed:`, r.reason);
+            }
+        });
+
+        console.log('✅ Notification check completed.');
     } catch (error) {
-            console.error('Error checking tasks for notifications:', error);
+        console.error('❌ Error checking tasks for notifications:', error);
     }
-
-}
-
+};
 
 
 /**
