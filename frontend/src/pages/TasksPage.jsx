@@ -325,6 +325,9 @@ function TasksPage() {
                     onArchive={handleArchiveTask}
                     onUnarchive={handleUnarchiveTask}
                     isArchived={task.archived}
+                    onRefresh={() => {
+                      fetchTasks();
+                    }}
                   />
                 ))}
               </div>

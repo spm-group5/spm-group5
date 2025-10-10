@@ -1,0 +1,98 @@
+.commentSection {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.commentSection h4 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.commentsList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.comment {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.comment strong {
+    display: block;
+    color: #007bff;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.comment p {
+    margin: 0.5rem 0;
+    color: #333;
+    line-height: 1.5;
+}
+
+.comment small {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.noComments {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+    font-style: italic;
+}
+
+.commentForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.commentForm textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.commentForm textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.commentForm textarea:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.commentForm button {
+    align-self: flex-end;
+    padding: 0.6rem 1.5rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.commentForm button:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.commentForm button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}

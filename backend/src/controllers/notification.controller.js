@@ -14,11 +14,22 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// Mark a notification as read
+// Mark a notification as read using its ID
 export const markNotificationRead = async (req, res) => {
   try {
     const notificationId = req.params.id;
     await notificationModel.findByIdAndUpdate(notificationId, { read: true });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Mark all notifications as read for the logged-in user
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    await notificationModel.updateMany({ user: userId, read: false }, { read: true });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

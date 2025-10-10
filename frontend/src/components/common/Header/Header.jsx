@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useNotificationCenter } from '../../../context/NotificationsCenterContext';
 import Button from '../Button/Button';
 import styles from './Header.module.css';
 
 function Header() {
   const { user, logout } = useAuth();
+
+  const { notifications } = useNotificationCenter();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleLogout = async () => {
     await logout();
@@ -28,6 +33,12 @@ function Header() {
           </Link>
           <Link to="/projects" className={styles.navLink}>
             Projects
+          </Link>
+          <Link to="/notifications" className={styles.navLink}>
+            Notifications
+            {unreadCount > 0 && ( 
+              <span className={styles.badge}>{unreadCount}</span>
+            )}
           </Link>
         </nav>
 

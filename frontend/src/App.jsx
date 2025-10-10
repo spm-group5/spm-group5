@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { TaskProvider } from './context/TaskContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { NotificationCenterProvider } from './context/NotificationsCenterContext';
 import { useSocket } from './hooks/useSocket';
 import NotificationContainer from './components/common/Notifications/NotificationContainer';
 import ProtectedRoute from './router/ProtectedRoute';
@@ -10,6 +11,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import ProjectsPage from './pages/ProjectsPage';
+import NotificationsPage from './pages/NotificationsPage.jsx';
 
 function SocketManager() {
   useSocket(); //Start the socket connection
@@ -21,6 +23,7 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
+        <NotificationCenterProvider>
         <TaskProvider>
           <ProjectProvider>
             <Router>
@@ -42,6 +45,11 @@ function App() {
                     <ProjectsPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
@@ -49,6 +57,7 @@ function App() {
             </Router>
           </ProjectProvider>
         </TaskProvider>
+        </NotificationCenterProvider>
       </NotificationProvider>
     </AuthProvider>
   );

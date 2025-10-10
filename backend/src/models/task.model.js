@@ -98,6 +98,25 @@ const taskSchema = new Schema({
             message: 'Recurrence interval must be a positive number for recurring tasks'
         }
     },
+    comments: [{
+        text: {
+            type: String,
+            required: true
+        },
+        author: {
+            type: Schema.Types.ObjectId,
+            ref: 'users',
+            required: true
+        },
+        authorName: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
     archived: {
         type: Boolean,
         default: false
