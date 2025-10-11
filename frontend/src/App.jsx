@@ -6,10 +6,12 @@ import { NotificationProvider } from './context/NotificationContext';
 import { useSocket } from './hooks/useSocket';
 import NotificationContainer from './components/common/Notifications/NotificationContainer';
 import ProtectedRoute from './router/ProtectedRoute';
+import AdminRoute from './router/AdminRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import ProjectsPage from './pages/ProjectsPage';
+import ReportsPage from './pages/ReportsPage';
 
 function SocketManager() {
   useSocket(); //Start the socket connection
@@ -41,6 +43,11 @@ function App() {
                   <ProtectedRoute>
                     <ProjectsPage />
                   </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <AdminRoute>
+                    <ReportsPage />
+                  </AdminRoute>
                 } />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

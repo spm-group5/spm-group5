@@ -56,10 +56,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
         secure: false, // Set to true in production with HTTPS
         httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+        maxAge: 15 * 60 * 1000 // 15 mins in milliseconds
     }
 }));
 
