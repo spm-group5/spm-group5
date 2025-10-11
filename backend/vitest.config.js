@@ -3,9 +3,16 @@ export default {
   test: {
     environment: 'node',
     globals: true, // Enable Vitest globals like describe, it, expect
-    setupFiles: [],
+    setupFiles: ['src/test/setup.js'], // Include our test setup file
     css: false, // Disable CSS handling
     testTimeout: 20000, // 20 second timeout for tests
+    hookTimeout: 30000, // 30 second timeout for hooks (setup/teardown)
+    pool: 'forks', // Run tests in separate processes to avoid connection conflicts
+    poolOptions: {
+      forks: {
+        singleFork: true // Run all tests in a single fork to share the connection
+      }
+    },
     coverage: {
       provider: 'v8', // Use V8 for coverage
       reporter: ['text', 'json', 'html'], // Generate coverage reports in text, JSON, and HTML formats
