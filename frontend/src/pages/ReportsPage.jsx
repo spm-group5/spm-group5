@@ -1,0 +1,307 @@
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import Header from '../components/common/Header/Header';
+import Button from '../components/common/Button/Button';
+import Card from '../components/common/Card/Card';
+import Input from '../components/common/Input/Input';
+import Spinner from '../components/common/Spinner/Spinner';
+import apiService from '../services/api';
+import { useNotifications } from '../hooks/useNotifications';
+import styles from './ReportsPage.module.css';
+
+function ReportsPage() {
+  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState('error'); // 'error' or 'warning'
+  const [searchTerm, setSearchTerm] = useState('');
+  const { addNotification } = useNotifications();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+    setValue,
+  } = useForm({
+    defaultValues: {
+      reportType: 'user',
+      targetId: '',
+      startDate: '',
+      endDate: '',
+      format: 'pdf',
+    },
+  });
+
+  const reportType = watch('reportType');
+  const targetId = watch('targetId');
+
+  // Load users and projects on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const [usersResponse, projectsResponse] = await Promise.all([
+          apiService.getAllUsers(),
+          apiService.getAllProjectsForAdmin(),
+        ]);
+
+        setUsers(usersResponse.data || []);
+        setProjects(projectsResponse.data || []);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError(err.message || 'Failed to load users and projects');
+        addNotification(
+          err.message || 'Failed to load data for report generation',
+          'error'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [addNotification]);
+
+  // Reset target selection when report type changes
+  useEffect(() => {
+    setValue('targetId', '');
+  }, [reportType, setValue]);
+
+  const getFilteredOptions = () => {
+    const options = reportType === 'user' ? users : projects;
+    if (!searchTerm) return options;
+    
+    return options.filter(item => {
+      const searchableText = reportType === 'user' 
+        ? `${item.username} ${item.department}`.toLowerCase()
+        : item.name.toLowerCase();
+      return searchableText.includes(searchTerm.toLowerCase());
+    });
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      setGenerating(true);
+      setError(null);
+      setErrorType('error'); // Reset error type
+
+      // Validate dates
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+
+      if (startDate > endDate) {
+        throw new Error('Start date cannot be after end date');
+      }
+
+      // Generate report
+      const result = await apiService.generateReport(
+        data.reportType,
+        data.targetId,
+        data.startDate,
+        data.endDate,
+        data.format
+      );
+
+      addNotification(
+        `Report generated successfully: ${result.filename}`,
+        'success'
+      );
+
+    } catch (err) {
+      console.error('Error generating report:', err);
+      
+      // Handle "no data" errors differently
+      if (err.type === 'NO_DATA_FOUND') {
+        setError(err.message);
+        setErrorType('warning');
+        addNotification(
+          err.message,
+          'warning'  // Use warning type for no data scenarios
+        );
+      } else {
+        setError(err.message || 'Failed to generate report');
+        setErrorType('error');
+        addNotification(
+          err.message || 'Failed to generate report',
+          'error'
+        );
+      }
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Header />
+        <div className="container flex justify-center items-center" style={{ minHeight: '400px' }}>
+          <Spinner size="large" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Header />
+      <div className={`container ${styles.page}`}>
+        <div className={styles.header}>
+          <h1>Report Generation</h1>
+          <p className={styles.subtitle}>
+            Generate task completion reports for users and projects
+          </p>
+        </div>
+
+        {error && (
+          <div className={errorType === 'warning' ? styles.warning : styles.error}>
+            {error}
+          </div>
+        )}
+
+        <Card className={styles.formCard}>
+          <Card.Header>
+            <h2>Generate Task Completion Report</h2>
+          </Card.Header>
+          <Card.Body>
+            <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
+              {/* Report Type Selection */}
+              <div className={styles.radioGroup}>
+                <label className={styles.radioGroupLabel}>
+                  Report Type <span className={styles.required}>*</span>
+                </label>
+                <div className={styles.radioOptions}>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      value="user"
+                      {...register('reportType', { required: 'Please select a report type' })}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioLabel}>Task Completion Report by User</span>
+                  </label>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      value="project"
+                      {...register('reportType', { required: 'Please select a report type' })}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioLabel}>Task Completion Report by Project</span>
+                  </label>
+                </div>
+                {errors.reportType && (
+                  <div className={styles.errorMessage}>{errors.reportType.message}</div>
+                )}
+              </div>
+
+              {/* Target Selection */}
+              {reportType && (
+                <div className={styles.targetSelection}>
+                  <label className={styles.selectLabel}>
+                    Select {reportType === 'user' ? 'User' : 'Project'} <span className={styles.required}>*</span>
+                  </label>
+                  
+                  {/* Search Input */}
+                  <div className={styles.searchContainer}>
+                    <Input
+                      type="text"
+                      placeholder={`Search ${reportType === 'user' ? 'users' : 'projects'}...`}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className={styles.searchInput}
+                    />
+                  </div>
+
+                  {/* Selection Dropdown */}
+                  <select
+                    className={styles.select}
+                    {...register('targetId', {
+                      required: `Please select a ${reportType === 'user' ? 'user' : 'project'}`
+                    })}
+                    value={targetId}
+                  >
+                    <option value="">Select {reportType === 'user' ? 'a user' : 'a project'}</option>
+                    {getFilteredOptions().map((item) => (
+                      <option key={item.id || item._id} value={item.id || item._id}>
+                        {reportType === 'user' 
+                          ? `${item.username} (${item.department})`
+                          : item.name
+                        }
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {errors.targetId && (
+                    <div className={styles.errorMessage}>{errors.targetId.message}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Date Range */}
+              <div className={styles.dateRange}>
+                <Input
+                  label="Start Date"
+                  type="date"
+                  {...register('startDate', { required: 'Start date is required' })}
+                  error={errors.startDate?.message}
+                  required
+                />
+                <Input
+                  label="End Date"
+                  type="date"
+                  {...register('endDate', { required: 'End date is required' })}
+                  error={errors.endDate?.message}
+                  required
+                />
+              </div>
+
+              {/* Format Selection */}
+              <div className={styles.formatSelection}>
+                <label className={styles.selectLabel}>
+                  Format <span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={styles.select}
+                  {...register('format', { required: 'Please select a format' })}
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="excel">Excel</option>
+                </select>
+                {errors.format && (
+                  <div className={styles.errorMessage}>{errors.format.message}</div>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className={styles.actions}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting || generating}
+                  className={styles.generateButton}
+                >
+                  {generating ? (
+                    <>
+                      <Spinner size="small" />
+                      Generating Report...
+                    </>
+                  ) : (
+                    'Generate Report'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card.Body>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default ReportsPage;

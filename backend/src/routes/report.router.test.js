@@ -466,7 +466,12 @@ describe('Report Router Test', () => {
                     .query(validQuery)
                     .expect(200);
 
-                expect(response.headers['content-type']).toBe('application/pdf');
+                // Should return JSON message when no tasks found, not generate PDF
+                expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+                expect(response.body.success).toBe(false);
+                expect(response.body.type).toBe('NO_DATA_FOUND');
+                expect(response.body.message).toContain('No tasks found for user');
+                expect(response.body.message).toContain('userwithnotasks@example.com');
             });
         });
 
@@ -587,7 +592,12 @@ describe('Report Router Test', () => {
                 .query(query)
                 .expect(200);
 
-            expect(response.headers['content-type']).toBe('application/pdf');
+            // Should return JSON message when no tasks found, not generate PDF  
+            expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+            expect(response.body.success).toBe(false);
+            expect(response.body.type).toBe('NO_DATA_FOUND');
+            expect(response.body.message).toContain('No tasks found for project');
+            expect(response.body.message).toContain('Test Project');
         });
 
         it('should handle very long date ranges', async () => {

@@ -119,6 +119,26 @@ class UserServices {
             throw new Error(`Failed to get user: ${err.message}`);
         }
     }
+
+    /**
+     * Get all users (admin only)
+     * @returns {Array} Array of user objects without passwords
+     * @throws {Error} If retrieval fails
+     */
+    static async getAllUsers() {
+        try {
+            const users = await userModel.find({}, 'username roles department').sort({ username: 1 });
+            
+            return users.map(user => ({
+                id: user._id,
+                username: user.username,
+                roles: user.roles,
+                department: user.department
+            }));
+        } catch (err) {
+            throw new Error(`Failed to get all users: ${err.message}`);
+        }
+    }
 }
 
 export default UserServices;
