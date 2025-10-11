@@ -32,5 +32,14 @@ afterAll(async () => {
   }
 }, 30000); // 30 second timeout for cleanup
 
-// Export the mongoServer for individual test files that need it
-export { mongoServer };
+// Export connection state for other test files
+export { mongoServer, isConnected };
+
+// Override mongoose.connect to prevent multiple connections
+const originalConnect = mongoose.connect;
+mongoose.connect = async (uri, options) => {
+  if (isConnected) {
+    return mongoose.connection;
+  }
+  return originalConnect.call(mongoose, uri, options);
+};

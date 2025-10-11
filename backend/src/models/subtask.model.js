@@ -67,7 +67,8 @@ subtaskSchema.pre('save', function(next) {
 subtaskSchema.index({ parentTaskId: 1, status: 1 });
 subtaskSchema.index({ projectId: 1, status: 1 });
 
-const Subtask = mongoose.model('Subtask', subtaskSchema);
+// Check if model already exists to avoid overwrite errors
+const Subtask = mongoose.models.Subtask || mongoose.model('Subtask', subtaskSchema);
 
 export default Subtask;
 
