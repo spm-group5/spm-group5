@@ -25,8 +25,8 @@ describe('Subtask Service', () => {
     // Create a mock task
     const mockTask = new Task({
       title: 'Test Task',
-      projectId: mockProjectId,
-      ownerId: mockOwnerId,
+      project: mockProjectId,
+      owner: mockOwnerId,
       status: 'To Do'
     });
     await mockTask.save();
@@ -36,7 +36,7 @@ describe('Subtask Service', () => {
     const mockProject = new Project({
       name: 'Test Project',
       description: 'Test Description',
-      ownerId: mockOwnerId,
+      owner: mockOwnerId,
       status: 'Active'
     });
     await mockProject.save();
