@@ -8,14 +8,15 @@ import Project from './project.model.js';
 let mongoServer;
 
 beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
+    // Setup: Use the shared MongoDB connection from global test setup
+    // Connection is already established by global test setup
+    if (mongoose.connection.readyState !== 1) {
+        throw new Error('Database connection not ready');
+    }
 });
 
 afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    // Cleanup is handled by global test setup
 });
 
 describe('Task Model Test', () => {
