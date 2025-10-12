@@ -50,7 +50,7 @@ beforeAll(async () => {
 
     // Create test user
     testUser = await User.create({
-        username: 'testuser',
+        username: 'testuser@example.com',
         roles: ['staff'],
         department: 'it',
         hashed_password: 'password123'
@@ -71,7 +71,7 @@ beforeEach(async () => {
     await Task.deleteMany({});
     await Project.deleteMany({});
     // Clean up dynamically created users (excluding testUser)
-    await User.deleteMany({ username: { $ne: 'testuser' } });
+    await User.deleteMany({ username: { $ne: 'testuser@example.com' } });
 });
 
 describe('Task Router Test', () => {
@@ -86,7 +86,7 @@ describe('Task Router Test', () => {
         });
 
         managerUser = await User.create({
-            username: 'manageruser',
+            username: 'manageruser@example.com',
             roles: ['manager'],
             department: 'it',
             hashed_password: 'password456'
@@ -465,7 +465,7 @@ describe('Task Router Test', () => {
     describe('Authorization Tests', () => {
         it('should not allow user to update task they do not own or are not assigned to', async () => {
             const otherUser = await User.create({
-                username: 'otheruser',
+                username: 'otheruser@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -493,7 +493,7 @@ describe('Task Router Test', () => {
 
         it('should allow assignee to update task', async () => {
             const otherUser = await User.create({
-                username: 'owner',
+                username: 'owner@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -521,7 +521,7 @@ describe('Task Router Test', () => {
 
         it('should not allow user to delete task they do not own', async () => {
             const otherUser = await User.create({
-                username: 'otherowner',
+                username: 'otherowner@example.com',
                 roles: ['staff'],
                 department: 'hr',
                 hashed_password: 'password789'

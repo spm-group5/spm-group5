@@ -70,6 +70,15 @@ class ReportController {
                 parsedEndDate
             );
 
+            // Check if no tasks found - return JSON message instead of generating files
+            if (reportData.aggregates.total === 0) {
+                return res.status(200).json({
+                    success: false,
+                    message: `No tasks found for project "${reportData.metadata.projectName}" in the specified date range (${reportData.metadata.dateRange.startDate} to ${reportData.metadata.dateRange.endDate}). Please try a different date range or project.`,
+                    type: 'NO_DATA_FOUND'
+                });
+            }
+
             // Handle different formats
             return await this.handleReportFormat(res, reportData, format, `project-${projectId}`);
 
@@ -146,6 +155,15 @@ class ReportController {
                 parsedStartDate,
                 parsedEndDate
             );
+
+            // Check if no tasks found - return JSON message instead of generating files
+            if (reportData.aggregates.total === 0) {
+                return res.status(200).json({
+                    success: false,
+                    message: `No tasks found for user "${reportData.metadata.username}" in the specified date range (${reportData.metadata.dateRange.startDate} to ${reportData.metadata.dateRange.endDate}). Please try a different date range or ensure tasks are assigned to this user.`,
+                    type: 'NO_DATA_FOUND'
+                });
+            }
 
             // Handle different formats
             return await this.handleReportFormat(res, reportData, format, `user-${userId}`);

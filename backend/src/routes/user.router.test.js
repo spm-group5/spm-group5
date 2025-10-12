@@ -37,7 +37,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Valid HTTP request should create user and return 201
         it('should return 201 and create user with valid data', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -62,7 +62,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Manager role user creation via HTTP request
         it('should create user with manager role', async () => {
             const userData = {
-                username: 'manager1',
+                username: 'manager1@example.com',
                 roles: ['manager'],
                 department: 'sales',
                 hashed_password: 'managerpass123'
@@ -79,7 +79,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Admin role user creation via HTTP request
         it('should create user with admin role', async () => {
             const userData = {
-                username: 'admin1',
+                username: 'admin1@example.com',
                 roles: ['admin'],
                 department: 'it',
                 hashed_password: 'adminpass123'
@@ -96,7 +96,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Multiple roles user creation via HTTP request
         it('should create user with multiple valid roles', async () => {
             const userData = {
-                username: 'multiuser',
+                username: 'multiuser@example.com',
                 roles: ['staff', 'manager'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -150,7 +150,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Missing password field should return HTTP 500
         it('should return 500 when password is missing', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it'
             };
@@ -166,7 +166,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Empty password string should return HTTP 500
         it('should return 500 when password is empty string', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: ''
@@ -183,7 +183,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Empty roles array should return HTTP 500
         it('should return 500 when roles array is empty', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: [],
                 department: 'it',
                 hashed_password: 'password123'
@@ -200,7 +200,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Missing roles field should return HTTP 500
         it('should return 500 when roles is missing', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 department: 'it',
                 hashed_password: 'password123'
             };
@@ -233,7 +233,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Non-string department should return HTTP 500
         it('should return 500 for invalid data format - non-string department', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 123,
                 hashed_password: 'password123'
@@ -253,7 +253,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Invalid enum role should return HTTP 500
         it('should return 500 for invalid role not in enum', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['invalidrole'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -271,7 +271,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Multiple invalid roles should return HTTP 500
         it('should return 500 for multiple invalid roles', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['user', 'superuser'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -288,7 +288,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Mixed valid/invalid roles should return HTTP 500
         it('should return 500 for mixed valid and invalid roles', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff', 'invalidrole'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -308,7 +308,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Duplicate username should return HTTP 500
         it('should return 500 when username already exists', async () => {
             const firstUser = {
-                username: 'duplicateuser',
+                username: 'duplicateuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -320,7 +320,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
                 .expect(201);
 
             const duplicateUser = {
-                username: 'duplicateuser',
+                username: 'duplicateuser@example.com',
                 roles: ['manager'],
                 department: 'sales',
                 hashed_password: 'differentpassword'
@@ -338,7 +338,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Case-sensitive duplicate username should return HTTP 500
         it('should return 500 for case-sensitive duplicate username', async () => {
             const firstUser = {
-                username: 'TestUser',
+                username: 'TestUser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -350,7 +350,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
                 .expect(201);
 
             const duplicateUser = {
-                username: 'TestUser',
+                username: 'TestUser@example.com',
                 roles: ['admin'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -379,7 +379,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Missing Content-Type should still process request
         it('should handle missing Content-Type header', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -399,7 +399,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Empty department string should return HTTP 500
         it('should return 500 for empty department string', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: '',
                 hashed_password: 'password123'
@@ -416,7 +416,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Missing department field should return HTTP 500
         it('should return 500 for missing department field', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 hashed_password: 'password123'
             };
@@ -432,7 +432,7 @@ describe('User Router - POST /api/register Integration Tests', () => {
         // Test: Invalid department enum should return HTTP 500
         it('should return 500 for invalid department enum', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'invalidDept',
                 hashed_password: 'password123'
@@ -474,7 +474,7 @@ describe('User Router - Authentication Integration Tests', () => {
         it('should return 200 and set session for valid login', async () => {
             // First create a user
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -489,14 +489,14 @@ describe('User Router - Authentication Integration Tests', () => {
             const response = await request(app)
                 .post('/api/login')
                 .send({
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     password: 'password123'
                 })
                 .expect(200);
 
             expect(response.body.message).toBe('Login successful');
             expect(response.body.user).toBeDefined();
-            expect(response.body.user.username).toBe('testuser');
+            expect(response.body.user.username).toBe('testuser@example.com');
             expect(response.body.user.roles).toEqual(['staff']);
             expect(response.body.user.department).toBe('it');
             expect(response.body.user.hashed_password).toBeUndefined();
@@ -509,7 +509,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Login with admin role
         it('should login user with admin role', async () => {
             const userData = {
-                username: 'admin1',
+                username: 'admin1@example.com',
                 roles: ['admin'],
                 department: 'it',
                 hashed_password: 'adminpass123'
@@ -523,7 +523,7 @@ describe('User Router - Authentication Integration Tests', () => {
             const response = await request(app)
                 .post('/api/login')
                 .send({
-                    username: 'admin1',
+                    username: 'admin1@example.com',
                     password: 'adminpass123'
                 })
                 .expect(200);
@@ -534,7 +534,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Login with multiple roles
         it('should login user with multiple roles', async () => {
             const userData = {
-                username: 'multiuser',
+                username: 'multiuser@example.com',
                 roles: ['staff', 'manager'],
                 department: 'hr',
                 hashed_password: 'password123'
@@ -548,7 +548,7 @@ describe('User Router - Authentication Integration Tests', () => {
             const response = await request(app)
                 .post('/api/login')
                 .send({
-                    username: 'multiuser',
+                    username: 'multiuser@example.com',
                     password: 'password123'
                 })
                 .expect(200);
@@ -615,7 +615,7 @@ describe('User Router - Authentication Integration Tests', () => {
         // Test: Invalid credentials should return 401
         it('should return 401 for invalid credentials', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'correctpassword'
@@ -629,7 +629,7 @@ describe('User Router - Authentication Integration Tests', () => {
             const response = await request(app)
                 .post('/api/login')
                 .send({
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     password: 'wrongpassword'
                 })
                 .expect(401);
@@ -643,7 +643,7 @@ describe('User Router - Authentication Integration Tests', () => {
             const response = await request(app)
                 .post('/api/login')
                 .send({
-                    username: 'nonexistent',
+                    username: 'nonexistent@example.com',
                     password: 'password123'
                 })
                 .expect(401);
@@ -677,7 +677,7 @@ describe('User Router - Authentication Integration Tests', () => {
         it('should return 200 and user profile for authenticated user', async () => {
             // First create and login a user
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -691,7 +691,7 @@ describe('User Router - Authentication Integration Tests', () => {
             await agent
                 .post('/api/login')
                 .send({
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     password: 'password123'
                 })
                 .expect(200);
@@ -702,7 +702,7 @@ describe('User Router - Authentication Integration Tests', () => {
                 .expect(200);
 
             expect(response.body.user).toBeDefined();
-            expect(response.body.user.username).toBe('testuser');
+            expect(response.body.user.username).toBe('testuser@example.com');
             expect(response.body.user.roles).toEqual(['staff']);
             expect(response.body.user.department).toBe('it');
         });
@@ -721,7 +721,7 @@ describe('User Router - Authentication Integration Tests', () => {
         it('should return 401 for profile access after logout', async () => {
             // First create and login a user
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -735,7 +735,7 @@ describe('User Router - Authentication Integration Tests', () => {
             await agent
                 .post('/api/login')
                 .send({
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     password: 'password123'
                 })
                 .expect(200);
@@ -766,7 +766,7 @@ describe('User Router - Authentication Integration Tests', () => {
         it('should maintain session across multiple requests', async () => {
             // Create and login user
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -780,7 +780,7 @@ describe('User Router - Authentication Integration Tests', () => {
             await agent
                 .post('/api/login')
                 .send({
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     password: 'password123'
                 })
                 .expect(200);
@@ -794,8 +794,8 @@ describe('User Router - Authentication Integration Tests', () => {
                 .get('/api/profile')
                 .expect(200);
 
-            expect(response1.body.user.username).toBe('testuser');
-            expect(response2.body.user.username).toBe('testuser');
+            expect(response1.body.user.username).toBe('testuser@example.com');
+            expect(response2.body.user.username).toBe('testuser@example.com');
         });
 
         // Test: Different agents should have separate sessions
@@ -805,14 +805,14 @@ describe('User Router - Authentication Integration Tests', () => {
 
             // Create users
             const user1Data = {
-                username: 'user1',
+                username: 'user1@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
             };
 
             const user2Data = {
-                username: 'user2',
+                username: 'user2@example.com',
                 roles: ['manager'],
                 department: 'hr',
                 hashed_password: 'password456'
@@ -832,7 +832,7 @@ describe('User Router - Authentication Integration Tests', () => {
             await agent1
                 .post('/api/login')
                 .send({
-                    username: 'user1',
+                    username: 'user1@example.com',
                     password: 'password123'
                 })
                 .expect(200);
@@ -840,7 +840,7 @@ describe('User Router - Authentication Integration Tests', () => {
             await agent2
                 .post('/api/login')
                 .send({
-                    username: 'user2',
+                    username: 'user2@example.com',
                     password: 'password456'
                 })
                 .expect(200);
@@ -854,8 +854,8 @@ describe('User Router - Authentication Integration Tests', () => {
                 .get('/api/profile')
                 .expect(200);
 
-            expect(response1.body.user.username).toBe('user1');
-            expect(response2.body.user.username).toBe('user2');
+            expect(response1.body.user.username).toBe('user1@example.com');
+            expect(response2.body.user.username).toBe('user2@example.com');
             expect(response1.body.user.roles).toEqual(['staff']);
             expect(response2.body.user.roles).toEqual(['manager']);
         });

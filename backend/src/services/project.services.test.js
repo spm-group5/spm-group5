@@ -28,14 +28,14 @@ describe('Project Service Test', () => {
         await User.deleteMany({});
 
         testUser = await User.create({
-            username: 'projectowner',
+            username: 'projectowner@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'password123'
         });
 
         otherUser = await User.create({
-            username: 'otheruser',
+            username: 'otheruser@example.com',
             roles: ['staff'],
             department: 'hr',
             hashed_password: 'password456'
@@ -146,7 +146,7 @@ describe('Project Service Test', () => {
 
         it('should return empty array when user has no projects', async () => {
             const newUser = await User.create({
-                username: 'newuser',
+                username: 'newuser@example.com',
                 roles: ['staff'],
                 department: 'finance',
                 hashed_password: 'password789'
@@ -203,8 +203,8 @@ describe('Project Service Test', () => {
         it('should populate owner and members information', async () => {
             const project = await projectService.getProjectById(testProject._id);
 
-            expect(project.owner.username).toBe('projectowner');
-            expect(project.members[0].username).toBe('projectowner');
+            expect(project.owner.username).toBe('projectowner@example.com');
+            expect(project.members[0].username).toBe('projectowner@example.com');
         });
 
         it('should throw error for non-existent project', async () => {

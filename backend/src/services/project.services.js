@@ -94,6 +94,14 @@ class ProjectService {
 
         return await Project.findByIdAndDelete(projectId);
     }
+
+    async getAllProjects() {
+        return await Project.find({})
+            .populate('owner', 'username')
+            .populate('members', 'username')
+            .select('name description status owner members createdAt updatedAt')
+            .sort({ name: 1 });
+    }
 }
 
 export default new ProjectService();

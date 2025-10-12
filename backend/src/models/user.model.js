@@ -5,18 +5,27 @@ const Schema = mongoose.Schema; //create a Schema constructor
 
 //define the User schema
 const userSchema = new Schema({
-    username:{
+    username: {
         type: String,
         required: true,
         unique: true,
-        validate: {
-            validator: function(v) {
-                return typeof v === 'string' && v.trim().length > 0;
+        validate: [
+            {
+                validator: function(v) {
+                    return typeof v === 'string' && v.trim().length > 0;
+                },
+                message: 'Username must be a non-empty string'
             },
-            message: 'Username must be a non-empty string'
-        }
+            {
+                validator: function(v) {
+                    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+                },
+                message: 'Invalid email format'
+            }
+        ]
     },
-    roles:{
+
+    roles: {
         type: [String],
         enum: ['staff', 'manager','admin'],
         required: true,
@@ -48,6 +57,7 @@ const userSchema = new Schema({
             message: 'Password must be a non-empty string'
         }
     },
+
 });
 
 userSchema.pre('save', async function(){

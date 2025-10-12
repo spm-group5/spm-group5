@@ -24,7 +24,7 @@ describe('Project Model Test', () => {
     beforeAll(async () => {
         // Create a test user to use as project owner
         testUser = await User.create({
-            username: 'projectowner',
+            username: 'projectowner@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'hashedpassword123'
@@ -234,7 +234,7 @@ describe('Project Model Test', () => {
             const project = await Project.create(projectData);
             const populatedProject = await Project.findById(project._id).populate('owner');
 
-            expect(populatedProject.owner.username).toBe('projectowner');
+            expect(populatedProject.owner.username).toBe('projectowner@example.com');
             expect(populatedProject.owner.department).toBe('it');
         });
     });

@@ -35,7 +35,7 @@ describe('UserServices - User Account Creation', () => {
         // Test: Valid user creation with all required fields populated
         it('should successfully create a new user account with valid data', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'plainpassword123'
@@ -57,14 +57,14 @@ describe('UserServices - User Account Creation', () => {
 
         // Test: User creation with manager role from enum
         it('should create user with manager role', async () => {
-            const result = await UserServices.registerUser('manager1', ['manager'], 'sales', 'password123');
+            const result = await UserServices.registerUser('manager1@example.com', ['manager'], 'sales', 'password123');
 
             expect(result.roles).toEqual(['manager']);
         });
 
         // Test: User creation with admin role from enum
         it('should create user with admin role', async () => {
-            const result = await UserServices.registerUser('admin1', ['admin'], 'it', 'password123');
+            const result = await UserServices.registerUser('admin1@example.com', ['admin'], 'it', 'password123');
 
             expect(result.roles).toEqual(['admin']);
         });
@@ -89,35 +89,35 @@ describe('UserServices - User Account Creation', () => {
         // Test: Empty password should trigger validation error
         it('should throw error when password is missing', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], 'it', '')
+                UserServices.registerUser('testuser@example.com', ['staff'], 'it', '')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Null password should trigger validation error
         it('should throw error when password is null', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], 'it', null)
+                UserServices.registerUser('testuser@example.com', ['staff'], 'it', null)
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Empty roles array should trigger validation error
         it('should throw error when roles array is empty', async () => {
             await expect(
-                UserServices.registerUser('testuser', [], 'it', 'password123')
+                UserServices.registerUser('testuser@example.com', [], 'it', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Null roles should trigger validation error
         it('should throw error when roles is null', async () => {
             await expect(
-                UserServices.registerUser('testuser', null, 'it', 'password123')
+                UserServices.registerUser('testuser@example.com', null, 'it', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Missing department should trigger validation error
         it('should throw error when department is missing', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], null, 'password123')
+                UserServices.registerUser('testuser@example.com', ['staff'], null, 'password123')
             ).rejects.toThrow('Failed to register user');
         });
     });
@@ -127,21 +127,21 @@ describe('UserServices - User Account Creation', () => {
         // Test: Role not in allowed enum values should be rejected
         it('should throw error for invalid role not in enum', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['invalidrole'], 'it', 'password123')
+                UserServices.registerUser('testuser@example.com', ['invalidrole'], 'it', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Multiple invalid roles should be rejected
         it('should throw error for multiple invalid roles', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['user', 'superuser'], 'it', 'password123')
+                UserServices.registerUser('testuser@example.com', ['user', 'superuser'], 'it', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Mix of valid and invalid roles should be rejected
         it('should throw error for mixed valid and invalid roles', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff', 'invalidrole'], 'it', 'password123')
+                UserServices.registerUser('testuser@example.com', ['staff', 'invalidrole'], 'it', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
     });
@@ -151,7 +151,7 @@ describe('UserServices - User Account Creation', () => {
         // Test: Duplicate username should trigger unique constraint error
         it('should throw error when username already exists', async () => {
             const userData = {
-                username: 'duplicateuser',
+                username: 'duplicateuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -176,10 +176,10 @@ describe('UserServices - User Account Creation', () => {
 
         // Test: Case-sensitive duplicate username should be rejected
         it('should throw error for case-sensitive duplicate username', async () => {
-            await UserServices.registerUser('TestUser', ['staff'], 'it', 'password123');
+            await UserServices.registerUser('TestUser@example.com', ['staff'], 'it', 'password123');
 
             await expect(
-                UserServices.registerUser('TestUser', ['admin'], 'hr', 'password456')
+                UserServices.registerUser('TestUser@example.com', ['admin'], 'hr', 'password456')
             ).rejects.toThrow('Failed to register user');
         });
     });
@@ -189,27 +189,27 @@ describe('UserServices - User Account Creation', () => {
         // Test: Missing department should trigger validation error
         it('should throw error when department is missing', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], '', 'password123')
+                UserServices.registerUser('testuser@example.com', ['staff'], '', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Undefined department should trigger validation error
         it('should throw error when department is undefined', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], undefined, 'password123')
+                UserServices.registerUser('testuser@example.com', ['staff'], undefined, 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Invalid department enum value should be rejected
         it('should throw error for invalid department enum', async () => {
             await expect(
-                UserServices.registerUser('testuser', ['staff'], 'invalidDept', 'password123')
+                UserServices.registerUser('testuser@example.com', ['staff'], 'invalidDept', 'password123')
             ).rejects.toThrow('Failed to register user');
         });
 
         // Test: Multiple valid roles should be accepted
         it('should handle multiple roles from enum', async () => {
-            const result = await UserServices.registerUser('testuser', ['staff', 'manager'], 'it', 'password123');
+            const result = await UserServices.registerUser('testuser@example.com', ['staff', 'manager'], 'it', 'password123');
 
             expect(result.roles).toEqual(['staff', 'manager']);
         });
@@ -243,7 +243,7 @@ describe('UserServices - User Authentication', () => {
         it('should successfully authenticate user with valid credentials', async () => {
             // First create a user
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -257,10 +257,10 @@ describe('UserServices - User Authentication', () => {
             );
 
             // Now test login
-            const result = await UserServices.loginUser('testuser', 'password123');
+            const result = await UserServices.loginUser('testuser@example.com', 'password123');
 
             expect(result).toBeDefined();
-            expect(result.username).toBe('testuser');
+            expect(result.username).toBe('testuser@example.com');
             expect(result.roles).toEqual(['staff']);
             expect(result.department).toBe('it');
             expect(result.id).toBeDefined();
@@ -269,9 +269,9 @@ describe('UserServices - User Authentication', () => {
 
         // Test: Login with manager role
         it('should authenticate user with manager role', async () => {
-            await UserServices.registerUser('manager1', ['manager'], 'sales', 'managerpass123');
+            await UserServices.registerUser('manager1@example.com', ['manager'], 'sales', 'managerpass123');
 
-            const result = await UserServices.loginUser('manager1', 'managerpass123');
+            const result = await UserServices.loginUser('manager1@example.com', 'managerpass123');
 
             expect(result.roles).toEqual(['manager']);
             expect(result.department).toBe('sales');
@@ -279,18 +279,18 @@ describe('UserServices - User Authentication', () => {
 
         // Test: Login with admin role
         it('should authenticate user with admin role', async () => {
-            await UserServices.registerUser('admin1', ['admin'], 'it', 'adminpass123');
+            await UserServices.registerUser('admin1@example.com', ['admin'], 'it', 'adminpass123');
 
-            const result = await UserServices.loginUser('admin1', 'adminpass123');
+            const result = await UserServices.loginUser('admin1@example.com', 'adminpass123');
 
             expect(result.roles).toEqual(['admin']);
         });
 
         // Test: Login with multiple roles
         it('should authenticate user with multiple roles', async () => {
-            await UserServices.registerUser('multiuser', ['staff', 'manager'], 'hr', 'password123');
+            await UserServices.registerUser('multiuser@example.com', ['staff', 'manager'], 'hr', 'password123');
 
-            const result = await UserServices.loginUser('multiuser', 'password123');
+            const result = await UserServices.loginUser('multiuser@example.com', 'password123');
 
             expect(result.roles).toEqual(['staff', 'manager']);
         });
@@ -307,10 +307,10 @@ describe('UserServices - User Authentication', () => {
 
         // Test: Wrong password should fail authentication
         it('should throw error for incorrect password', async () => {
-            await UserServices.registerUser('testuser', ['staff'], 'it', 'correctpassword');
+            await UserServices.registerUser('testuser@example.com', ['staff'], 'it', 'correctpassword');
 
             await expect(
-                UserServices.loginUser('testuser', 'wrongpassword')
+                UserServices.loginUser('testuser@example.com', 'wrongpassword')
             ).rejects.toThrow('Login failed: Invalid username or password');
         });
 
@@ -324,7 +324,7 @@ describe('UserServices - User Authentication', () => {
         // Test: Empty password should fail authentication
         it('should throw error for empty password', async () => {
             await expect(
-                UserServices.loginUser('testuser', '')
+                UserServices.loginUser('testuser@example.com', '')
             ).rejects.toThrow('Login failed: Password must be a string');
         });
 
@@ -338,7 +338,7 @@ describe('UserServices - User Authentication', () => {
         // Test: Non-string password should fail authentication
         it('should throw error for non-string password', async () => {
             await expect(
-                UserServices.loginUser('testuser', 123)
+                UserServices.loginUser('testuser@example.com', 123)
             ).rejects.toThrow('Login failed: Password must be a string');
         });
 
@@ -352,7 +352,7 @@ describe('UserServices - User Authentication', () => {
         // Test: Null password should fail authentication
         it('should throw error for null password', async () => {
             await expect(
-                UserServices.loginUser('testuser', null)
+                UserServices.loginUser('testuser@example.com', null)
             ).rejects.toThrow('Login failed: Password must be a string');
         });
     });
@@ -362,7 +362,7 @@ describe('UserServices - User Authentication', () => {
         // Test: Valid user ID should return user data
         it('should successfully get user by valid ID', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -378,7 +378,7 @@ describe('UserServices - User Authentication', () => {
             const result = await UserServices.getUserById(createdUser._id);
 
             expect(result).toBeDefined();
-            expect(result.username).toBe('testuser');
+            expect(result.username).toBe('testuser@example.com');
             expect(result.roles).toEqual(['staff']);
             expect(result.department).toBe('it');
             expect(result.id).toBeDefined();
@@ -387,7 +387,7 @@ describe('UserServices - User Authentication', () => {
 
         // Test: Get user with multiple roles
         it('should get user with multiple roles by ID', async () => {
-            const createdUser = await UserServices.registerUser('multiuser', ['staff', 'manager'], 'hr', 'password123');
+            const createdUser = await UserServices.registerUser('multiuser@example.com', ['staff', 'manager'], 'hr', 'password123');
 
             const result = await UserServices.getUserById(createdUser._id);
 
@@ -430,33 +430,28 @@ describe('UserServices - User Authentication', () => {
 
     // Test Group: Edge cases and boundary conditions
     describe('Edge Cases', () => {
-        // Test: Username with whitespace should be trimmed for lookup
-        it('should handle username with leading/trailing whitespace', async () => {
-            await UserServices.registerUser('  testuser  ', ['staff'], 'it', 'password123');
-
-            // Login should work with trimmed username (database lookup trims)
-            const result = await UserServices.loginUser('  testuser  ', 'password123');
-
-            expect(result.username).toBe('  testuser  '); // Original stored username (with whitespace)
-            expect(result.roles).toEqual(['staff']);
-            expect(result.department).toBe('it');
+        // Test: Username with invalid email format (whitespace) should be rejected
+        it('should reject username with leading/trailing whitespace as invalid email', async () => {
+            await expect(
+                UserServices.registerUser('  testuser@example.com  ', ['staff'], 'it', 'password123')
+            ).rejects.toThrow('Failed to register user: Username must be a valid email address');
         });
 
         // Test: Case-sensitive username matching
         it('should be case-sensitive for username matching', async () => {
-            await UserServices.registerUser('TestUser', ['staff'], 'it', 'password123');
+            await UserServices.registerUser('TestUser@example.com', ['staff'], 'it', 'password123');
 
             await expect(
-                UserServices.loginUser('testuser', 'password123')
+                UserServices.loginUser('testuser@example.com', 'password123')
             ).rejects.toThrow('Login failed: Invalid username or password');
         });
 
         // Test: Case-sensitive password matching
         it('should be case-sensitive for password matching', async () => {
-            await UserServices.registerUser('testuser', ['staff'], 'it', 'Password123');
+            await UserServices.registerUser('testuser@example.com', ['staff'], 'it', 'Password123');
 
             await expect(
-                UserServices.loginUser('testuser', 'password123')
+                UserServices.loginUser('testuser@example.com', 'password123')
             ).rejects.toThrow('Login failed: Invalid username or password');
         });
     });

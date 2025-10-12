@@ -1,5 +1,6 @@
 import userModel from '../models/user.model.js'; //import the User model
 import bcrypt from 'bcrypt'; //import bcrypt for password comparison
+import validator from 'validator'; //import validator for input validation
 
 class UserServices {
     // Define user-related service methods here
@@ -9,6 +10,9 @@ class UserServices {
             // Type validation
             if (typeof username !== 'string') {
                 throw new Error('Username must be a string');
+            }
+            if (!validator.isEmail(username)) {
+                throw new Error('Username must be a valid email address');
             }
             if (typeof hashed_password !== 'string') {
                 throw new Error('Password must be a string');
@@ -113,6 +117,26 @@ class UserServices {
             };
         } catch (err) {
             throw new Error(`Failed to get user: ${err.message}`);
+        }
+    }
+
+    /**
+     * Get all users (admin only)
+     * @returns {Array} Array of user objects without passwords
+     * @throws {Error} If retrieval fails
+     */
+    static async getAllUsers() {
+        try {
+            const users = await userModel.find({}, 'username roles department').sort({ username: 1 });
+            
+            return users.map(user => ({
+                id: user._id,
+                username: user.username,
+                roles: user.roles,
+                department: user.department
+            }));
+        } catch (err) {
+            throw new Error(`Failed to get all users: ${err.message}`);
         }
     }
 }
