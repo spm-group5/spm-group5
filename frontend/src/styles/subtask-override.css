@@ -1,0 +1,60 @@
+/* Global overrides to force light theme for subtask components */
+
+/* Subtask list container */
+.subtaskList,
+[class*="SubtaskList"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+}
+
+/* Subtask cards */
+.subtaskCard,
+[class*="SubtaskCard"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+  border-color: #e0e0e0 !important;
+}
+
+/* Subtask form */
+.formCard,
+[class*="SubtaskForm"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+}
+
+/* Form inputs */
+.subtaskForm input,
+.subtaskForm textarea,
+.subtaskForm select,
+[class*="SubtaskForm"] input,
+[class*="SubtaskForm"] textarea,
+[class*="SubtaskForm"] select {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+  border-color: #ddd !important;
+}
+
+/* Labels and text */
+.subtaskForm label,
+[class*="SubtaskForm"] label,
+[class*="SubtaskList"] h3,
+[class*="SubtaskCard"] h4 {
+  color: #333333 !important;
+}
+
+/* Override any dark theme styles */
+body.dark-mode .subtaskList,
+body.dark-mode .subtaskCard,
+body.dark-mode .formCard,
+body.dark-mode [class*="SubtaskList"],
+body.dark-mode [class*="SubtaskCard"],
+body.dark-mode [class*="SubtaskForm"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+}
+

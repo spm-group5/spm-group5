@@ -69,6 +69,39 @@ class ApiService {
         });
     }
 
+    // Subtask Methods
+    async createSubtask(subtaskData) {
+        return this.request('/subtasks', {
+            method: 'POST',
+            body: JSON.stringify(subtaskData),
+        });
+    }
+
+    async getSubtasksByParentTask(parentTaskId) {
+        return this.request(`/tasks/${parentTaskId}/subtasks`);
+    }
+
+    async getSubtasksByProject(projectId) {
+        return this.request(`/projects/${projectId}/subtasks`);
+    }
+
+    async getSubtaskById(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}`);
+    }
+
+    async updateSubtask(subtaskId, updateData) {
+        return this.request(`/subtasks/${subtaskId}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData),
+        });
+    }
+
+    async deleteSubtask(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}`, {
+            method: 'DELETE',
+        });
+    }
+
     async getProjects() {
         return this.request('/projects');
     }

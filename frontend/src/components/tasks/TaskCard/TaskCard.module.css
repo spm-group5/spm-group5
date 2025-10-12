@@ -231,6 +231,31 @@
   margin-top: var(--spacing-sm);
 }
 
+/* Subtasks Section */
+.subtasksSection {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 2px solid var(--color-border, #e5e7eb);
+}
+
+.subtasksHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.subtasksHeader h4 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.subtasksContainer {
+  margin-top: var(--spacing-md);
+}
+
 @media (max-width: 768px) {
   .compactHeader {
     flex-direction: column;
@@ -244,5 +269,15 @@
 
   .metadata {
     grid-template-columns: 1fr;
+  }
+
+  .subtasksHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .subtasksHeader button {
+    width: 100%;
   }
 }
