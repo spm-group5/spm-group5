@@ -69,6 +69,7 @@ import taskRouter from './routes/task.router.js'; //import task router for task-
 import projectRouter from './routes/project.router.js'; //import project router for project-related routes
 import reportRouter from './routes/report.router.js'; //import report router for report-related routes
 import notificationRouter from './routes/notification.router.js';
+import subtaskRouter from './routes/subtask.router.js'; //import subtask router for subtask-related routes
 
 //Test route to verify server is running
 app.get("/", (req, res) => {
@@ -80,5 +81,6 @@ app.use('/api', taskRouter); //use the task router for task-related routes
 app.use('/api', projectRouter); //use the project router for project-related routes
 app.use('/api', reportRouter); //use the report router for report-related routes
 app.use('/api', notificationRouter); //use the notification router for notification-related routes
+app.use('/api', subtaskRouter); //use the subtask router for subtask-related routes
 
 export { app as default, server }; //export both app and server

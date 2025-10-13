@@ -1,0 +1,189 @@
+.subtaskCard {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s ease;
+}
+
+.subtaskCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333333 !important;
+  flex: 1;
+}
+
+.expandButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  color: #666666 !important;
+  transition: color 0.2s;
+}
+
+.expandButton:hover {
+  color: #333333 !important;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff !important;
+}
+
+/* Status badges */
+.statusTodo {
+  background-color: #64b5f6 !important;
+}
+
+.statusInProgress {
+  background-color: #ffa726 !important;
+}
+
+.statusCompleted {
+  background-color: #66bb6a !important;
+}
+
+.statusBlocked {
+  background-color: #ef5350 !important;
+}
+
+.statusArchived {
+  background-color: #9e9e9e !important;
+}
+
+/* Priority badges */
+.priorityLow {
+  background-color: #81c784 !important;
+}
+
+.priorityMedium {
+  background-color: #ffb74d !important;
+}
+
+.priorityHigh {
+  background-color: #e57373 !important;
+}
+
+.details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555555 !important;
+}
+
+.description {
+  margin: 0;
+  color: #666666 !important;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888888 !important;
+  text-transform: uppercase;
+}
+
+.value {
+  font-size: 14px;
+  color: #333333 !important;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.button:hover {
+  opacity: 0.8;
+}
+
+.editButton {
+  background-color: #2196f3 !important;
+  color: #ffffff !important;
+}
+
+.deleteButton {
+  background-color: #f44336 !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+  .subtaskCard {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+

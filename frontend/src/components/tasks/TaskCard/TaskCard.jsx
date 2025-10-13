@@ -3,6 +3,12 @@ import { useState } from "react";
 import Button from "../../common/Button/Button";
 import Card from "../../common/Card/Card";
 import CommentSection from "../TaskComment/TaskCommentSection";
+import Modal from '../../common/Modal/Modal';
+import SubtaskList from '../SubtaskList/SubtaskList';
+import SubtaskForm from '../SubtaskForm/SubtaskForm';
+import { useSubtasks } from '../../../context/SubtaskContext';
+import { useNotifications } from '../../../hooks/useNotifications';
+import { useAuth } from '../../../context/AuthContext';
 import styles from "./TaskCard.module.css";
 
 function TaskCard({
@@ -14,6 +20,14 @@ function TaskCard({
   onRefresh,
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [showSubtaskForm, setShowSubtaskForm] = useState(false);
+  const [editingSubtask, setEditingSubtask] = useState(null);
+  const [subtaskToDelete, setSubtaskToDelete] = useState(null);
+  
+  const { createSubtask, updateSubtask, deleteSubtask, fetchSubtasksByParentTask } = useSubtasks();
+  const { addNotification } = useNotifications();
+  const { user } = useAuth();
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "To Do":
@@ -70,6 +84,50 @@ function TaskCard({
       return `${names[0]} & ${names[1]}`;
     } else {
       return `${names[0]} & ${names.length - 1} others`;
+    }
+  };
+
+  // Subtask handlers
+  const handleShowSubtaskForm = (subtask = null) => {
+    setEditingSubtask(subtask);
+    setShowSubtaskForm(true);
+  };
+
+  const handleCloseSubtaskForm = () => {
+    setShowSubtaskForm(false);
+    setEditingSubtask(null);
+  };
+
+  const handleSubtaskSubmit = async (subtaskData) => {
+    try {
+      if (editingSubtask) {
+        await updateSubtask(editingSubtask._id, subtaskData);
+        addNotification('Subtask updated successfully', 'success');
+      } else {
+        await createSubtask(subtaskData);
+        addNotification('Subtask created successfully', 'success');
+      }
+      handleCloseSubtaskForm();
+      await fetchSubtasksByParentTask(task._id);
+    } catch (error) {
+      addNotification(error.message || 'Failed to save subtask', 'error');
+    }
+  };
+
+  const handleShowDeleteModal = (subtask) => {
+    setSubtaskToDelete(subtask);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!subtaskToDelete) return;
+    
+    try {
+      await deleteSubtask(subtaskToDelete._id);
+      addNotification('Subtask deleted successfully', 'success');
+      setSubtaskToDelete(null);
+      await fetchSubtasksByParentTask(task._id);
+    } catch (error) {
+      addNotification(error.message || 'Failed to delete subtask', 'error');
     }
   };
 
@@ -226,9 +284,67 @@ function TaskCard({
                 </Button>
               )}
             </div>
+
+            {/* Subtasks Section */}
+            {!isArchived && (
+              <div className={styles.subtasksSection}>
+                <div className={styles.subtasksHeader}>
+                  <h4>Subtasks</h4>
+                  <Button 
+                    variant="secondary" 
+                    size="small" 
+                    onClick={() => setShowSubtasks(!showSubtasks)}
+                  >
+                    {showSubtasks ? 'Hide Subtasks' : 'Show Subtasks'}
+                  </Button>
+                </div>
+                {showSubtasks && (
+                  <div className={styles.subtasksContainer}>
+                    <SubtaskList
+                      parentTaskId={task._id}
+                      projectId={task.project?._id || task.project}
+                      ownerId={user?._id || user?.id}
+                      onShowSubtaskForm={handleShowSubtaskForm}
+                      onShowDeleteModal={handleShowDeleteModal}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card.Body>
+
+      {/* Subtask Form Modal */}
+      {showSubtaskForm && (
+        <Modal
+          isOpen={showSubtaskForm}
+          onClose={handleCloseSubtaskForm}
+          size="large"
+        >
+          <SubtaskForm
+            onSubmit={handleSubtaskSubmit}
+            onCancel={handleCloseSubtaskForm}
+            initialData={editingSubtask}
+            parentTaskId={task._id}
+            projectId={task.project?._id || task.project}
+            ownerId={user?._id || user?.id}
+          />
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {subtaskToDelete && (
+        <Modal
+          isOpen={!!subtaskToDelete}
+          onClose={() => setSubtaskToDelete(null)}
+          title="Confirm Delete"
+          message={`Are you sure you want to delete the subtask "${subtaskToDelete.title}"? This will mark it as archived.`}
+          onConfirm={handleConfirmDelete}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
     </Card>
   );
 }

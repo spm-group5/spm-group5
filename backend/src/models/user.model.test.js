@@ -14,17 +14,17 @@ import userModel from './user.model.js';
 describe('User Model - User Account Creation Validation', () => {
     let mongoServer;
 
-    // Setup: Create in-memory MongoDB instance for model testing
+    // Setup: Use the shared MongoDB connection from global test setup
     beforeAll(async () => {
-        mongoServer = await MongoMemoryServer.create();
-        const mongoUri = mongoServer.getUri();
-        await mongoose.connect(mongoUri);
+        // Connection is already established by global test setup
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error('Database connection not ready');
+        }
     });
 
-    // Cleanup: Disconnect from database and stop MongoDB server
+    // Cleanup: Don't disconnect - let global setup handle it
     afterAll(async () => {
-        await mongoose.disconnect();
-        await mongoServer.stop();
+        // Cleanup is handled by global test setup
     });
 
     // Reset: Clear all users before each test for test isolation
