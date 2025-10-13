@@ -15,7 +15,8 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       const response = await apiService.getProfile();
-      setUser(response.data || response);
+      // Fix: Extract user data from the nested user object
+      setUser(response.user || response.data || response);
     } catch (err) {
       setUser(null);
       if (err.message !== 'Unauthorized') {
@@ -32,7 +33,8 @@ export function AuthProvider({ children }) {
       setError(null);
       await apiService.login({ username, password });
       const response = await apiService.getProfile();
-      setUser(response.data || response);
+      // Fix: Extract user data from the nested user object
+      setUser(response.user || response.data || response);
       return { success: true };
     } catch (err) {
       setError(err.message);

@@ -96,6 +96,22 @@ class ProjectController {
             });
         }
     }
+
+    async getAllProjects(req, res) {
+        try {
+            const projects = await projectService.getAllProjects();
+
+            res.status(200).json({
+                success: true,
+                data: projects
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
 }
 
 export default new ProjectController();

@@ -59,14 +59,14 @@ describe('Report Service Test', () => {
 
         // Create test users
         testUser1 = await User.create({
-            username: 'testuser1',
+            username: 'testuser1@example.com',
             roles: ['staff'],
             department: 'it',
             hashed_password: 'password123'
         });
 
         testUser2 = await User.create({
-            username: 'testuser2',
+            username: 'testuser2@example.com',
             roles: ['admin'],
             department: 'hr',
             hashed_password: 'password456'
@@ -177,7 +177,7 @@ describe('Report Service Test', () => {
             // Check metadata
             expect(reportData.metadata.type).toBe('project');
             expect(reportData.metadata.projectName).toBe('Test Project');
-            expect(reportData.metadata.projectOwner).toBe('testuser1');
+            expect(reportData.metadata.projectOwner).toBe('testuser1@example.com');
             expect(reportData.metadata.projectId).toBe(testProject._id.toString());
 
             // Check aggregates - should include 5 project tasks within date range (excluding task 5)
@@ -200,8 +200,8 @@ describe('Report Service Test', () => {
             expect(todoTask).toHaveProperty('deadline');
             expect(todoTask).toHaveProperty('priority', '8'); // Priority is formatted as string in report
             expect(todoTask).toHaveProperty('tags', 'feature,frontend');
-            expect(todoTask).toHaveProperty('owner', 'testuser1');
-            expect(todoTask).toHaveProperty('assignee', 'testuser2');
+            expect(todoTask).toHaveProperty('owner', 'testuser1@example.com');
+            expect(todoTask).toHaveProperty('assignee', 'testuser2@example.com');
             expect(todoTask).toHaveProperty('project', 'Test Project');
         });
 
@@ -263,7 +263,7 @@ describe('Report Service Test', () => {
 
             expect(reportData).toBeDefined();
             expect(reportData.metadata.type).toBe('user');
-            expect(reportData.metadata.username).toBe('testuser1');
+            expect(reportData.metadata.username).toBe('testuser1@example.com');
             expect(reportData.metadata.userId).toBe(testUser1._id.toString());
 
             // testUser1 is owner of tasks 1,2 and assignee of task 3 + standalone task 6
@@ -373,7 +373,7 @@ describe('Report Service Test', () => {
 
             const reportData = reportService.processTasksForReport([minimalTask], 'user', {
                 userId: testUser1._id.toString(),
-                username: 'testuser1',
+                username: 'testuser1@example.com',
                 startDate: new Date('2024-01-01'),
                 endDate: new Date('2024-02-28')
             });
@@ -398,8 +398,8 @@ describe('Report Service Test', () => {
                         deadline: '01-02-2024',
                         priority: '8',
                         tags: 'test',
-                        owner: 'testuser',
-                        assignee: 'testuser2',
+                        owner: 'testuser@example.com',
+                        assignee: 'testuser2@example.com',
                         project: 'Test Project',
                         createdAt: '15-01-2024',
                         description: 'Test description'
@@ -418,7 +418,7 @@ describe('Report Service Test', () => {
                 metadata: {
                     type: 'project',
                     projectName: 'Test Project',
-                    projectOwner: 'testuser',
+                    projectOwner: 'testuser@example.com',
                     generatedAt: '15-01-2024 at 10:00',
                     dateRange: {
                         startDate: '01-01-2024',
@@ -450,8 +450,8 @@ describe('Report Service Test', () => {
                         deadline: '01-02-2024',
                         priority: '8',
                         tags: 'test',
-                        owner: 'testuser',
-                        assignee: 'testuser2',
+                        owner: 'testuser@example.com',
+                        assignee: 'testuser2@example.com',
                         project: 'Test Project',
                         createdAt: '15-01-2024',
                         description: 'Test description'
@@ -470,7 +470,7 @@ describe('Report Service Test', () => {
                 metadata: {
                     type: 'project',
                     projectName: 'Test Project',
-                    projectOwner: 'testuser',
+                    projectOwner: 'testuser@example.com',
                     generatedAt: '15-01-2024 at 10:00',
                     dateRange: {
                         startDate: '01-01-2024',
@@ -520,8 +520,8 @@ describe('Report Service Test', () => {
                         deadline: '01-02-2024',
                         priority: '8',
                         tags: 'test',
-                        owner: 'testuser',
-                        assignee: 'testuser2',
+                        owner: 'testuser@example.com',
+                        assignee: 'testuser2@example.com',
                         project: 'Test Project',
                         createdAt: '15-01-2024',
                         description: 'Test description'
@@ -540,7 +540,7 @@ describe('Report Service Test', () => {
                 metadata: {
                     type: 'project',
                     projectName: 'Test Project',
-                    projectOwner: 'testuser',
+                    projectOwner: 'testuser@example.com',
                     generatedAt: '15-01-2024 at 10:00',
                     dateRange: {
                         startDate: '01-01-2024',
@@ -554,7 +554,7 @@ describe('Report Service Test', () => {
             expect(html).toContain('<!DOCTYPE html>');
             expect(html).toContain('Task Completion Report - Project: Test Project');
             expect(html).toContain('Test Task');
-            expect(html).toContain('testuser');
+            expect(html).toContain('testuser@example.com');
             expect(html).toContain('8');
             expect(html).toContain('Test description');
         });
@@ -571,7 +571,7 @@ describe('Report Service Test', () => {
                         deadline: 'No deadline',
                         priority: '5',
                         tags: 'No tags',
-                        owner: 'testuser',
+                        owner: 'testuser@example.com',
                         assignee: 'Unassigned',
                         project: 'No project',
                         createdAt: '15-01-2024',
@@ -587,7 +587,7 @@ describe('Report Service Test', () => {
                 },
                 metadata: {
                     type: 'user',
-                    username: 'testuser',
+                    username: 'testuser@example.com',
                     generatedAt: '15-01-2024 at 10:00',
                     dateRange: {
                         startDate: '01-01-2024',
@@ -598,7 +598,7 @@ describe('Report Service Test', () => {
 
             const html = reportService.generateReportHTML(mockReportData);
 
-            expect(html).toContain('Task Completion Report - User: testuser');
+            expect(html).toContain('Task Completion Report - User: testuser@example.com');
             expect(html).toContain('Done Task');
             expect(html).toContain('No project');
             expect(html).toContain('Unassigned');

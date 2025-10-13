@@ -123,6 +123,76 @@ class ApiService {
         });
     }
 
+    // Admin-only Methods for Reports
+    async getAllUsers() {
+        return this.request('/users');
+    }
+
+    async getAllProjectsForAdmin() {
+        return this.request('/projects/all');
+    }
+
+    async generateReport(reportType, targetId, startDate, endDate, format = 'pdf') {
+        const params = new URLSearchParams({ startDate, endDate, format }).toString();
+        const endpoint = reportType === 'user' 
+            ? `/reports/task-completion/user/${targetId}?${params}`
+            : `/reports/task-completion/project/${targetId}?${params}`;
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            credentials: 'include',
+        });
+        
+        // Check if response is JSON (could be no-data case with 200 status)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.type === 'NO_DATA_FOUND') {
+                // This is a no-data scenario, not an error
+                const err = new Error(data.message);
+                err.type = 'NO_DATA_FOUND';
+                throw err;
+            } else if (!response.ok || !data.success) {
+                // This is an actual error
+                const err = new Error(data.message || 'Failed to generate report');
+                err.type = data.type;
+                err.errorCode = data.error;
+                throw err;
+            }
+        }
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate report');
+        }
+        
+        // Get filename from response headers or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        
+        // Fix file extension for excel format
+        const fileExtension = format === 'excel' ? 'xlsx' : format;
+        let filename = `report_${targetId}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
+        
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        // Create blob and trigger download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        return { success: true, filename };
+    }
+
     // Notifications API
     async getNotifications(filters = {}) {
         const query = new URLSearchParams(filters).toString();

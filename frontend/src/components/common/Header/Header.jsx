@@ -15,6 +15,9 @@ function Header() {
     await logout();
   };
 
+  // Check if user has admin role
+  const isAdmin = user?.roles?.includes('admin');
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>
@@ -40,12 +43,17 @@ function Header() {
               <span className={styles.badge}>{unreadCount}</span>
             )}
           </Link>
+          {isAdmin && (
+            <Link to="/reports" className={styles.navLink}>
+              Report Generation
+            </Link>
+          )}
         </nav>
 
         <div className={styles.userSection}>
-          <span className={styles.userName}>
-            {user?.name || user?.email}
-          </span>
+          {/* <span className={styles.userName}>
+            {user?.name || user?.email || user?.username}
+          </span> */}
           <Button variant="ghost" size="small" onClick={handleLogout}>
             Logout
           </Button>

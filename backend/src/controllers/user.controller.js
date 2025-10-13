@@ -111,9 +111,28 @@ const getProfile = async(req, res, next) => {
     }
 }
 
+const getAllUsers = async(req, res, next) => {
+    try {
+        // Call the user service to get all users
+        const users = await UserService.getAllUsers();
+
+        res.status(200).json({
+            success: true,
+            data: users
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Error retrieving users",
+            error: err.message
+        });
+    }
+}
+
 export default {
     register,
     login,
     logout,
-    getProfile
+    getProfile,
+    getAllUsers
 };

@@ -82,14 +82,14 @@ beforeAll(async () => {
 
     // Create test users
     adminUser = await User.create({
-        username: 'adminuser',
+        username: 'adminuser@example.com',
         roles: ['admin'],
         department: 'it',
         hashed_password: 'password123'
     });
 
     staffUser = await User.create({
-        username: 'staffuser',
+        username: 'staffuser@example.com',
         roles: ['staff'],
         department: 'hr',
         hashed_password: 'password456'
@@ -454,7 +454,7 @@ describe('Report Router Test', () => {
             it('should handle user with no tasks', async () => {
                 // Create a user with no tasks
                 const userWithNoTasks = await User.create({
-                    username: 'userwithnot asks',
+                    username: 'userwithnotasks@example.com',
                     roles: ['staff'],
                     department: 'finance',
                     hashed_password: 'password789'
@@ -466,7 +466,12 @@ describe('Report Router Test', () => {
                     .query(validQuery)
                     .expect(200);
 
-                expect(response.headers['content-type']).toBe('application/pdf');
+                // Should return JSON message when no tasks found, not generate PDF
+                expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+                expect(response.body.success).toBe(false);
+                expect(response.body.type).toBe('NO_DATA_FOUND');
+                expect(response.body.message).toContain('No tasks found for user');
+                expect(response.body.message).toContain('userwithnotasks@example.com');
             });
         });
 
@@ -587,7 +592,12 @@ describe('Report Router Test', () => {
                 .query(query)
                 .expect(200);
 
-            expect(response.headers['content-type']).toBe('application/pdf');
+            // Should return JSON message when no tasks found, not generate PDF  
+            expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+            expect(response.body.success).toBe(false);
+            expect(response.body.type).toBe('NO_DATA_FOUND');
+            expect(response.body.message).toContain('No tasks found for project');
+            expect(response.body.message).toContain('Test Project');
         });
 
         it('should handle very long date ranges', async () => {

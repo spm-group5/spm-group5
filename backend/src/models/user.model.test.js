@@ -37,7 +37,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Valid user data should pass schema validation and trigger password hashing
         it('should create user with valid data and hash password', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'plainpassword123'
@@ -56,7 +56,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Manager role should pass enum validation
         it('should create user with manager role', async () => {
             const userData = {
-                username: 'manager1',
+                username: 'manager1@example.com',
                 roles: ['manager'],
                 department: 'sales',
                 hashed_password: 'managerpass123'
@@ -71,7 +71,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Admin role should pass enum validation
         it('should create user with admin role', async () => {
             const userData = {
-                username: 'admin1',
+                username: 'admin1@example.com',
                 roles: ['admin'],
                 department: 'it',
                 hashed_password: 'adminpass123'
@@ -86,7 +86,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Multiple valid roles should pass array validation
         it('should create user with multiple valid roles', async () => {
             const userData = {
-                username: 'multiuser',
+                username: 'multiuser@example.com',
                 roles: ['staff', 'manager'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -101,7 +101,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Valid department enum should be accepted
         it('should create user with valid department enum', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'finance',
                 hashed_password: 'password123'
@@ -119,7 +119,7 @@ describe('User Model - User Account Creation Validation', () => {
 
             for (let i = 0; i < departments.length; i++) {
                 const userData = {
-                    username: `testuser${i}`,
+                    username: `testuser${i}@example.com`,
                     roles: ['staff'],
                     department: departments[i],
                     hashed_password: 'password123'
@@ -165,7 +165,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Missing password should fail required validation
         it('should throw error when password is missing', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it'
             };
@@ -178,7 +178,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Empty password should fail required validation
         it('should throw error when password is empty string', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: ''
@@ -192,7 +192,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Missing roles should fail required validation
         it('should throw error when roles is missing', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 department: 'it',
                 hashed_password: 'password123'
             };
@@ -205,7 +205,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Empty roles array should fail required validation
         it('should throw error when roles array is empty', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: [],
                 department: 'it',
                 hashed_password: 'password123'
@@ -219,7 +219,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Missing department should fail required validation
         it('should throw error when department is missing', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 hashed_password: 'password123'
             };
@@ -232,7 +232,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Empty department should fail required validation
         it('should throw error when department is empty string', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: '',
                 hashed_password: 'password123'
@@ -249,7 +249,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Invalid role value should fail enum validation
         it('should throw error for invalid role not in enum', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['invalidrole'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -263,7 +263,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Multiple invalid roles should fail enum validation
         it('should throw error for multiple invalid roles', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['user', 'superuser'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -277,7 +277,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Mixed valid/invalid roles should fail enum validation
         it('should throw error for mixed valid and invalid roles', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff', 'invalidrole'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -291,7 +291,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Case-sensitive role mismatch should fail enum validation
         it('should throw error for case-sensitive invalid role', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['STAFF'], // should be lowercase
                 department: 'it',
                 hashed_password: 'password123'
@@ -305,7 +305,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Invalid department value should fail enum validation
         it('should throw error for invalid department not in enum', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'invalidDept',
                 hashed_password: 'password123'
@@ -319,7 +319,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Case-sensitive department mismatch should fail enum validation
         it('should throw error for case-sensitive invalid department', async () => {
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'IT', // should be lowercase
                 hashed_password: 'password123'
@@ -336,7 +336,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Duplicate username should fail unique constraint
         it('should throw error when username already exists', async () => {
             const firstUserData = {
-                username: 'duplicateuser',
+                username: 'duplicateuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -346,7 +346,7 @@ describe('User Model - User Account Creation Validation', () => {
             await firstUser.save();
 
             const duplicateUserData = {
-                username: 'duplicateuser',
+                username: 'duplicateuser@example.com',
                 roles: ['manager'],
                 department: 'sales',
                 hashed_password: 'differentpassword'
@@ -360,7 +360,7 @@ describe('User Model - User Account Creation Validation', () => {
         // Test: Case-sensitive duplicate should fail unique constraint
         it('should throw error for case-sensitive duplicate username', async () => {
             const firstUserData = {
-                username: 'TestUser',
+                username: 'TestUser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: 'password123'
@@ -370,7 +370,7 @@ describe('User Model - User Account Creation Validation', () => {
             await firstUser.save();
 
             const duplicateUserData = {
-                username: 'TestUser',
+                username: 'TestUser@example.com',
                 roles: ['admin'],
                 department: 'HR',
                 hashed_password: 'password456'
@@ -388,7 +388,7 @@ describe('User Model - User Account Creation Validation', () => {
         it('should hash password before saving', async () => {
             const plainPassword = 'myplainpassword123';
             const userData = {
-                username: 'testuser',
+                username: 'testuser@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: plainPassword
@@ -407,14 +407,14 @@ describe('User Model - User Account Creation Validation', () => {
             const plainPassword = 'samepassword123';
 
             const user1Data = {
-                username: 'user1',
+                username: 'user1@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: plainPassword
             };
 
             const user2Data = {
-                username: 'user2',
+                username: 'user2@example.com',
                 roles: ['staff'],
                 department: 'it',
                 hashed_password: plainPassword
