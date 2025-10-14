@@ -43,7 +43,7 @@ describe('Task Controller Test', () => {
 			expect(res.status).toHaveBeenCalledWith(201);
 			expect(res.json).toHaveBeenCalledWith({
 				success: true,
-				message: 'Task created successfully',
+				message: 'Task created successfully and notifications sent',
 				data: mockTask
 			});
 		});
@@ -243,60 +243,6 @@ describe('Task Controller Test', () => {
 		});
 	});
 
-	describe('deleteTask', () => {
-		it('should delete task successfully', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockResolvedValue({ _id: 'taskId123' });
-
-			await taskController.deleteTask(req, res);
-
-			expect(taskService.deleteTask).toHaveBeenCalledWith('taskId123', 'userId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				message: 'Task deleted successfully'
-			});
-		});
-
-		it('should handle task not found on delete', async () => {
-			req.params = { taskId: 'nonExistentId' };
-			taskService.deleteTask.mockRejectedValue(new Error('Task not found'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(404);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task not found'
-			});
-		});
-
-		it('should handle permission denied on delete', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockRejectedValue(new Error('You do not have permission to delete this task'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(403);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'You do not have permission to delete this task'
-			});
-		});
-
-		it('should handle other delete errors', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockRejectedValue(new Error('Database error'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
-			});
-		});
-	});
 
 	describe('archiveTask', () => {
 		it('should archive a task successfully', async () => {

@@ -28,14 +28,30 @@ vi.mock('../middleware/auth.middleware.js', () => ({
 }));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-  currentUser = await User.create({ username: 'notifuser', roles: ['staff'], department: 'it', hashed_password: 'hashedpassword123' });
+  if (mongoose.connection.readyState !== 1) {
+    // Wait up to 10 seconds for connection
+    let attempts = 0;
+    while (mongoose.connection.readyState !== 1 && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      attempts++;
+    }
+    
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error('Database connection not ready after waiting');
+    }
+  }
+  
+  currentUser = await User.create({ 
+    username: 'notifuser@example.com', 
+    roles: ['staff'], 
+    department: 'it', 
+    hashed_password: 'hashedpassword123' 
+  });
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await User.deleteMany({});
+  await Notification.deleteMany({});
 });
 
 beforeEach(async () => {

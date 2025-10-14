@@ -9,7 +9,6 @@ router.get('/tasks', requireAuth, taskController.getTasks);
 router.get('/tasks/:taskId', requireAuth, taskController.getTaskById);
 router.patch('/tasks/:taskId/archive', requireAuth, taskController.archiveTask);
 router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTask);
-router.delete('/tasks/:taskId', requireAuth, taskController.deleteTask);
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
 
 export default router;

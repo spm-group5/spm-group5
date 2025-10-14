@@ -297,61 +297,61 @@ class TaskController {
         }
     }
 
-    async deleteTask(req, res) {
-        try {
-            const { taskId } = req.params;
-            const userId = req.user._id;
+    // async deleteTask(req, res) {
+    //     try {
+    //         const { taskId } = req.params;
+    //         const userId = req.user._id;
 
-            const io = req.app.get('io');
-            const userSockets = req.app.get('userSockets');
+    //         const io = req.app.get('io');
+    //         const userSockets = req.app.get('userSockets');
 
-            // fetch task first so we can notify with details
-            const task = await taskModel.findById(taskId);
-            if (!task) {
-                return res.status(404).json({ success: false, message: 'Task not found' });
-            }
+    //         // fetch task first so we can notify with details
+    //         const task = await taskModel.findById(taskId);
+    //         if (!task) {
+    //             return res.status(404).json({ success: false, message: 'Task not found' });
+    //         }
 
-            // create DB notifications for assignees (or interested users)
-            if (task.assignee && task.assignee.length > 0) {
-                await Promise.all(task.assignee.map(assigneeId =>
-                    notificationModel.create({
-                        user: assigneeId,
-                        message: `Task deleted: "${task.title}"`,
-                        assignor: userId,
-                        task: task._id
-                    })
-                ));
-            }
+    //         // create DB notifications for assignees (or interested users)
+    //         if (task.assignee && task.assignee.length > 0) {
+    //             await Promise.all(task.assignee.map(assigneeId =>
+    //                 notificationModel.create({
+    //                     user: assigneeId,
+    //                     message: `Task deleted: "${task.title}"`,
+    //                     assignor: userId,
+    //                     task: task._id
+    //                 })
+    //             ));
+    //         }
 
-            // emit socket event to online assignees
-            if (io && userSockets && task.assignee && task.assignee.length > 0) {
-                task.assignee.forEach(assigneeId => {
-                    const socketId = userSockets.get(assigneeId.toString());
-                    if (socketId) {
-                        io.to(socketId).emit('task-deleted', {
-                            message: `Task deleted: "${task.title}"`,
-                            taskId: task._id,
-                            timestamp: new Date()
-                        });
-                    }
-                });
-            }
+    //         // emit socket event to online assignees
+    //         if (io && userSockets && task.assignee && task.assignee.length > 0) {
+    //             task.assignee.forEach(assigneeId => {
+    //                 const socketId = userSockets.get(assigneeId.toString());
+    //                 if (socketId) {
+    //                     io.to(socketId).emit('task-deleted', {
+    //                         message: `Task deleted: "${task.title}"`,
+    //                         taskId: task._id,
+    //                         timestamp: new Date()
+    //                     });
+    //                 }
+    //             });
+    //         }
 
-            await taskService.deleteTask(taskId, userId);
+    //         await taskService.deleteTask(taskId, userId);
 
-            res.status(200).json({
-                success: true,
-                message: 'Task deleted successfully and notifications sent'
-            });
-        } catch (error) {
-            const statusCode = error.message === 'Task not found' ? 404 :
-            error.message.includes('permission') ? 403 : 500;
-            res.status(statusCode).json({
-                success: false,
-                message: error.message
-            });
-        }
-    }
+    //         res.status(200).json({
+    //             success: true,
+    //             message: 'Task deleted successfully and notifications sent'
+    //         });
+    //     } catch (error) {
+    //         const statusCode = error.message === 'Task not found' ? 404 :
+    //         error.message.includes('permission') ? 403 : 500;
+    //         res.status(statusCode).json({
+    //             success: false,
+    //             message: error.message
+    //         });
+    //     }
+    // }
 
     async addComment(req, res) {
         try {
