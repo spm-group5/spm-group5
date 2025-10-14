@@ -28,6 +28,9 @@ function TaskCard({
   const { createSubtask, updateSubtask, deleteSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
   const { user } = useAuth();
+  const canArchive = user?.roles?.includes('manager') || user?.roles?.includes('admin');
+
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "To Do":
@@ -188,28 +191,30 @@ function TaskCard({
                 Edit
               </Button>
             )}
-            {isArchived ? (
-              <Button
-                variant="primary"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUnarchive(task._id);
-                }}
-              >
-                Unarchive
-              </Button>
-            ) : (
-              <Button
-                variant="warning"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onArchive(task._id);
-                }}
-              >
-                Archive
-              </Button>
+            {canArchive && (
+              isArchived ? (
+                <Button
+                  variant="primary"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUnarchive(task._id);
+                  }}
+                >
+                  Unarchive
+                </Button>
+              ) : (
+                <Button
+                  variant="warning"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(task._id);
+                  }}
+                >
+                  Archive
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -266,7 +271,8 @@ function TaskCard({
                   Edit
                 </Button>
               )}
-              {isArchived ? (
+              {canArchive && (
+              isArchived ? (
                 <Button
                   variant="primary"
                   size="small"
@@ -282,6 +288,7 @@ function TaskCard({
                 >
                   Archive
                 </Button>
+              )
               )}
             </div>
 

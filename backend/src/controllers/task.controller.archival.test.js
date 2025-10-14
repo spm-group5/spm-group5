@@ -3,11 +3,13 @@ import taskController from './task.controller.js';
 import taskService from '../services/task.services.js';
 import notificationModel from '../models/notification.model.js';
 import userModel from '../models/user.model.js';
+import taskModel from '../models/task.model.js';
 
 // Mock dependencies
 vi.mock('../services/task.services.js');
 vi.mock('../models/notification.model.js');
 vi.mock('../models/user.model.js');
+vi.mock('../models/task.model.js');
 
 describe('Task Controller - Archival Notifications (TDD)', () => {
     let req, res, mockIo, mockUserSockets;
@@ -19,12 +21,12 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
         };
 
         mockUserSockets = new Map();
-        mockUserSockets.set('assignee1', 'socket123');
-        mockUserSockets.set('assignee2', 'socket456');
+        mockUserSockets.set('507f1f77bcf86cd799439020', 'socket123');
+        mockUserSockets.set('507f1f77bcf86cd799439021', 'socket456');
 
         req = {
             user: {
-                _id: 'managerId',
+                _id: '507f1f77bcf86cd799439012',
                 username: 'manager@company.com',
                 roles: ['manager']
             },
@@ -54,13 +56,13 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
     describe('archiveTask - with notifications', () => {
         it('should archive task and send notifications to all assignees with full details', async () => {
             const mockTask = {
-                _id: 'task601',
+                _id: '507f1f77bcf86cd799439011',
                 title: 'Update marketing materials',
                 project: {
-                    _id: 'proj101',
+                    _id: '507f1f77bcf86cd799439030',
                     name: 'Q4 Campaign'
                 },
-                assignee: ['assignee1', 'assignee2'],
+                assignee: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
                 archived: false
             };
 
@@ -70,15 +72,16 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
                 archivedAt: new Date('2025-10-14T14:30:00Z')
             };
 
-            req.params = { taskId: 'task601' };
+            req.params = { taskId: '507f1f77bcf86cd799439011' };
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
-            notificationModel.create.mockResolvedValue({ _id: 'notif123' });
+            notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439040' });
 
             await taskController.archiveTask(req, res);
 
             // Verify service called
-            expect(taskService.archiveTask).toHaveBeenCalledWith('task601', 'managerId');
+            expect(taskService.archiveTask).toHaveBeenCalledWith('507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012');
 
             // Verify response
             expect(res.status).toHaveBeenCalledWith(200);
@@ -93,11 +96,11 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             // expect(notificationModel.create).toHaveBeenCalledTimes(2);
             // expect(notificationModel.create).toHaveBeenCalledWith(
             //     expect.objectContaining({
-            //         user: 'assignee1',
+            //         user: '507f1f77bcf86cd799439020',
             //         message: expect.stringContaining('Update marketing materials'),
             //         message: expect.stringContaining('Q4 Campaign'),
             //         message: expect.stringContaining('manager@company.com'),
-            //         task: 'task601'
+            //         task: '507f1f77bcf86cd799439011'
             //     })
             // );
         });
@@ -105,13 +108,13 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
         it('should include task name, project name, archiver name, and timestamp in notification', async () => {
             const archivedAt = new Date('2025-10-14T14:30:00Z');
             const mockTask = {
-                _id: 'task602',
+                _id: '507f1f77bcf86cd799439022',
                 title: 'Client presentation deck',
                 project: {
-                    _id: 'proj102',
+                    _id: '507f1f77bcf86cd799439031',
                     name: 'Enterprise Sales'
                 },
-                assignee: ['assignee1']
+                assignee: ['507f1f77bcf86cd799439020']
             };
 
             const mockArchivedTask = {
@@ -120,10 +123,11 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
                 archivedAt: archivedAt
             };
 
-            req.params = { taskId: 'task602' };
+            req.params = { taskId: '507f1f77bcf86cd799439022' };
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
-            notificationModel.create.mockResolvedValue({ _id: 'notif456' });
+            notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439041' });
 
             await taskController.archiveTask(req, res);
 
@@ -133,10 +137,10 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             
             // expect(notificationModel.create).toHaveBeenCalledWith(
             //     expect.objectContaining({
-            //         user: 'assignee1',
+            //         user: '507f1f77bcf86cd799439020',
             //         message: expect.stringMatching(/Client presentation deck.*Enterprise Sales.*manager@company\.com.*2025-10-14/),
-            //         task: 'task602',
-            //         assignor: 'managerId'
+            //         task: '507f1f77bcf86cd799439022',
+            //         assignor: '507f1f77bcf86cd799439012'
             //     })
             // );
         });
@@ -144,10 +148,10 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
         // NOTIF-ARCHIVE-003: Multiple assignees
         it('should send notifications to all assignees when task is archived', async () => {
             const mockTask = {
-                _id: 'task603',
+                _id: '507f1f77bcf86cd799439023',
                 title: 'Database optimization',
-                project: { _id: 'proj103', name: 'Infrastructure' },
-                assignee: ['user1', 'user2', 'user3']
+                project: { _id: '507f1f77bcf86cd799439032', name: 'Infrastructure' },
+                assignee: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021', '507f1f77bcf86cd799439022']
             };
 
             const mockArchivedTask = {
@@ -156,14 +160,15 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
                 archivedAt: new Date()
             };
 
-            mockUserSockets.set('user1', 'socket1');
-            mockUserSockets.set('user2', 'socket2');
-            mockUserSockets.set('user3', 'socket3');
+            mockUserSockets.set('507f1f77bcf86cd799439020', 'socket1');
+            mockUserSockets.set('507f1f77bcf86cd799439021', 'socket2');
+            mockUserSockets.set('507f1f77bcf86cd799439022', 'socket3');
 
-            req.params = { taskId: 'task603' };
+            req.params = { taskId: '507f1f77bcf86cd799439023' };
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
-            notificationModel.create.mockResolvedValue({ _id: 'notif789' });
+            notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439042' });
 
             await taskController.archiveTask(req, res);
 
@@ -179,9 +184,9 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
         // NOTIF-ARCHIVE-005: Boundary case - No assignees
         it('should archive task with no assignees without errors', async () => {
             const mockTask = {
-                _id: 'task801',
+                _id: '507f1f77bcf86cd799439024',
                 title: 'Unassigned task',
-                project: { _id: 'proj201', name: 'Test Project' },
+                project: { _id: '507f1f77bcf86cd799439033', name: 'Test Project' },
                 assignee: []
             };
 
@@ -191,7 +196,8 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
                 archivedAt: new Date()
             };
 
-            req.params = { taskId: 'task801' };
+            req.params = { taskId: '507f1f77bcf86cd799439024' };
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
 
@@ -208,12 +214,18 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
     describe('archiveTask - Authorization', () => {
         it('should reject archival by staff (non-manager/non-admin)', async () => {
             req.user = {
-                _id: 'staffId',
+                _id: '507f1f77bcf86cd799439013',
                 username: 'staff@company.com',
                 roles: ['staff']
             };
-            req.params = { taskId: 'task701' };
-
+            req.params = { taskId: '507f1f77bcf86cd799439025' };
+            const mockTask = {
+                _id: '507f1f77bcf86cd799439025',
+                title: 'Staff task',
+                assignee: ['507f1f77bcf86cd799439020']
+            };
+            taskModel.findById.mockResolvedValue(mockTask);
+            taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockRejectedValue(
                 new Error('You do not have permission to archive this task')
             );
@@ -230,22 +242,22 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
 
         it('should allow admin to archive task', async () => {
             req.user = {
-                _id: 'adminId',
+                _id: '507f1f77bcf86cd799439014',
                 username: 'admin@company.com',
                 roles: ['admin']
             };
-            req.params = { taskId: 'task702' };
+            req.params = { taskId: '507f1f77bcf86cd799439026' };
 
             const mockTask = {
-                _id: 'task702',
+                _id: '507f1f77bcf86cd799439026',
                 title: 'Admin task',
                 project: { name: 'Test' },
-                assignee: ['assignee1']
+                assignee: ['507f1f77bcf86cd799439020']
             };
 
             const mockArchivedTask = { ...mockTask, archived: true, archivedAt: new Date() };
 
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
 
             await taskController.archiveTask(req, res);
@@ -254,7 +266,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
         });
 
         it('should reject archival of non-existent task', async () => {
-            req.params = { taskId: 'nonexistent' };
+            req.params = { taskId: '507f1f77bcf86cd799439027' };
             taskService.archiveTask.mockRejectedValue(new Error('Task not found'));
 
             await taskController.archiveTask(req, res);
@@ -271,10 +283,10 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
     describe('archiveTask - Offline users', () => {
         it('should create DB notifications for offline assignees', async () => {
             const mockTask = {
-                _id: 'task901',
+                _id: '507f1f77bcf86cd799439028',
                 title: 'Offline test task',
-                project: { _id: 'proj301', name: 'Test Project' },
-                assignee: ['onlineUser', 'offlineUser']
+                project: { _id: '507f1f77bcf86cd799439034', name: 'Test Project' },
+                assignee: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021']
             };
 
             const mockArchivedTask = {
@@ -285,12 +297,13 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
 
             // Only onlineUser has socket
             mockUserSockets.clear();
-            mockUserSockets.set('onlineUser', 'socketOnline');
+            mockUserSockets.set('507f1f77bcf86cd799439020', 'socketOnline');
 
-            req.params = { taskId: 'task901' };
+            req.params = { taskId: '507f1f77bcf86cd799439028' };
+            taskModel.findById.mockResolvedValue(mockTask);
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
-            notificationModel.create.mockResolvedValue({ _id: 'notif999' });
+            notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439043' });
 
             await taskController.archiveTask(req, res);
 

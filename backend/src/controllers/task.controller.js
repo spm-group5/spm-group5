@@ -257,20 +257,75 @@ class TaskController {
         try {
             const { taskId } = req.params;
             const userId = req.user._id;
+            const userName = req.user.username;
+    
+            // Fetch task first to get details for notifications
+            const task = await taskModel.findById(taskId);
+            if (!task) {
+                return res.status(404).json({ success: false, message: 'Task not found' });
+            }
 
+            // Now archive the task
             const archivedTask = await taskService.archiveTask(taskId, userId);
+    
+            // Get Socket.IO instance
+            const io = req.app.get('io');
+            const userSockets = req.app.get('userSockets');
+    
+            // Create notifications for assignees (excluding the person who archived)
+            const usersToNotify = [];
+            
+            // Add assignees
+            if (task.assignee && task.assignee.length > 0) {
+                usersToNotify.push(...task.assignee.filter(assigneeId => 
+                    assigneeId.toString() !== userId.toString()
+                ));
+            }
+            
+            // Add owner if different from current user
+            if (task.owner && task.owner.toString() !== userId.toString()) {
+                usersToNotify.push(task.owner);
+            }
+    
+            // Create DB notifications
+            if (usersToNotify.length > 0) {
+                await Promise.all(usersToNotify.map(userId =>
+                    notificationModel.create({
+                        user: userId,
+                        message: `${userName} archived task: "${task.title}"`,
+                        task: task._id
+                    })
+                ));
+    
+                // Send socket notifications to online users
+                usersToNotify.forEach(userId => {
+                    const socketId = userSockets.get(userId.toString());
+                    if (socketId) {
+                        io.to(socketId).emit('task-archived', {
+                            message: `${userName} archived task: "${task.title}"`,
+                            taskId: task._id,
+                            timestamp: new Date()
+                        });
+                    }
+                });
+            }
+    
 
+    
             res.status(200).json({
                 success: true,
-                message: 'Task archived successfully',
+                message: 'Task archived successfully and notifications sent',
                 data: archivedTask
             });
         } catch (error) {
+            console.error('Error archiving task:', error);
+            
             const statusCode = error.message === 'Task not found' ? 404 :
-                error.message.includes('permission') ? 403 : 500;
+            error.message.includes('permission') ? 403 : 500;
+            
             res.status(statusCode).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Internal server error'
             });
         }
     }

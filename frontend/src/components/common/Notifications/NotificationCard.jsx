@@ -1,13 +1,58 @@
 import React from 'react';
 import styles from './NotificationCard.module.css';
 
+// Enhanced notification display function
+const getNotificationDetails = (notification) => {
+  const message = notification.message || '';
+  
+  // Extract more context from the message
+  if (message.includes('commented')) {
+    return {
+      type: 'comment',
+      action: 'commented on',
+      details: message // "John commented on task: 'Fix bug'"
+    };
+  }
+  
+  if (message.includes('archived')) {
+    return {
+      type: 'archive', 
+      action: 'archived',
+      details: message // "John archived task: 'Fix bug'"
+    };
+  }
+  
+  if (message.includes('created')) {
+    return {
+      type: 'created',
+      action: 'created',
+      details: message // "John created task: 'New feature'"
+    };
+  }
+  
+  if (message.includes('assigned')) {
+    return {
+      type: 'assigned',
+      action: 'assigned',
+      details: message
+    };
+  }
+  
+  if (message.includes('deleted') || message.includes('removed')) {
+    return {
+      type: 'deleted',
+      action: 'deleted',
+      details: message
+    };
+  }
+  
+  return { type: 'info', action: 'updated', details: message };
+};
+
 export default function NotificationCard({ notification, onMarkRead, onDelete }) {
-  const msg = (notification.message || '').toLowerCase();
-  let type = 'info';
-  if (msg.includes('assigned')) type = 'assigned';
-  else if (msg.includes('deleted') || msg.includes('removed')) type = 'deleted';
-  else if (msg.includes('updated') || msg.includes('status')) type = 'updated';
-  else if (notification.isUrgent) type = 'urgent';
+  // Use the enhanced function instead of the old logic
+  const notificationDetails = getNotificationDetails(notification);
+  const type = notificationDetails.type;
 
   return (
     <article className={`${styles.card} ${notification.read ? styles.read : ''}`}>
@@ -17,16 +62,27 @@ export default function NotificationCard({ notification, onMarkRead, onDelete })
 
       <div className={styles.body}>
         <div className={styles.titleRow}>
-          <div className={styles.title}>{notification.message}</div>
+          <div className={styles.title}>{notificationDetails.details}</div>
           <div className={styles.actions}>
             {!notification.read && <button className={styles.smallBtn} onClick={onMarkRead}>Mark read</button>}
             <button className={styles.smallBtn} onClick={onDelete}>Delete</button>
           </div>
         </div>
 
+        {/* Enhanced task information */}
         {notification.task && (
           <div className={styles.meta}>
-            Task: {notification.task.title || notification.task}
+            <div>Task: {notification.task.title || notification.task}</div>
+            {notification.task.project && (
+              <div>Project: {notification.task.project.name || notification.task.project}</div>
+            )}
+          </div>
+        )}
+
+        {/* Show who performed the action if available */}
+        {notification.assignor && (
+          <div className={styles.assignor}>
+            By: {notification.assignor.username || notification.assignor}
           </div>
         )}
 
