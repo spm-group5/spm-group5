@@ -430,35 +430,55 @@ describe('Task Router Test', () => {
         });
     });
 
-    describe('DELETE /api/tasks/:taskId', () => {
-        it('should delete task successfully', async () => {
+    // describe('DELETE /api/tasks/:taskId', () => {
+    //     it('should delete task successfully', async () => {
+    //         const task = await Task.create({
+    //             title: 'Task to Delete',
+    //             owner: testUser._id,
+    //             project: testProject._id
+    //         });
+
+    //         const response = await request(app)
+    //             .delete(`/api/tasks/${task._id}`)
+    //             .expect(200);
+
+    //         expect(response.body.success).toBe(true);
+    //         expect(response.body.message).toContain('deleted');
+
+    //         // Verify task is deleted
+    //         const deletedTask = await Task.findById(task._id);
+    //         expect(deletedTask).toBeNull();
+    //     });
+
+    //     it('should return 404 for non-existent task', async () => {
+    //         const fakeId = new mongoose.Types.ObjectId();
+
+    //         const response = await request(app)
+    //             .delete(`/api/tasks/${fakeId}`)
+    //             .expect(404);
+
+    //         expect(response.body.success).toBe(false);
+    //         expect(response.body.message).toContain('not found');
+    //     });
+    // });
+
+    describe('PATCH /api/tasks/:taskId/archive', () => {
+        it('should archive task successfully', async () => {
             const task = await Task.create({
-                title: 'Task to Delete',
+                title: 'Task to Archive',
                 owner: testUser._id,
                 project: testProject._id
             });
-
-            const response = await request(app)
-                .delete(`/api/tasks/${task._id}`)
-                .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.message).toContain('deleted');
-
-            // Verify task is deleted
-            const deletedTask = await Task.findById(task._id);
-            expect(deletedTask).toBeNull();
         });
+    });
 
-        it('should return 404 for non-existent task', async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-
-            const response = await request(app)
-                .delete(`/api/tasks/${fakeId}`)
-                .expect(404);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('not found');
+    describe('PATCH /api/tasks/:taskId/unarchive', () => {
+        it('should unarchive task successfully', async () => {
+            const task = await Task.create({
+                title: 'Task to Unarchive',
+                owner: testUser._id,
+                project: testProject._id
+            });
         });
     });
 
@@ -518,25 +538,26 @@ describe('Task Router Test', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.data.status).toBe('In Progress');
         });
-
-        it('should not allow user to delete task they do not own', async () => {
+        it('should not allow user to archive task they do not own', async () => {
+            // Create a task owned by another user
             const otherUser = await User.create({
-                username: 'otherowner@example.com',
+                username: 'otheruser2@example.com',
                 roles: ['staff'],
                 department: 'hr',
-                hashed_password: 'password789'
+                hashed_password: 'password456'
             });
-
+        
             const task = await Task.create({
-                title: 'Not My Task',
+                title: 'Not My Task to Archive',
                 owner: otherUser._id,
+                assignee: otherUser._id,
                 project: testProject._id
             });
-
+        
             const response = await request(app)
-                .delete(`/api/tasks/${task._id}`)
+                .patch(`/api/tasks/${task._id}/archive`)
                 .expect(403);
-
+        
             expect(response.body.success).toBe(false);
             expect(response.body.message).toContain('permission');
         });

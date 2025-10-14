@@ -313,7 +313,11 @@ class TaskService {
             assigneeId => assigneeId.toString() === userId.toString()
         );
 
-        if (!isOwner && !isAssignee) {
+        // Get user to check roles
+        const user = await User.findById(userId);
+        const isManagerOrAdmin = user && (user.roles.includes('manager') || user.roles.includes('admin'));
+
+        if (!isOwner && !isAssignee && !isManagerOrAdmin) {
             throw new Error('You do not have permission to archive this task');
         }
 

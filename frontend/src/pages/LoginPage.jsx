@@ -67,7 +67,7 @@ function LoginPage() {
                 onChange={handleChange}
                 required
               />
-              {(formError || error) && (
+              {(formError) && (
                 <div className={styles.error}>
                   {formError || error}
                 </div>

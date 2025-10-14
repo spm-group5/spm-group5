@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useNotifications } from './useNotifications';
 import { useAuth } from '../context/AuthContext';
@@ -8,12 +8,17 @@ export function useSocket() {
     const { user } = useAuth();
     const socketRef = useRef(null);
 
+    const stableAddNotification = useCallback(addNotification, [addNotification]);
+
     useEffect(() => {
+
+        
         if (!user) {
             return;
         }
 
-        const userId = user.user?.id;
+        const userId = user.id;
+
 
         if (!userId) {
             return;
@@ -32,19 +37,33 @@ export function useSocket() {
         });
 
         socket.on('connect_error', (error) => {
-            console.error('❌ Socket connection error:', error);
+            console.error('Socket connection error:', error);
         });
 
         socket.on('task-assigned', (data) => {
-            addNotification(data.message, 'success', 7000);
+            stableAddNotification(data.message, 'success', 7000);
         });
 
         socket.on('task-unassigned', (data) => {
-            addNotification(data.message, 'info', 7000);
+            stableAddNotification(data.message, 'info', 7000);
         });
 
         socket.on('task-updated', (data) => {
-            addNotification(data.message, 'info', 5000);
+            stableAddNotification(data.message, 'info', 5000);
+        });
+
+        socket.on('task-comment', (data) => {
+            console.log('🔔 Received task-comment event:', data);
+            stableAddNotification(data.message, 'info', 5000);
+        });
+
+        socket.on('task-archived', (data) => {
+            console.log('🔔 Received task-archived event:', data);
+            stableAddNotification(data.message, 'warning', 5000);
+        });
+
+        socket.on('task-created', (data) => {
+            stableAddNotification(data.message, 'success', 5000);
         });
 
         return () => {
@@ -52,7 +71,7 @@ export function useSocket() {
             socketRef.current.disconnect();
         }
         };
-    }, [user, addNotification]);
+    }, [user, stableAddNotification]);
 
     return socketRef.current;
 }

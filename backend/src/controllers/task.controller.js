@@ -1,4 +1,6 @@
 import taskService from '../services/task.services.js';
+import notificationModel from '../models/notification.model.js';
+import taskModel from '../models/task.model.js';
 
 class TaskController {
     async createTask(req, res) {
@@ -18,7 +20,9 @@ class TaskController {
         const io = req.app.get('io');
         const userSockets = req.app.get('userSockets');
 
-        if (io && userSockets && task.assignee && task.assignee.length > 0) {
+        if (task.assignee && task.assignee.length > 0) {
+        // Send real-time notification if online
+        if (io && userSockets) {
             task.assignee.forEach(assigneeId => {
                 const assigneeSocketId = userSockets.get(assigneeId.toString());
                 if (assigneeSocketId) {
@@ -30,10 +34,20 @@ class TaskController {
                 }
             });
         }
+        // Always create a notification in the database
+        await Promise.all(task.assignee.map(assigneeId =>
+            notificationModel.create({
+                user: assigneeId,
+                message: `You have been assigned a new task: "${task.title}"`,
+                assignor: userId,
+                deadline: task.deadline
+            })
+        ));
+        }
 
         res.status(201).json({
             success: true,
-            message: 'Task created successfully',
+            message: 'Task created successfully and notifications sent',
             data: task
         });
     } catch (error) {
@@ -71,7 +85,7 @@ class TaskController {
 
                 console.log('Processed assignee:', req.body.assignee);
             }
-            
+            // Will not be in notification controller because socket.io is directly related to task update.
             // Get original task to compare assignees and check recurrence
             const originalTask = await taskService.getTaskById(taskId);
             const originalAssignees = originalTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
@@ -243,20 +257,75 @@ class TaskController {
         try {
             const { taskId } = req.params;
             const userId = req.user._id;
+            const userName = req.user.username;
+    
+            // Fetch task first to get details for notifications
+            const task = await taskModel.findById(taskId);
+            if (!task) {
+                return res.status(404).json({ success: false, message: 'Task not found' });
+            }
 
+            // Now archive the task
             const archivedTask = await taskService.archiveTask(taskId, userId);
+    
+            // Get Socket.IO instance
+            const io = req.app.get('io');
+            const userSockets = req.app.get('userSockets');
+    
+            // Create notifications for assignees (excluding the person who archived)
+            const usersToNotify = [];
+            
+            // Add assignees
+            if (task.assignee && task.assignee.length > 0) {
+                usersToNotify.push(...task.assignee.filter(assigneeId => 
+                    assigneeId.toString() !== userId.toString()
+                ));
+            }
+            
+            // Add owner if different from current user
+            if (task.owner && task.owner.toString() !== userId.toString()) {
+                usersToNotify.push(task.owner);
+            }
+    
+            // Create DB notifications
+            if (usersToNotify.length > 0) {
+                await Promise.all(usersToNotify.map(userId =>
+                    notificationModel.create({
+                        user: userId,
+                        message: `${userName} archived task: "${task.title}"`,
+                        task: task._id
+                    })
+                ));
+    
+                // Send socket notifications to online users
+                usersToNotify.forEach(userId => {
+                    const socketId = userSockets.get(userId.toString());
+                    if (socketId) {
+                        io.to(socketId).emit('task-archived', {
+                            message: `${userName} archived task: "${task.title}"`,
+                            taskId: task._id,
+                            timestamp: new Date()
+                        });
+                    }
+                });
+            }
+    
 
+    
             res.status(200).json({
                 success: true,
-                message: 'Task archived successfully',
+                message: 'Task archived successfully and notifications sent',
                 data: archivedTask
             });
         } catch (error) {
+            console.error('Error archiving task:', error);
+            
             const statusCode = error.message === 'Task not found' ? 404 :
-                error.message.includes('permission') ? 403 : 500;
+            error.message.includes('permission') ? 403 : 500;
+            
             res.status(statusCode).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Internal server error'
             });
         }
     }
@@ -283,21 +352,135 @@ class TaskController {
         }
     }
 
-    async deleteTask(req, res) {
+    // async deleteTask(req, res) {
+    //     try {
+    //         const { taskId } = req.params;
+    //         const userId = req.user._id;
+
+    //         const io = req.app.get('io');
+    //         const userSockets = req.app.get('userSockets');
+
+    //         // fetch task first so we can notify with details
+    //         const task = await taskModel.findById(taskId);
+    //         if (!task) {
+    //             return res.status(404).json({ success: false, message: 'Task not found' });
+    //         }
+
+    //         // create DB notifications for assignees (or interested users)
+    //         if (task.assignee && task.assignee.length > 0) {
+    //             await Promise.all(task.assignee.map(assigneeId =>
+    //                 notificationModel.create({
+    //                     user: assigneeId,
+    //                     message: `Task deleted: "${task.title}"`,
+    //                     assignor: userId,
+    //                     task: task._id
+    //                 })
+    //             ));
+    //         }
+
+    //         // emit socket event to online assignees
+    //         if (io && userSockets && task.assignee && task.assignee.length > 0) {
+    //             task.assignee.forEach(assigneeId => {
+    //                 const socketId = userSockets.get(assigneeId.toString());
+    //                 if (socketId) {
+    //                     io.to(socketId).emit('task-deleted', {
+    //                         message: `Task deleted: "${task.title}"`,
+    //                         taskId: task._id,
+    //                         timestamp: new Date()
+    //                     });
+    //                 }
+    //             });
+    //         }
+
+    //         await taskService.deleteTask(taskId, userId);
+
+    //         res.status(200).json({
+    //             success: true,
+    //             message: 'Task deleted successfully and notifications sent'
+    //         });
+    //     } catch (error) {
+    //         const statusCode = error.message === 'Task not found' ? 404 :
+    //         error.message.includes('permission') ? 403 : 500;
+    //         res.status(statusCode).json({
+    //             success: false,
+    //             message: error.message
+    //         });
+    //     }
+    // }
+
+    async addComment(req, res) {
         try {
             const { taskId } = req.params;
+            const { text } = req.body;
             const userId = req.user._id;
-
-            await taskService.deleteTask(taskId, userId);
-
+            const userName = req.user.username;
+    
+            if (!text || text.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment text is required'
+                });
+            }
+    
+            // Get the task
+            const task = await taskService.getTaskById(taskId);
+            
+            // Add the comment
+            const comment = {
+                text: text.trim(),
+                author: userId,
+                authorName: userName,
+                createdAt: new Date()
+            };
+    
+            task.comments = task.comments || [];
+            task.comments.push(comment);
+            await task.save();
+    
+            // Get Socket.IO instance
+            const io = req.app.get('io');
+            const userSockets = req.app.get('userSockets');
+    
+            // Notify assignees (exclude the comment author)
+            if (task.assignee && task.assignee.length > 0) {
+                // Create DB notifications
+                const notificationsToCreate = task.assignee
+                    .filter(assigneeId => assigneeId.toString() !== userId.toString())
+                    .map(assigneeId =>
+                        notificationModel.create({
+                            user: assigneeId,
+                            message: `${userName} commented on task: "${task.title}"`,
+                            task: task._id
+                        })
+                    );
+                
+                await Promise.all(notificationsToCreate);
+    
+                // Send socket notifications to online users
+                if (io && userSockets) {
+                    task.assignee.forEach(assigneeId => {
+                        if (assigneeId.toString() !== userId.toString()) {
+                            const socketId = userSockets.get(assigneeId.toString());
+                            if (socketId) {
+                                io.to(socketId).emit('task-comment', {
+                                    message: `${userName} commented on task: "${task.title}"`,
+                                    task: task,
+                                    comment: comment,
+                                    timestamp: new Date()
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+    
             res.status(200).json({
                 success: true,
-                message: 'Task deleted successfully'
+                message: 'Comment added successfully',
+                data: task
             });
         } catch (error) {
-            const statusCode = error.message === 'Task not found' ? 404 :
-            error.message.includes('permission') ? 403 : 500;
-            res.status(statusCode).json({
+            res.status(400).json({
                 success: false,
                 message: error.message
             });
