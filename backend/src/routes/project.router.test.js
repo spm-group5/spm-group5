@@ -162,12 +162,14 @@ describe('Project Router Test', () => {
                 .expect(200);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data).toHaveLength(2); // Only user's projects
-            expect(response.body.data[0].name).toMatch(/User Project/);
-            expect(response.body.data[1].name).toMatch(/User Project/);
+            expect(response.body.data).toHaveLength(3); // All projects should be returned
+            const projectNames = response.body.data.map(p => p.name);
+            expect(projectNames).toContain('User Project 1');
+            expect(projectNames).toContain('User Project 2');
+            expect(projectNames).toContain('Other User Project');
         });
 
-        it('should return empty array when user has no projects', async () => {
+        it('should return all projects even when user has no owned projects', async () => {
             await Project.deleteMany({ owner: testUser._id });
 
             const response = await request(app)
@@ -175,7 +177,8 @@ describe('Project Router Test', () => {
                 .expect(200);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data).toHaveLength(0);
+            expect(response.body.data).toHaveLength(1); // The other user's project
+            expect(response.body.data[0].name).toBe('Other User Project');
         });
 
         it('should fail without authentication', async () => {

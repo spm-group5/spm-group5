@@ -114,18 +114,9 @@ class ProjectService {
         // Import Task model dynamically to avoid circular dependency
         const Task = (await import('../models/task.model.js')).default;
 
-        // Get projects where user is owner or member (same logic as getProjects)
-        // Admin gets all projects
-        const projectQuery = userRole === 'admin'
-            ? {}  // Admin sees all projects
-            : {   // Others see only projects they're part of
-                $or: [
-                    { owner: userId },
-                    { members: userId }
-                ]
-            };
-
-        const projects = await Project.find(projectQuery)
+        // All roles can view all projects, so fetch all.
+        // Task visibility is handled by the 'canViewTasks' flag later.
+        const projects = await Project.find({})
             .populate('owner', 'username')
             .populate('members', 'username')
             .select('name description status owner members createdAt updatedAt')

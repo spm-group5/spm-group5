@@ -661,12 +661,10 @@ describe('Project Service Test', () => {
                     'engineering'
                 );
 
-                // Assert: Project Alpha should have canViewTasks: false
+                // Assert: Project Alpha should be in the list with canViewTasks: false
                 const projectAlpha = projects.find(p => p.name === 'Project Alpha');
-                if (projectAlpha) {
-                    // Project might not be in list if staff123 is not a member
-                    expect(projectAlpha.canViewTasks).toBe(false);
-                }
+                expect(projectAlpha).toBeDefined(); // User can see all projects
+                expect(projectAlpha.canViewTasks).toBe(false); // But cannot see tasks
             });
 
             it('should add canViewTasks: false for projects with no tasks', async () => {
