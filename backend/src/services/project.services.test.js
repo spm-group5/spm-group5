@@ -600,11 +600,12 @@ describe('Project Service Test', () => {
 
             it('should add canViewTasks: true for projects where department colleague is assigned', async () => {
                 // Arrange: Create project with task assigned to staff456 (same dept as staff123)
+                // staff123 must be a member to see the project
                 const project = await Project.create({
                     name: 'Project Gamma',
                     description: 'Department colleague project',
                     owner: staff456._id,
-                    members: [staff456._id],
+                    members: [staff123._id, staff456._id],
                     status: 'Active'
                 });
 
@@ -763,7 +764,7 @@ describe('Project Service Test', () => {
                     name: 'Project Gamma',
                     description: 'Assigned to engineering colleague',
                     owner: staff456._id,
-                    members: [staff456._id],
+                    members: [staff123._id, staff456._id],
                     status: 'Active'
                 });
 

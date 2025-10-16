@@ -112,6 +112,36 @@ class ProjectController {
             });
         }
     }
+
+    /**
+     * Get all projects with access metadata (canViewTasks flag)
+     * Returns projects with additional metadata indicating if user can view tasks
+     */
+    async getProjectsWithAccessMetadata(req, res) {
+        try {
+            // Extract user data
+            const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0]; // Get first role
+            const userDepartment = req.user.department;
+
+            // Call service layer
+            const projects = await projectService.getProjectsWithAccessMetadata(
+                userId,
+                userRole,
+                userDepartment
+            );
+
+            res.status(200).json({
+                success: true,
+                data: projects
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
 }
 
 export default new ProjectController();

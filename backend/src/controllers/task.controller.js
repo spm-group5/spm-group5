@@ -1,4 +1,5 @@
 import taskService from '../services/task.services.js';
+import mongoose from 'mongoose';
 
 class TaskController {
     async createTask(req, res) {
@@ -297,6 +298,86 @@ class TaskController {
         } catch (error) {
             const statusCode = error.message === 'Task not found' ? 404 :
             error.message.includes('permission') ? 403 : 500;
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    /**
+     * Get tasks for a specific project with authorization
+     * Validates input and delegates to service layer for business logic
+     */
+    async getTasksByProject(req, res) {
+        try {
+            const { projectId } = req.params;
+
+            // Validate authentication
+            if (!req.user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate projectId format (PTV-013)
+            // Empty or whitespace-only
+            if (!projectId || projectId.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid project ID format'
+                });
+            }
+
+            // MongoDB ObjectIds are 24-character hex strings OR 12-byte strings
+            // For validation, we check if it's a valid ObjectId using mongoose
+            // Strict validation applies to IDs that are clearly meant to be ObjectIds but are malformed
+
+            // If it's exactly 24 chars, it should be a valid hex string
+            if (projectId.length === 24) {
+                if (!mongoose.Types.ObjectId.isValid(projectId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid project ID format'
+                    });
+                }
+            }
+            // Reject IDs that are too short (< 12) or contain invalid characters for ObjectIds
+            else if (projectId.length < 12 || projectId.includes('-') || projectId.includes(' ')) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid project ID format'
+                });
+            }
+
+            // Extract user data
+            const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0]; // Get first role
+            const userDepartment = req.user.department;
+
+            // Call service layer
+            const tasks = await taskService.getTasksByProject(
+                projectId,
+                userId,
+                userRole,
+                userDepartment
+            );
+
+            res.status(200).json({
+                success: true,
+                data: tasks
+            });
+        } catch (error) {
+            // Map errors to appropriate HTTP status codes
+            let statusCode = 500;
+
+            if (error.message === 'Project not found') {
+                statusCode = 404;
+            } else if (error.message.includes('Access denied') || error.message.includes('not have permission')) {
+                statusCode = 403;
+            }
+
             res.status(statusCode).json({
                 success: false,
                 message: error.message
