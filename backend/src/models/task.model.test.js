@@ -203,4 +203,138 @@ describe('Task Model Test', () => {
         expect(task.isRecurring).toBe(false);
         expect(task.recurrenceInterval).toBeNull();
     });
+
+    /**
+     * Project Task Viewing Permissions
+     * Purpose: Verify task objects contain all standard required fields
+     */
+    describe('Task Viewing Permissions - Standard Fields (TDD)', () => {
+        it('[PTV-009] should return tasks with all standard required fields', async () => {
+            // Arrange: Create a task with all fields populated
+            const assigneeUser = await User.create({
+                username: 'assignee@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password456'
+            });
+
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 7);
+
+            const taskData = {
+                title: 'Standard Fields Task',
+                description: 'Test task for field validation',
+                priority: 5,
+                status: 'To Do',
+                owner: testUser._id,
+                assignee: [assigneeUser._id],
+                project: testProject._id,
+                tags: 'test#validation',
+                dueDate: dueDate
+            };
+
+            // Act: Create task in database
+            const task = await Task.create(taskData);
+
+            // Assert: Verify all standard required fields exist and have correct types
+            // _id field
+            expect(task._id).toBeDefined();
+            expect(task._id).toBeInstanceOf(mongoose.Types.ObjectId);
+
+            // title field (note: model uses 'title', not 'name')
+            expect(task.title).toBeDefined();
+            expect(typeof task.title).toBe('string');
+            expect(task.title).toBe('Standard Fields Task');
+
+            // projectId field (stored as 'project' in model)
+            expect(task.project).toBeDefined();
+            expect(task.project).toBeInstanceOf(mongoose.Types.ObjectId);
+            expect(task.project.toString()).toBe(testProject._id.toString());
+
+            // status field
+            expect(task.status).toBeDefined();
+            expect(typeof task.status).toBe('string');
+            expect(task.status).toBe('To Do');
+
+            // assignee field (array of ObjectIds)
+            expect(task.assignee).toBeDefined();
+            expect(Array.isArray(task.assignee)).toBe(true);
+            expect(task.assignee).toHaveLength(1);
+            expect(task.assignee[0]).toBeInstanceOf(mongoose.Types.ObjectId);
+
+            // createdAt field (timestamp)
+            expect(task.createdAt).toBeDefined();
+            expect(task.createdAt).toBeInstanceOf(Date);
+            // Verify ISO date string format
+            const createdAtISO = task.createdAt.toISOString();
+            expect(createdAtISO).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+            // updatedAt field (timestamp)
+            expect(task.updatedAt).toBeDefined();
+            expect(task.updatedAt).toBeInstanceOf(Date);
+            // Verify ISO date string format
+            const updatedAtISO = task.updatedAt.toISOString();
+            expect(updatedAtISO).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        });
+
+        it('[PTV-009] should handle task with null assignee', async () => {
+            // Arrange: Create task without assignee
+            const taskData = {
+                title: 'Unassigned Task',
+                description: 'Task with no assignee',
+                priority: 3,
+                status: 'To Do',
+                owner: testUser._id,
+                project: testProject._id
+            };
+
+            // Act: Create task
+            const task = await Task.create(taskData);
+
+            // Assert: assignee should be empty array (model default)
+            expect(task.assignee).toBeDefined();
+            expect(Array.isArray(task.assignee)).toBe(true);
+            expect(task.assignee).toHaveLength(0);
+
+            // All other standard fields should still exist
+            expect(task._id).toBeDefined();
+            expect(task.title).toBeDefined();
+            expect(task.project).toBeDefined();
+            expect(task.status).toBeDefined();
+            expect(task.createdAt).toBeDefined();
+            expect(task.updatedAt).toBeDefined();
+        });
+
+        it('[PTV-009] should validate assignee field allows multiple assignees', async () => {
+            // Arrange: Create multiple assignee users
+            const assignee1 = await User.create({
+                username: 'assignee1@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password1'
+            });
+
+            const assignee2 = await User.create({
+                username: 'assignee2@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password2'
+            });
+
+            const taskData = {
+                title: 'Multi-Assignee Task',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [assignee1._id, assignee2._id]
+            };
+
+            // Act: Create task with multiple assignees
+            const task = await Task.create(taskData);
+
+            // Assert: assignee array contains both users
+            expect(task.assignee).toHaveLength(2);
+            expect(task.assignee[0].toString()).toBe(assignee1._id.toString());
+            expect(task.assignee[1].toString()).toBe(assignee2._id.toString());
+        });
+    });
 });

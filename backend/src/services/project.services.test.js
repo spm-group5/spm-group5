@@ -506,4 +506,331 @@ describe('Project Service Test', () => {
             expect(result2.status).toBe('Completed');
         });
     });
+
+    /**
+     * NEW TEST SUITE: Project Task Viewing Permissions - Service Layer (TDD)
+     * Test Card Covered: PTV-010
+     *
+     * Purpose: Test canViewTasks metadata calculation logic
+     * This tests the business logic that determines which projects a user can view tasks for
+     *
+     * Note: These tests will FAIL until getProjectsWithAccessMetadata() is implemented.
+     * This follows TDD (Test-Driven Development) methodology.
+     */
+    describe('Project Task Viewing Permissions - Service Layer (TDD)', () => {
+        let staff123, staff456, marketing001, adminUser;
+        const Task = (async () => (await import('../models/task.model.js')).default)();
+
+        beforeEach(async () => {
+            // Clean up all collections
+            await Project.deleteMany({});
+            await User.deleteMany({});
+
+            // Import Task model dynamically
+            const TaskModel = await Task;
+            await TaskModel.deleteMany({});
+
+            // Create test users
+            staff123 = await User.create({
+                username: 'staff123@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password123'
+            });
+
+            staff456 = await User.create({
+                username: 'staff456@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password456'
+            });
+
+            marketing001 = await User.create({
+                username: 'marketing001@example.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'passwordmarketing'
+            });
+
+            adminUser = await User.create({
+                username: 'admin@example.com',
+                roles: ['admin'],
+                department: 'it',
+                hashed_password: 'passwordadmin'
+            });
+        });
+
+        describe('[PTV-010] Backend returns project access metadata with canViewTasks flag', () => {
+            it('should add canViewTasks: true for projects where user is directly assigned to tasks', async () => {
+                // Arrange: Create project and task assigned to staff123
+                const project = await Project.create({
+                    name: 'Project Beta',
+                    description: 'Direct assignment project',
+                    owner: staff123._id,
+                    members: [staff123._id],
+                    status: 'Active'
+                });
+
+                const TaskModel = await Task;
+                await TaskModel.create({
+                    title: 'Direct Assignment Task',
+                    description: 'Task assigned to staff123',
+                    owner: staff123._id,
+                    assignee: [staff123._id],
+                    project: project._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Get projects with access metadata for staff123
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: canViewTasks should be true
+                expect(projects).toBeDefined();
+                expect(Array.isArray(projects)).toBe(true);
+                const projectBeta = projects.find(p => p.name === 'Project Beta');
+                expect(projectBeta).toBeDefined();
+                expect(projectBeta).toHaveProperty('canViewTasks');
+                expect(projectBeta.canViewTasks).toBe(true);
+            });
+
+            it('should add canViewTasks: true for projects where department colleague is assigned', async () => {
+                // Arrange: Create project with task assigned to staff456 (same dept as staff123)
+                // staff123 must be a member to see the project
+                const project = await Project.create({
+                    name: 'Project Gamma',
+                    description: 'Department colleague project',
+                    owner: staff456._id,
+                    members: [staff123._id, staff456._id],
+                    status: 'Active'
+                });
+
+                const TaskModel = await Task;
+                await TaskModel.create({
+                    title: 'Colleague Task',
+                    description: 'Task assigned to staff456',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: project._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Get projects for staff123 (NOT assigned, but same department)
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: canViewTasks should be true due to department colleague
+                const projectGamma = projects.find(p => p.name === 'Project Gamma');
+                expect(projectGamma).toBeDefined();
+                expect(projectGamma.canViewTasks).toBe(true);
+            });
+
+            it('should add canViewTasks: false for projects with no accessible tasks', async () => {
+                // Arrange: Create project with task in different department
+                const marketingProject = await Project.create({
+                    name: 'Project Alpha',
+                    description: 'Marketing only project',
+                    owner: marketing001._id,
+                    members: [marketing001._id],
+                    status: 'Active'
+                });
+
+                const TaskModel = await Task;
+                await TaskModel.create({
+                    title: 'Marketing Task',
+                    description: 'Task for marketing',
+                    owner: marketing001._id,
+                    assignee: [marketing001._id],
+                    project: marketingProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Get projects for staff123 (engineering, no access)
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Project Alpha should be in the list with canViewTasks: false
+                const projectAlpha = projects.find(p => p.name === 'Project Alpha');
+                expect(projectAlpha).toBeDefined(); // User can see all projects
+                expect(projectAlpha.canViewTasks).toBe(false); // But cannot see tasks
+            });
+
+            it('should add canViewTasks: false for projects with no tasks', async () => {
+                // Arrange: Create project without any tasks
+                await Project.create({
+                    name: 'Project Delta',
+                    description: 'Empty project',
+                    owner: staff123._id,
+                    members: [staff123._id],
+                    status: 'Active'
+                });
+
+                // Act: Get projects for staff123
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Project Delta should have canViewTasks: false (no tasks exist)
+                const projectDelta = projects.find(p => p.name === 'Project Delta');
+                expect(projectDelta).toBeDefined();
+                expect(projectDelta.canViewTasks).toBe(false);
+            });
+
+            it('should add canViewTasks: true for ALL projects when user is admin', async () => {
+                // Arrange: Create multiple projects with tasks assigned to staff (not admin)
+                const project1 = await Project.create({
+                    name: 'Staff Project 1',
+                    owner: staff123._id,
+                    members: [staff123._id],
+                    status: 'Active'
+                });
+
+                const project2 = await Project.create({
+                    name: 'Staff Project 2',
+                    owner: marketing001._id,
+                    members: [marketing001._id],
+                    status: 'Active'
+                });
+
+                const TaskModel = await Task;
+                await TaskModel.create({
+                    title: 'Task 1',
+                    owner: staff123._id,
+                    assignee: [staff123._id],
+                    project: project1._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                await TaskModel.create({
+                    title: 'Task 2',
+                    owner: marketing001._id,
+                    assignee: [marketing001._id],
+                    project: project2._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Get projects for admin (not assigned to any task)
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    adminUser._id,
+                    'admin',
+                    'it'
+                );
+
+                // Assert: All projects should have canViewTasks: true for admin
+                expect(projects.length).toBeGreaterThanOrEqual(2);
+                projects.forEach(project => {
+                    expect(project).toHaveProperty('canViewTasks');
+                    expect(project.canViewTasks).toBe(true);
+                });
+            });
+
+            it('should handle complex scenario with multiple projects and access levels', async () => {
+                // Arrange: Create 4 projects as described in PTV-010
+                const projectAlpha = await Project.create({
+                    name: 'Project Alpha',
+                    description: 'Marketing only',
+                    owner: marketing001._id,
+                    members: [marketing001._id],
+                    status: 'Active'
+                });
+
+                const projectBeta = await Project.create({
+                    name: 'Project Beta',
+                    description: 'Directly assigned to staff123',
+                    owner: staff123._id,
+                    members: [staff123._id],
+                    status: 'Active'
+                });
+
+                const projectGamma = await Project.create({
+                    name: 'Project Gamma',
+                    description: 'Assigned to engineering colleague',
+                    owner: staff456._id,
+                    members: [staff123._id, staff456._id],
+                    status: 'Active'
+                });
+
+                const projectDelta = await Project.create({
+                    name: 'Project Delta',
+                    description: 'No tasks',
+                    owner: staff123._id,
+                    members: [staff123._id],
+                    status: 'Active'
+                });
+
+                // Create tasks
+                const TaskModel = await Task;
+                await TaskModel.create({
+                    title: 'Marketing Task',
+                    owner: marketing001._id,
+                    assignee: [marketing001._id],
+                    project: projectAlpha._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                await TaskModel.create({
+                    title: 'Direct Task',
+                    owner: staff123._id,
+                    assignee: [staff123._id],
+                    project: projectBeta._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                await TaskModel.create({
+                    title: 'Colleague Task',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: projectGamma._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Get projects for staff123
+                const projects = await projectService.getProjectsWithAccessMetadata(
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Verify canViewTasks for each project
+                expect(projects.length).toBeGreaterThanOrEqual(3);
+
+                const beta = projects.find(p => p.name === 'Project Beta');
+                const gamma = projects.find(p => p.name === 'Project Gamma');
+                const delta = projects.find(p => p.name === 'Project Delta');
+
+                // Project Beta: directly assigned
+                expect(beta).toBeDefined();
+                expect(beta.canViewTasks).toBe(true);
+
+                // Project Gamma: department colleague
+                expect(gamma).toBeDefined();
+                expect(gamma.canViewTasks).toBe(true);
+
+                // Project Delta: no tasks
+                expect(delta).toBeDefined();
+                expect(delta.canViewTasks).toBe(false);
+
+                // Project Alpha might not be in results if staff123 isn't a member
+            });
+        });
+    });
 });

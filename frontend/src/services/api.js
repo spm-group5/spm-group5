@@ -1,6 +1,20 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 class ApiService {
+    /**
+     * Generic request handler for all API calls
+     *
+     * Purpose: Centralizes API request logic with proper error handling
+     *
+     * Key Features:
+     * - Includes authentication credentials automatically
+     * - Captures HTTP status codes for proper error handling
+     * - Throws errors with status information for UI error displays
+     *
+     * Parameters:
+     * - endpoint: API endpoint path
+     * - options: Fetch options (method, body, headers, etc.)
+     */
     async request(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
         const config = {
@@ -17,12 +31,19 @@ class ApiService {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Something went wrong');
+                const error = new Error(data.message || 'Something went wrong');
+                error.status = response.status;
+                error.data = data;
+                throw error;
             }
 
             return data;
         } catch (error) {
             console.error('API request failed:', error);
+            // Ensure error has status property even if JSON parsing fails
+            if (!error.status && error instanceof TypeError) {
+                error.status = 500;
+            }
             throw error;
         }
     }
@@ -112,8 +133,36 @@ class ApiService {
         });
     }
 
+    /**
+     * Fetch all projects accessible to the current user
+     *
+     * Purpose: Retrieves all projects with canViewTasks metadata
+     *
+     * Key Features:
+     * - Returns projects with access control metadata
+     * - Backend includes canViewTasks flag for each project
+     * - Used to determine UI clickability and navigation
+     */
     async getProjects() {
         return this.request('/projects');
+    }
+
+    /**
+     * Fetch tasks for a specific project
+     *
+     * Purpose: Retrieves all tasks belonging to a specific project
+     *
+     * Key Features:
+     * - Returns tasks only if user has viewing permissions
+     * - Throws 403 error if user lacks access to project tasks
+     * - Throws 404 error if project doesn't exist
+     * - Throws 400 error if projectId is invalid
+     *
+     * Parameters:
+     * - projectId: The ID of the project to fetch tasks for
+     */
+    async getTasksByProject(projectId) {
+        return this.request(`/projects/${projectId}/tasks`);
     }
 
     async createProject(projectData) {

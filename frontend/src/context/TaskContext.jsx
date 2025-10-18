@@ -119,11 +119,45 @@ export function TaskProvider({ children }) {
     }
   };
 
+  /**
+   * Fetch tasks for a specific project
+   *
+   * Purpose: Retrieves all tasks belonging to a specific project
+   *
+   * Key Features:
+   * - Fetches tasks only if user has viewing permissions
+   * - Preserves error status codes for proper UI error handling
+   * - Returns standardized response object
+   *
+   * Parameters:
+   * - projectId: The ID of the project to fetch tasks for
+   *
+   * Returns:
+   * - success: Boolean indicating if fetch was successful
+   * - data: Array of tasks if successful
+   * - error: Error message and status if failed
+   */
+  const fetchTasksByProject = useCallback(async (projectId) => {
+    try {
+      setError(null);
+      const response = await apiService.getTasksByProject(projectId);
+      return { success: true, data: response.data || response };
+    } catch (err) {
+      setError(err.message);
+      return {
+        success: false,
+        error: err.message,
+        status: err.status
+      };
+    }
+  }, []);
+
   const value = {
     tasks,
     loading,
     error,
     fetchTasks,
+    fetchTasksByProject,
     createTask,
     updateTask,
     deleteTask,

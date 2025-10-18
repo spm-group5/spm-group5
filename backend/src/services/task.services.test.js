@@ -879,4 +879,377 @@ describe('Task Service Test', () => {
             expect(unarchivedTask.project.name).toBe('Test Project');
         });
     });
+
+    /**
+     * Purpose: Test authorization logic for viewing tasks by project
+     * This tests the business logic layer that determines who can access tasks
+     */
+    describe('Task Viewing Permissions - Service Layer (TDD)', () => {
+        let staff123, staff456, marketing001, adminUser;
+        let engineeringProject, marketingProject;
+
+        beforeEach(async () => {
+            // Create users with different departments and roles
+            staff123 = await User.create({
+                username: 'staff123@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password123'
+            });
+
+            staff456 = await User.create({
+                username: 'staff456@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password456'
+            });
+
+            marketing001 = await User.create({
+                username: 'marketing001@example.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'passwordmarketing'
+            });
+
+            adminUser = await User.create({
+                username: 'admin@example.com',
+                roles: ['admin'],
+                department: 'it',
+                hashed_password: 'passwordadmin'
+            });
+
+            // Create projects
+            engineeringProject = await Project.create({
+                name: 'Engineering Project',
+                description: 'Project for engineering team',
+                owner: staff123._id,
+                status: 'Active'
+            });
+
+            marketingProject = await Project.create({
+                name: 'Marketing Project',
+                description: 'Project for marketing team',
+                owner: marketing001._id,
+                status: 'Active'
+            });
+        });
+
+        describe('[PTV-002] Staff views tasks when personally assigned', () => {
+            it('should return all tasks when staff member is personally assigned', async () => {
+                // Arrange: Create tasks - one assigned to staff123, one to someone else
+                const task1 = await Task.create({
+                    title: 'Setup Database',
+                    description: 'Initialize database',
+                    owner: staff123._id,
+                    assignee: [staff123._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                const task2 = await Task.create({
+                    title: 'Design UI',
+                    description: 'Create UI mockups',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: staff123 requests tasks for the project
+                const tasks = await taskService.getTasksByProject(
+                    engineeringProject._id,
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Should return ALL tasks (both tasks) because staff123 is assigned to at least one
+                expect(tasks).toBeDefined();
+                expect(Array.isArray(tasks)).toBe(true);
+                expect(tasks).toHaveLength(2);
+
+                const taskTitles = tasks.map(t => t.title);
+                expect(taskTitles).toContain('Setup Database');
+                expect(taskTitles).toContain('Design UI');
+            });
+
+            it('should return empty array when no tasks exist in project', async () => {
+                // Arrange: Project with no tasks
+                const emptyProject = await Project.create({
+                    name: 'Empty Project',
+                    owner: staff123._id,
+                    status: 'Active'
+                });
+
+                // Act: Request tasks for empty project
+                const tasks = await taskService.getTasksByProject(
+                    emptyProject._id,
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Should return empty array or throw 403 (see PTV-015 - business decision needed)
+                // For now, implementing Option A (permissive) - return empty array
+                expect(Array.isArray(tasks)).toBe(true);
+                expect(tasks).toHaveLength(0);
+            });
+        });
+
+        describe('[PTV-003] Staff views tasks via department colleague', () => {
+            it('should return all tasks when department colleague is assigned', async () => {
+                // Arrange: Create task assigned ONLY to staff456 (same engineering department as staff123)
+                const task = await Task.create({
+                    title: 'Engineering Task',
+                    description: 'Task for engineering team',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: staff123 (NOT assigned, but same department) requests tasks
+                const tasks = await taskService.getTasksByProject(
+                    engineeringProject._id,
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: staff123 can view because staff456 (same department) is assigned
+                expect(tasks).toHaveLength(1);
+                expect(tasks[0].title).toBe('Engineering Task');
+                expect(tasks[0].assignee[0].department).toBe('engineering');
+            });
+
+            it('should deny access when no department colleagues are assigned', async () => {
+                // Arrange: Create task assigned ONLY to marketing department
+                await Task.create({
+                    title: 'Marketing Task',
+                    description: 'Task for marketing team',
+                    owner: marketing001._id,
+                    assignee: [marketing001._id],
+                    project: marketingProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act & Assert: staff123 (engineering) tries to access marketing project tasks
+                await expect(
+                    taskService.getTasksByProject(
+                        marketingProject._id,
+                        staff123._id,
+                        'staff',
+                        'engineering'
+                    )
+                ).rejects.toThrow(/Access denied|not have permission/i);
+            });
+        });
+
+        describe('[PTV-005] Admin views all tasks without restrictions', () => {
+            it('should return all tasks for admin without assignment checks', async () => {
+                // Arrange: Create tasks assigned to staff users (NOT to admin)
+                await Task.create({
+                    title: 'Task 1',
+                    owner: staff123._id,
+                    assignee: [staff123._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                await Task.create({
+                    title: 'Task 2',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: engineeringProject._id,
+                    status: 'In Progress',
+                    priority: 3
+                });
+
+                // Act: Admin requests tasks (admin is NOT assigned to any task)
+                const tasks = await taskService.getTasksByProject(
+                    engineeringProject._id,
+                    adminUser._id,
+                    'admin',
+                    'it'
+                );
+
+                // Assert: Admin sees all 2 tasks despite not being assigned
+                expect(tasks).toHaveLength(2);
+                expect(tasks[0].title).toBeDefined();
+                expect(tasks[1].title).toBeDefined();
+            });
+
+            it('should allow admin to access any department project', async () => {
+                // Arrange: Create task in marketing department project
+                await Task.create({
+                    title: 'Marketing Task',
+                    owner: marketing001._id,
+                    assignee: [marketing001._id],
+                    project: marketingProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act: Admin (IT department) requests tasks from marketing project
+                const tasks = await taskService.getTasksByProject(
+                    marketingProject._id,
+                    adminUser._id,
+                    'admin',
+                    'it'
+                );
+
+                // Assert: Admin can access despite being in different department
+                expect(tasks).toHaveLength(1);
+                expect(tasks[0].title).toBe('Marketing Task');
+            });
+        });
+
+        describe('[PTV-011] Staff accesses non-existent project', () => {
+            it('should throw 404 error when staff accesses non-existent project', async () => {
+                // Arrange: Create a valid ObjectId that doesn't exist in database
+                const nonExistentId = new mongoose.Types.ObjectId();
+
+                // Act & Assert: staff123 attempts to access non-existent project
+                await expect(
+                    taskService.getTasksByProject(
+                        nonExistentId,
+                        staff123._id,
+                        'staff',
+                        'engineering'
+                    )
+                ).rejects.toThrow(/Project not found/i);
+            });
+        });
+
+        describe('[PTV-012] Admin accesses non-existent project', () => {
+            it('should throw 404 error when admin accesses non-existent project', async () => {
+                // Arrange: Generate non-existent ObjectId
+                const nonExistentId = new mongoose.Types.ObjectId();
+
+                // Act & Assert: Admin attempts to access non-existent project
+                // Admin role should NOT bypass existence validation
+                await expect(
+                    taskService.getTasksByProject(
+                        nonExistentId,
+                        adminUser._id,
+                        'admin',
+                        'it'
+                    )
+                ).rejects.toThrow(/Project not found/i);
+            });
+        });
+
+        describe('[PTV-014] Staff with null/undefined department', () => {
+            it('should deny access when staff has null department', async () => {
+                // Arrange: Create staff with null department
+                const staffNoDept = await User.create({
+                    username: 'staffnodept@example.com',
+                    roles: ['staff'],
+                    department: 'it', // Required by schema, but we'll pass null/undefined to service
+                    hashed_password: 'password'
+                });
+
+                // Create task assigned to engineering staff
+                await Task.create({
+                    title: 'Engineering Task',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act & Assert: Staff with null department tries to access
+                await expect(
+                    taskService.getTasksByProject(
+                        engineeringProject._id,
+                        staffNoDept._id,
+                        'staff',
+                        null // Pass null department
+                    )
+                ).rejects.toThrow(/Access denied|not have permission/i);
+            });
+
+            it('should deny access when staff has undefined department', async () => {
+                // Arrange: Create staff
+                const staffNoDept = await User.create({
+                    username: 'staffnodept2@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password'
+                });
+
+                // Create task
+                await Task.create({
+                    title: 'Task',
+                    owner: staff456._id,
+                    assignee: [staff456._id],
+                    project: engineeringProject._id,
+                    status: 'To Do',
+                    priority: 5
+                });
+
+                // Act & Assert: Pass undefined department to service
+                await expect(
+                    taskService.getTasksByProject(
+                        engineeringProject._id,
+                        staffNoDept._id,
+                        'staff',
+                        undefined
+                    )
+                ).rejects.toThrow(/Access denied|not have permission/i);
+            });
+        });
+
+        describe('[PTV-015] Project with empty task list', () => {
+            it('should return empty array for project with no tasks (permissive approach)', async () => {
+                // Arrange: Project exists but has no tasks
+                const emptyProject = await Project.create({
+                    name: 'Empty Project',
+                    description: 'Project without tasks',
+                    owner: staff123._id,
+                    status: 'Active'
+                });
+
+                // Act: staff123 (project owner) requests tasks
+                const tasks = await taskService.getTasksByProject(
+                    emptyProject._id,
+                    staff123._id,
+                    'staff',
+                    'engineering'
+                );
+
+                // Assert: Should return empty array (Option A - permissive)
+                // Note: Team needs to decide between Option A vs Option B (restrictive 403)
+                expect(Array.isArray(tasks)).toBe(true);
+                expect(tasks).toHaveLength(0);
+            });
+
+            it('should allow admin to access empty project', async () => {
+                // Arrange: Empty project
+                const emptyProject = await Project.create({
+                    name: 'Admin Empty Project',
+                    owner: staff123._id,
+                    status: 'Active'
+                });
+
+                // Act: Admin requests tasks
+                const tasks = await taskService.getTasksByProject(
+                    emptyProject._id,
+                    adminUser._id,
+                    'admin',
+                    'it'
+                );
+
+                // Assert: Admin can access even with no tasks
+                expect(Array.isArray(tasks)).toBe(true);
+                expect(tasks).toHaveLength(0);
+            });
+        });
+    });
 });

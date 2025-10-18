@@ -196,4 +196,157 @@ describe('Project Controller Test', () => {
             });
         });
     });
+
+    /**
+     * NEW TEST SUITE: Project Task Viewing Permissions - Controller Layer (TDD)
+     * Test Card Covered: PTV-006
+     *
+     * Purpose: Test getProjectsWithAccessMetadata controller method
+     * Validates standard success response structure with canViewTasks metadata
+     *
+     * Note: These tests will FAIL until getProjectsWithAccessMetadata is implemented.
+     * This follows TDD (Test-Driven Development) methodology.
+     */
+    describe('Project Task Viewing Permissions - Controller Layer (TDD)', () => {
+        describe('getProjectsWithAccessMetadata', () => {
+            describe('[PTV-006] Standard success response structure', () => {
+                it('should return 200 with standard success structure including canViewTasks', async () => {
+                    // Arrange: Mock service to return projects with canViewTasks metadata
+                    const mockProjects = [
+                        {
+                            _id: 'project1',
+                            name: 'Project Alpha',
+                            description: 'First project',
+                            owner: 'userId123',
+                            status: 'Active',
+                            canViewTasks: true
+                        },
+                        {
+                            _id: 'project2',
+                            name: 'Project Beta',
+                            description: 'Second project',
+                            owner: 'userId456',
+                            status: 'Active',
+                            canViewTasks: false
+                        }
+                    ];
+
+                    req.user = {
+                        _id: 'userId123',
+                        roles: ['staff'],
+                        department: 'engineering'
+                    };
+
+                    projectService.getProjectsWithAccessMetadata.mockResolvedValue(mockProjects);
+
+                    // Act
+                    await projectController.getProjectsWithAccessMetadata(req, res);
+
+                    // Assert: Standard success response structure
+                    expect(res.status).toHaveBeenCalledWith(200);
+                    expect(res.json).toHaveBeenCalledWith({
+                        success: true,
+                        data: mockProjects
+                    });
+                });
+
+                it('should extract userId, role, and department from req.user', async () => {
+                    // Arrange
+                    req.user = {
+                        _id: 'userAbc',
+                        roles: ['admin'],
+                        department: 'sales'
+                    };
+                    projectService.getProjectsWithAccessMetadata.mockResolvedValue([]);
+
+                    // Act
+                    await projectController.getProjectsWithAccessMetadata(req, res);
+
+                    // Assert: Verify service called with correct user data
+                    expect(projectService.getProjectsWithAccessMetadata).toHaveBeenCalledWith(
+                        'userAbc',
+                        'admin',
+                        'sales'
+                    );
+                });
+
+                it('should verify each project contains canViewTasks property', async () => {
+                    // Arrange
+                    const mockProjects = [
+                        {
+                            _id: 'project1',
+                            name: 'Test Project',
+                            canViewTasks: true
+                        },
+                        {
+                            _id: 'project2',
+                            name: 'Another Project',
+                            canViewTasks: false
+                        }
+                    ];
+
+                    req.user = {
+                        _id: 'userId123',
+                        roles: ['staff'],
+                        department: 'engineering'
+                    };
+                    projectService.getProjectsWithAccessMetadata.mockResolvedValue(mockProjects);
+
+                    // Act
+                    await projectController.getProjectsWithAccessMetadata(req, res);
+
+                    // Assert: Response includes canViewTasks for each project
+                    expect(res.json).toHaveBeenCalledWith({
+                        success: true,
+                        data: expect.arrayContaining([
+                            expect.objectContaining({ canViewTasks: expect.any(Boolean) }),
+                            expect.objectContaining({ canViewTasks: expect.any(Boolean) })
+                        ])
+                    });
+                });
+
+                it('should handle empty projects array', async () => {
+                    // Arrange
+                    req.user = {
+                        _id: 'userId123',
+                        roles: ['staff'],
+                        department: 'engineering'
+                    };
+                    projectService.getProjectsWithAccessMetadata.mockResolvedValue([]);
+
+                    // Act
+                    await projectController.getProjectsWithAccessMetadata(req, res);
+
+                    // Assert
+                    expect(res.status).toHaveBeenCalledWith(200);
+                    expect(res.json).toHaveBeenCalledWith({
+                        success: true,
+                        data: []
+                    });
+                });
+
+                it('should handle errors with standard error response structure', async () => {
+                    // Arrange
+                    req.user = {
+                        _id: 'userId123',
+                        roles: ['staff'],
+                        department: 'engineering'
+                    };
+                    projectService.getProjectsWithAccessMetadata.mockRejectedValue(
+                        new Error('Database connection failed')
+                    );
+
+                    // Act
+                    await projectController.getProjectsWithAccessMetadata(req, res);
+
+                    // Assert
+                    expect(res.status).toHaveBeenCalledWith(500);
+                    expect(res.json).toHaveBeenCalledWith({
+                        success: false,
+                        message: 'Database connection failed'
+                    });
+                });
+            });
+        });
+    });
 });
