@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styles from './SubtaskCard.module.css';
 
-const SubtaskCard = ({ subtask, onEdit, onDelete }) => {
+const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getStatusBadgeClass = (status) => {
@@ -14,24 +14,15 @@ const SubtaskCard = ({ subtask, onEdit, onDelete }) => {
         return styles.statusCompleted;
       case 'Blocked':
         return styles.statusBlocked;
-      case 'Archived':
-        return styles.statusArchived;
       default:
         return styles.statusTodo;
     }
   };
 
   const getPriorityBadgeClass = (priority) => {
-    switch (priority) {
-      case 'Low':
-        return styles.priorityLow;
-      case 'Medium':
-        return styles.priorityMedium;
-      case 'High':
-        return styles.priorityHigh;
-      default:
-        return styles.priorityMedium;
-    }
+    if (priority >= 8) return styles.priorityHigh;
+    if (priority >= 5) return styles.priorityMedium;
+    return styles.priorityLow;
   };
 
   const formatDate = (dateString) => {
@@ -62,7 +53,7 @@ const SubtaskCard = ({ subtask, onEdit, onDelete }) => {
             {subtask.status}
           </span>
           <span className={`${styles.badge} ${getPriorityBadgeClass(subtask.priority)}`}>
-            {subtask.priority}
+            P{subtask.priority}
           </span>
         </div>
       </div>
@@ -97,21 +88,44 @@ const SubtaskCard = ({ subtask, onEdit, onDelete }) => {
                 </span>
               </div>
             )}
+            {subtask.isRecurring && (
+              <div className={styles.infoItem}>
+                <span className={styles.label}>Recurring:</span>
+                <span className={styles.value}>Every {subtask.recurrenceInterval} days</span>
+              </div>
+            )}
+            {subtask.timeTaken && (
+              <div className={styles.infoItem}>
+                <span className={styles.label}>Time Taken:</span>
+                <span className={styles.value}>{subtask.timeTaken}</span>
+              </div>
+            )}
           </div>
 
           <div className={styles.actions}>
-            <button 
-              className={`${styles.button} ${styles.editButton}`}
-              onClick={() => onEdit(subtask)}
-            >
-              Edit
-            </button>
-            <button 
-              className={`${styles.button} ${styles.deleteButton}`}
-              onClick={() => onDelete(subtask)}
-            >
-              Delete
-            </button>
+            {!isArchived && (
+              <button 
+                className={`${styles.button} ${styles.editButton}`}
+                onClick={() => onEdit(subtask)}
+              >
+                Edit
+              </button>
+            )}
+            {isArchived ? (
+              <button 
+                className={`${styles.button} ${styles.unarchiveButton}`}
+                onClick={() => onUnarchive(subtask)}
+              >
+                Unarchive
+              </button>
+            ) : (
+              <button 
+                className={`${styles.button} ${styles.archiveButton}`}
+                onClick={() => onArchive(subtask)}
+              >
+                Archive
+              </button>
+            )}
           </div>
         </div>
       )}

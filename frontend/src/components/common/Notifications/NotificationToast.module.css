@@ -7,7 +7,7 @@
   animation: slideIn 0.3s ease-out;
   background: white;
   border: 1px solid #e0e0e0;
-  z-index: 10000;
+  z-index: 10002;
   pointer-events: auto;
   position: relative;
 }

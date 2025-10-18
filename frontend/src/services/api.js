@@ -96,9 +96,19 @@ class ApiService {
         });
     }
 
-    async deleteSubtask(subtaskId) {
-        return this.request(`/subtasks/${subtaskId}`, {
-            method: 'DELETE',
+    async archiveSubtask(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}/archive`, {
+            method: 'PUT',
+        });
+    }
+
+    async getArchivedSubtasksByParentTask(parentTaskId) {
+        return this.request(`/tasks/${parentTaskId}/subtasks/archived`);
+    }
+
+    async unarchiveSubtask(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}/unarchive`, {
+            method: 'PUT',
         });
     }
 

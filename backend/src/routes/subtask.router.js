@@ -22,8 +22,14 @@ router.get('/subtasks/:subtaskId', subtaskController.getSubtaskById);
 // Update a subtask
 router.put('/subtasks/:subtaskId', subtaskController.updateSubtask);
 
-// Delete (archive) a subtask
-router.delete('/subtasks/:subtaskId', subtaskController.deleteSubtask);
+// Archive a subtask
+router.put('/subtasks/:subtaskId/archive', subtaskController.archiveSubtask);
+
+// Get archived subtasks for a parent task
+router.get('/tasks/:parentTaskId/subtasks/archived', subtaskController.getArchivedSubtasksByParentTask);
+
+// Unarchive a subtask
+router.put('/subtasks/:subtaskId/unarchive', subtaskController.unarchiveSubtask);
 
 export default router;
 

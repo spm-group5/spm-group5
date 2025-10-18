@@ -12,7 +12,6 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import ProjectsPage from './pages/ProjectsPage';
-import './styles/subtask-override.css';
 import ReportsPage from './pages/ReportsPage';
 
 function SocketManager() {

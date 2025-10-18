@@ -94,7 +94,20 @@ class SubtaskController {
       const { subtaskId } = req.params;
       const updateData = req.body;
       
+      // Get original subtask to check recurrence
+      const originalSubtask = await subtaskService.getSubtaskById(subtaskId);
+      const originalStatus = originalSubtask.status;
+      
       const subtask = await subtaskService.updateSubtask(subtaskId, updateData);
+      
+      // Check if subtask was just marked as Completed and is recurring
+      if (originalStatus !== 'Completed' && subtask.status === 'Completed' && subtask.isRecurring) {
+        console.log('Creating recurring subtask instance...');
+        const newRecurringSubtask = await subtaskService.createRecurringSubtask(subtask);
+        if (newRecurringSubtask) {
+          console.log(`✅ New recurring subtask created: ${newRecurringSubtask._id}`);
+        }
+      }
       
       res.status(200).json({
         success: true,
@@ -110,21 +123,61 @@ class SubtaskController {
   }
 
   /**
-   * Soft delete a subtask
+   * Archive a subtask
    */
-  async deleteSubtask(req, res) {
+  async archiveSubtask(req, res) {
     try {
       const { subtaskId } = req.params;
-      await subtaskService.deleteSubtask(subtaskId);
+      await subtaskService.archiveSubtask(subtaskId);
       
       res.status(200).json({
         success: true,
-        message: 'Subtask marked as deleted successfully'
+        message: 'Subtask archived successfully'
       });
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message || 'Failed to delete subtask'
+        message: error.message || 'Failed to archive subtask'
+      });
+    }
+  }
+
+  /**
+   * Get archived subtasks for a parent task
+   */
+  async getArchivedSubtasksByParentTask(req, res) {
+    try {
+      const { parentTaskId } = req.params;
+      const subtasks = await subtaskService.getArchivedSubtasksByParentTask(parentTaskId);
+      
+      res.status(200).json({
+        success: true,
+        data: subtasks
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to fetch archived subtasks'
+      });
+    }
+  }
+
+  /**
+   * Unarchive a subtask
+   */
+  async unarchiveSubtask(req, res) {
+    try {
+      const { subtaskId } = req.params;
+      await subtaskService.unarchiveSubtask(subtaskId);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Subtask unarchived successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to unarchive subtask'
       });
     }
   }
