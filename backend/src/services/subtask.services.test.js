@@ -184,7 +184,9 @@ describe('Subtask Service', () => {
           parentTaskId: mockTaskId,
           projectId: mockProjectId,
           ownerId: mockOwnerId,
-          status: 'Archived'
+          status: 'To Do',
+          archived: true,
+          archivedAt: new Date()
         }
       ]);
     });
@@ -193,7 +195,7 @@ describe('Subtask Service', () => {
       const subtasks = await subtaskService.getSubtasksByProject(mockProjectId);
 
       expect(subtasks).toHaveLength(2);
-      expect(subtasks.every(s => s.status !== 'Archived')).toBe(true);
+      expect(subtasks.every(s => !s.archived)).toBe(true);
     });
 
     it('should return empty array when no subtasks exist for project', async () => {
@@ -283,10 +285,10 @@ describe('Subtask Service', () => {
     });
   });
 
-  describe('deleteSubtask (Soft Delete)', () => {
+  describe('Archive Functionality', () => {
     beforeEach(async () => {
       const subtask = await Subtask.create({
-        title: 'Subtask to Delete',
+        title: 'Subtask to Archive',
         parentTaskId: mockTaskId,
         projectId: mockProjectId,
         ownerId: mockOwnerId,
@@ -295,30 +297,31 @@ describe('Subtask Service', () => {
       mockSubtaskId = subtask._id;
     });
 
-    it('should soft delete subtask by changing status to Archived', async () => {
-      const deletedSubtask = await subtaskService.deleteSubtask(mockSubtaskId);
+    it('should archive a subtask', async () => {
+      const archivedSubtask = await subtaskService.archiveSubtask(mockSubtaskId);
 
-      expect(deletedSubtask.status).toBe('Archived');
+      expect(archivedSubtask.archived).toBe(true);
+      expect(archivedSubtask.archivedAt).toBeDefined();
 
       // Verify the subtask still exists in database
       const subtaskInDb = await Subtask.findById(mockSubtaskId);
       expect(subtaskInDb).toBeDefined();
-      expect(subtaskInDb.status).toBe('Archived');
+      expect(subtaskInDb.archived).toBe(true);
     });
 
     it('should not return archived subtask in getSubtasksByParentTask', async () => {
-      await subtaskService.deleteSubtask(mockSubtaskId);
+      await subtaskService.archiveSubtask(mockSubtaskId);
 
       const subtasks = await subtaskService.getSubtasksByParentTask(mockTaskId);
-      const deletedSubtask = subtasks.find(s => s._id.toString() === mockSubtaskId.toString());
+      const archivedSubtask = subtasks.find(s => s._id.toString() === mockSubtaskId.toString());
 
-      expect(deletedSubtask).toBeUndefined();
+      expect(archivedSubtask).toBeUndefined();
     });
 
-    it('should throw error when subtask does not exist', async () => {
+    it('should throw error when trying to archive non-existent subtask', async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
 
-      await expect(subtaskService.deleteSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
+      await expect(subtaskService.archiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
     });
   });
 
