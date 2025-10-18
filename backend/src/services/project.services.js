@@ -133,6 +133,7 @@ class ProjectService {
                     return projectObj;
                 }
 
+                // Staff and Manager use department-based access control
                 // Get tasks for this project with populated assignees
                 const tasks = await Task.find({ project: project._id })
                     .populate('assignee', 'username department');

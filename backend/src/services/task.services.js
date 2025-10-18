@@ -391,8 +391,9 @@ class TaskService {
                 .populate('assignee', 'username department');
         }
 
-        // Staff authorization logic
-        // Staff with null/undefined department cannot access
+        // Staff and Manager authorization logic
+        // Both roles require department-based access
+        // Staff/Manager with null/undefined department cannot access
         if (!userDepartment) {
             throw new Error('Access denied to view tasks in this project');
         }

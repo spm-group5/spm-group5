@@ -101,6 +101,7 @@ function ProjectsPage() {
                   <ProjectCard
                     key={project._id}
                     project={project}
+                    canViewTasks={project.canViewTasks}
                     onEdit={handleEditProject}
                     onDelete={handleDeleteProject}
                   />
