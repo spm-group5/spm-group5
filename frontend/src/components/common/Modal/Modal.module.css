@@ -1,3 +1,5 @@
+/* Modal.module.css - Clean, simple modal styling */
+
 .overlay {
   position: fixed;
   top: 0;
@@ -8,9 +10,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
   animation: fadeIn 0.2s ease;
-  backdrop-filter: blur(4px);
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -24,13 +28,15 @@
 
 .modal {
   background: white;
-  border-radius: var(--border-radius-lg, 12px);
+  border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow: auto;
   animation: slideUp 0.3s ease;
+  position: relative;
+  z-index: 10001;
 }
 
 .modal.small {
@@ -42,8 +48,12 @@
 }
 
 .modal.large {
-  max-width: 800px;
-  width: 95%;
+  max-width: 900px;
+  width: 90%;
+  max-height: 95vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideUp {
@@ -61,22 +71,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #333;
 }
 
 .closeButton {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: var(--color-text-secondary);
+  color: #666;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -84,34 +94,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--border-radius-sm);
+  border-radius: 4px;
   transition: all 0.2s ease;
 }
 
 .closeButton:hover {
-  background-color: var(--color-background-secondary, #f3f4f6);
-  color: var(--color-text-primary);
+  background-color: #f3f4f6;
+  color: #333;
 }
 
 .content {
-  padding: var(--spacing-xl) var(--spacing-lg);
+  padding: 20px;
 }
 
 .message {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: #666;
   line-height: 1.6;
   font-size: 1rem;
 }
 
 .actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 12px;
   justify-content: flex-end;
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-border, #e5e7eb);
-  background-color: var(--color-background-secondary, #f9fafb);
-  border-radius: 0 0 var(--border-radius-lg, 12px) var(--border-radius-lg, 12px);
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  border-radius: 0 0 12px 12px;
 }
 
 @media (max-width: 768px) {

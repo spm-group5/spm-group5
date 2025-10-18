@@ -21,12 +21,17 @@ export const SubtaskProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.getSubtasksByParentTask(parentTaskId);
-      if (response.success) {
-        setSubtasks(response.data);
-        return response.data;
+      const [activeResponse, archivedResponse] = await Promise.all([
+        apiService.getSubtasksByParentTask(parentTaskId),
+        apiService.getArchivedSubtasksByParentTask(parentTaskId)
+      ]);
+      
+      if (activeResponse.success && archivedResponse.success) {
+        const allSubtasks = [...activeResponse.data, ...archivedResponse.data];
+        setSubtasks(allSubtasks);
+        return allSubtasks;
       } else {
-        throw new Error(response.message || 'Failed to fetch subtasks');
+        throw new Error('Failed to fetch subtasks');
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred while fetching subtasks';
@@ -104,20 +109,53 @@ export const SubtaskProvider = ({ children }) => {
     }
   }, []);
 
-  // Delete (archive) a subtask
-  const deleteSubtask = useCallback(async (subtaskId) => {
+  // Archive a subtask
+  const archiveSubtask = useCallback(async (subtaskId) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.deleteSubtask(subtaskId);
+      const response = await apiService.archiveSubtask(subtaskId);
       if (response.success) {
-        setSubtasks(prev => prev.filter(subtask => subtask._id !== subtaskId));
+        setSubtasks(prev =>
+          prev.map(subtask =>
+            subtask._id === subtaskId 
+              ? { ...subtask, archived: true, archivedAt: new Date() }
+              : subtask
+          )
+        );
         return true;
       } else {
-        throw new Error(response.message || 'Failed to delete subtask');
+        throw new Error(response.message || 'Failed to archive subtask');
       }
     } catch (err) {
-      const errorMessage = err.message || 'An error occurred while deleting subtask';
+      const errorMessage = err.message || 'An error occurred while archiving subtask';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Unarchive a subtask
+  const unarchiveSubtask = useCallback(async (subtaskId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiService.unarchiveSubtask(subtaskId);
+      if (response.success) {
+        setSubtasks(prev =>
+          prev.map(subtask =>
+            subtask._id === subtaskId 
+              ? { ...subtask, archived: false, archivedAt: null }
+              : subtask
+          )
+        );
+        return true;
+      } else {
+        throw new Error(response.message || 'Failed to unarchive subtask');
+      }
+    } catch (err) {
+      const errorMessage = err.message || 'An error occurred while unarchiving subtask';
       setError(errorMessage);
       throw err;
     } finally {
@@ -133,7 +171,8 @@ export const SubtaskProvider = ({ children }) => {
     fetchSubtasksByProject,
     createSubtask,
     updateSubtask,
-    deleteSubtask,
+    archiveSubtask,
+    unarchiveSubtask,
   };
 
   return (

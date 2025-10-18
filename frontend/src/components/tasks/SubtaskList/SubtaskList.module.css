@@ -92,3 +92,35 @@
   }
 }
 
+.archivedCount {
+  font-size: 14px;
+  color: #666666 !important;
+  font-weight: normal;
+}
+
+.archivedSection {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.archivedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.archivedTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #666666 !important;
+}
+
+.archivedList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+

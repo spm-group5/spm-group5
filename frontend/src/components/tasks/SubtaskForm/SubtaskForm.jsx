@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Card from '../../common/Card/Card';
 import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
 import styles from './SubtaskForm.module.css';
@@ -16,9 +15,12 @@ const SubtaskForm = ({
     title: '',
     description: '',
     status: 'To Do',
-    priority: 'Medium',
+    priority: 5,
     dueDate: '',
     assigneeId: '',
+    isRecurring: false,
+    recurrenceInterval: 1,
+    timeTaken: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -29,16 +31,26 @@ const SubtaskForm = ({
         title: initialData.title || '',
         description: initialData.description || '',
         status: initialData.status || 'To Do',
-        priority: initialData.priority || 'Medium',
+        priority: initialData.priority || 5,
         dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
         assigneeId: initialData.assigneeId?._id || initialData.assigneeId || '',
+        isRecurring: initialData.isRecurring || false,
+        recurrenceInterval: initialData.recurrenceInterval || 1,
+        timeTaken: initialData.timeTaken || '',
       });
     }
   }, [initialData]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    
+    // Handle checkbox inputs
+    if (type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -56,6 +68,28 @@ const SubtaskForm = ({
 
     if (formData.description && formData.description.length > 1000) {
       newErrors.description = 'Description cannot exceed 1000 characters';
+    }
+
+    if (!formData.priority || formData.priority < 1 || formData.priority > 10) {
+      newErrors.priority = 'Priority must be between 1 and 10';
+    }
+
+    if (formData.isRecurring) {
+      if (!formData.recurrenceInterval || formData.recurrenceInterval <= 0) {
+        newErrors.recurrenceInterval = 'Recurrence interval must be a positive number';
+      }
+      if (!formData.dueDate) {
+        newErrors.dueDate = 'Due date is required for recurring subtasks';
+      }
+    } else {
+      // Clear recurrenceInterval when not recurring
+      if (formData.recurrenceInterval) {
+        setFormData(prev => ({ ...prev, recurrenceInterval: 1 }));
+      }
+    }
+
+    if (formData.timeTaken && formData.timeTaken.length > 100) {
+      newErrors.timeTaken = 'Time taken cannot exceed 100 characters';
     }
 
     setErrors(newErrors);
@@ -76,13 +110,16 @@ const SubtaskForm = ({
       ownerId,
       dueDate: formData.dueDate || undefined,
       assigneeId: formData.assigneeId || undefined,
+      // Ensure boolean values are properly formatted
+      isRecurring: Boolean(formData.isRecurring),
+      recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : undefined,
     };
 
     onSubmit(formattedData);
   };
 
   return (
-    <Card className={styles.formCard}>
+    <div className={styles.formCard}>
       <form onSubmit={handleSubmit} className={styles.form}>
         <h3 className={styles.formTitle}>
           {initialData ? 'Edit Subtask' : 'Create New Subtask'}
@@ -90,7 +127,7 @@ const SubtaskForm = ({
 
         <div className={styles.formRow}>
           <Input
-            label="Title *"
+            label="Title"
             name="title"
             value={formData.title}
             onChange={handleChange}
@@ -121,7 +158,7 @@ const SubtaskForm = ({
         <div className={styles.formRow}>
           <div className={styles.halfWidth}>
             <label htmlFor="status" className={styles.label}>
-              Status *
+              Status <span className={styles.required}>*</span>
             </label>
             <select
               id="status"
@@ -135,26 +172,21 @@ const SubtaskForm = ({
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="Blocked">Blocked</option>
-              <option value="Archived">Archived</option>
             </select>
           </div>
 
           <div className={styles.halfWidth}>
-            <label htmlFor="priority" className={styles.label}>
-              Priority *
-            </label>
-            <select
-              id="priority"
+            <Input
+              label="Priority"
               name="priority"
+              type="number"
+              min="1"
+              max="10"
               value={formData.priority}
               onChange={handleChange}
-              className={styles.select}
+              error={errors.priority}
               required
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
+            />
           </div>
         </div>
 
@@ -165,6 +197,47 @@ const SubtaskForm = ({
             type="date"
             value={formData.dueDate}
             onChange={handleChange}
+          />
+        </div>
+
+        <div className={styles.recurringSection}>
+          <div className={styles.formRow}>
+            <div className={styles.halfWidth}>
+              <label className={styles.label}>
+                <input
+                  type="checkbox"
+                  name="isRecurring"
+                  checked={formData.isRecurring}
+                  onChange={handleChange}
+                  className={styles.checkbox}
+                />
+                Recurring Subtask
+              </label>
+            </div>
+            {formData.isRecurring && (
+              <div className={styles.halfWidth}>
+                <Input
+                  label="Recurrence Interval (days)"
+                  name="recurrenceInterval"
+                  type="number"
+                  min="1"
+                  value={formData.recurrenceInterval}
+                  onChange={handleChange}
+                  error={errors.recurrenceInterval}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.formRow}>
+          <Input
+            label="Time Taken"
+            name="timeTaken"
+            value={formData.timeTaken}
+            onChange={handleChange}
+            placeholder="e.g., 2 hours, 1 day, 30 minutes"
+            error={errors.timeTaken}
           />
         </div>
 
@@ -184,7 +257,7 @@ const SubtaskForm = ({
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 };
 

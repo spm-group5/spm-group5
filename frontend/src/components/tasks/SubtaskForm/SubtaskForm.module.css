@@ -1,27 +1,26 @@
+/* SubtaskForm.module.css - Clean, simple styling */
+
 .formCard {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  padding: 24px;
+  background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
+  padding: 24px;
   width: 100%;
-  margin: 0 auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background-color: #ffffff !important;
-  background: #ffffff !important;
+  width: 100%;
 }
 
 .formTitle {
-  margin: 0;
+  margin: 0 0 20px 0;
   font-size: 24px;
   font-weight: 600;
-  color: #333333 !important;
+  color: #333;
   text-align: center;
 }
 
@@ -45,52 +44,68 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #333333 !important;
+  color: #333;
+}
+
+.required {
+  color: #f44336;
+  margin-left: 4px;
+}
+
+.checkbox {
+  margin-right: 8px;
+  transform: scale(1.1);
+}
+
+.recurringSection {
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
 }
 
 .textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd !important;
+  border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #333333 !important;
+  background-color: white;
+  color: #333;
   box-sizing: border-box;
+  min-height: 80px;
 }
 
 .textarea:focus {
   outline: none;
-  border-color: #2196f3 !important;
+  border-color: #2196f3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
 .select {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd !important;
+  border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #333333 !important;
+  background-color: white;
+  color: #333;
   cursor: pointer;
   box-sizing: border-box;
 }
 
 .select:focus {
   outline: none;
-  border-color: #2196f3 !important;
+  border-color: #2196f3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
 }
 
 .error {
   display: block;
-  color: #f44336 !important;
+  color: #f44336;
   font-size: 12px;
   margin-top: 4px;
 }
@@ -99,7 +114,7 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
 }
@@ -107,7 +122,6 @@
 @media (max-width: 768px) {
   .formCard {
     padding: 16px;
-    max-width: 100%;
   }
 
   .formTitle {
@@ -127,4 +141,3 @@
     width: 100%;
   }
 }
-
