@@ -15,9 +15,9 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState(null);
-  const [subtaskToDelete, setSubtaskToDelete] = useState(null);
+  const [subtaskToArchive, setSubtaskToArchive] = useState(null);
   
-  const { createSubtask, updateSubtask, deleteSubtask, fetchSubtasksByParentTask } = useSubtasks();
+  const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
   const { user } = useAuth();
   const getStatusBadgeClass = (status) => {
@@ -106,154 +106,159 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
     }
   };
 
-  const handleShowDeleteModal = (subtask) => {
-    setSubtaskToDelete(subtask);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!subtaskToDelete) return;
-    
+  const handleArchiveSubtask = async (subtask) => {
     try {
-      await deleteSubtask(subtaskToDelete._id);
-      addNotification('Subtask deleted successfully', 'success');
-      setSubtaskToDelete(null);
+      await archiveSubtask(subtask._id);
+      addNotification('Subtask archived successfully', 'success');
       await fetchSubtasksByParentTask(task._id);
     } catch (error) {
-      addNotification(error.message || 'Failed to delete subtask', 'error');
+      addNotification(error.message || 'Failed to archive subtask', 'error');
+    }
+  };
+
+  const handleUnarchiveSubtask = async (subtask) => {
+    try {
+      await unarchiveSubtask(subtask._id);
+      addNotification('Subtask unarchived successfully', 'success');
+      await fetchSubtasksByParentTask(task._id);
+    } catch (error) {
+      addNotification(error.message || 'Failed to unarchive subtask', 'error');
     }
   };
 
   return (
-    <Card hoverable className={`${styles.taskCard} ${isExpanded ? styles.expanded : styles.collapsed}`}>
-      <Card.Body className={styles.cardBody}>
-        {/* Compact header - always visible */}
-        <div className={styles.compactHeader} onClick={() => setIsExpanded(!isExpanded)}>
-          <div className={styles.headerLeft}>
-            <button className={styles.expandButton} type="button">
-              <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
-            </button>
-            <h3 className={styles.compactTitle}>{task.title}</h3>
-          </div>
-          <div className={styles.compactBadges}>
-            <span className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)}`}>
-              {task.status}
-            </span>
-            <span className={`${styles.priorityBadge} ${getPriorityBadgeClass(task.priority)}`}>
-              P{task.priority}
-            </span>
-          </div>
-        </div>
-
-        {/* Compact info - always visible */}
-        <div className={styles.compactInfo}>
-          <div className={styles.compactMeta}>
-            <span>
-              <strong>Due:</strong> {formatDueDate(task.dueDate)}
-            </span>
-            <span>
-              <strong>Project:</strong> {task.project?.name || task.project || 'N/A'}
-            </span>
-          </div>
-          <div className={styles.compactActions}>
-            {!isArchived && (
-              <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onEdit(task); }}>
-                Edit
-              </Button>
-            )}
-            {isArchived ? (
-              <Button variant="primary" size="small" onClick={(e) => { e.stopPropagation(); onUnarchive(task._id); }}>
-                Unarchive
-              </Button>
-            ) : (
-              <Button variant="warning" size="small" onClick={(e) => { e.stopPropagation(); onArchive(task._id); }}>
-                Archive
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Expandable details */}
-        {isExpanded && (
-          <div className={styles.expandedContent}>
-            {task.description && (
-              <div className={styles.descriptionSection}>
-                <p className={styles.description}>{task.description}</p>
-              </div>
-            )}
-
-            <div className={styles.metadata}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Owner:</span>
-                <span className={styles.metaValue}>
-                  {task.owner?.username || task.owner?.name || 'Unknown'}
-                </span>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Assigned:</span>
-                <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
-              </div>
-              {task.tags && (
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Tags:</span>
-                  <span className={styles.metaValue}>{task.tags}</span>
-                </div>
-              )}
-              {task.isRecurring && (
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Recurring:</span>
-                  <span className={styles.metaValue}>Every {task.recurrenceInterval} days</span>
-                </div>
-              )}
+    <>
+      <Card hoverable className={`${styles.taskCard} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+        <Card.Body className={styles.cardBody}>
+          {/* Compact header - always visible */}
+          <div className={styles.compactHeader} onClick={() => setIsExpanded(!isExpanded)}>
+            <div className={styles.headerLeft}>
+              <button className={styles.expandButton} type="button">
+                <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
+              </button>
+              <h3 className={styles.compactTitle}>{task.title}</h3>
             </div>
+            <div className={styles.compactBadges}>
+              <span className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)}`}>
+                {task.status}
+              </span>
+              <span className={`${styles.priorityBadge} ${getPriorityBadgeClass(task.priority)}`}>
+                P{task.priority}
+              </span>
+            </div>
+          </div>
 
-            <div className={styles.actions}>
+          {/* Compact info - always visible */}
+          <div className={styles.compactInfo}>
+            <div className={styles.compactMeta}>
+              <span>
+                <strong>Due:</strong> {formatDueDate(task.dueDate)}
+              </span>
+              <span>
+                <strong>Project:</strong> {task.project?.name || task.project || 'N/A'}
+              </span>
+            </div>
+            <div className={styles.compactActions}>
               {!isArchived && (
-                <Button variant="secondary" size="small" onClick={() => onEdit(task)}>
+                <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onEdit(task); }}>
                   Edit
                 </Button>
               )}
               {isArchived ? (
-                <Button variant="primary" size="small" onClick={() => onUnarchive(task._id)}>
+                <Button variant="primary" size="small" onClick={(e) => { e.stopPropagation(); onUnarchive(task._id); }}>
                   Unarchive
                 </Button>
               ) : (
-                <Button variant="warning" size="small" onClick={() => onArchive(task._id)}>
+                <Button variant="warning" size="small" onClick={(e) => { e.stopPropagation(); onArchive(task._id); }}>
                   Archive
                 </Button>
               )}
             </div>
+          </div>
 
-            {/* Subtasks Section */}
-            {!isArchived && (
-              <div className={styles.subtasksSection}>
-                <div className={styles.subtasksHeader}>
-                  <h4>Subtasks</h4>
-                  <Button 
-                    variant="secondary" 
-                    size="small" 
-                    onClick={() => setShowSubtasks(!showSubtasks)}
-                  >
-                    {showSubtasks ? 'Hide Subtasks' : 'Show Subtasks'}
-                  </Button>
+          {/* Expandable details */}
+          {isExpanded && (
+            <div className={styles.expandedContent}>
+              {task.description && (
+                <div className={styles.descriptionSection}>
+                  <p className={styles.description}>{task.description}</p>
                 </div>
-                {showSubtasks && (
-                  <div className={styles.subtasksContainer}>
-                    <SubtaskList
-                      parentTaskId={task._id}
-                      projectId={task.project?._id || task.project}
-                      ownerId={user?._id || user?.id}
-                      onShowSubtaskForm={handleShowSubtaskForm}
-                      onShowDeleteModal={handleShowDeleteModal}
-                    />
+              )}
+
+              <div className={styles.metadata}>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Owner:</span>
+                  <span className={styles.metaValue}>
+                    {task.owner?.username || task.owner?.name || 'Unknown'}
+                  </span>
+                </div>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Assigned:</span>
+                  <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
+                </div>
+                {task.tags && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Tags:</span>
+                    <span className={styles.metaValue}>{task.tags}</span>
+                  </div>
+                )}
+                {task.isRecurring && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Recurring:</span>
+                    <span className={styles.metaValue}>Every {task.recurrenceInterval} days</span>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
-      </Card.Body>
 
-      {/* Subtask Form Modal */}
+              <div className={styles.actions}>
+                {!isArchived && (
+                  <Button variant="secondary" size="small" onClick={() => onEdit(task)}>
+                    Edit
+                  </Button>
+                )}
+                {isArchived ? (
+                  <Button variant="primary" size="small" onClick={() => onUnarchive(task._id)}>
+                    Unarchive
+                  </Button>
+                ) : (
+                  <Button variant="warning" size="small" onClick={() => onArchive(task._id)}>
+                    Archive
+                  </Button>
+                )}
+              </div>
+
+              {/* Subtasks Section */}
+              {!isArchived && (
+                <div className={styles.subtasksSection}>
+                  <div className={styles.subtasksHeader}>
+                    <h4>Subtasks</h4>
+                    <Button 
+                      variant="secondary" 
+                      size="small" 
+                      onClick={() => setShowSubtasks(!showSubtasks)}
+                    >
+                      {showSubtasks ? 'Hide Subtasks' : 'Show Subtasks'}
+                    </Button>
+                  </div>
+                  {showSubtasks && (
+                    <div className={styles.subtasksContainer}>
+                      <SubtaskList
+                        parentTaskId={task._id}
+                        projectId={task.project?._id || task.project}
+                        ownerId={user?._id || user?.id}
+                        onShowSubtaskForm={handleShowSubtaskForm}
+                        onArchiveSubtask={handleArchiveSubtask}
+                        onUnarchiveSubtask={handleUnarchiveSubtask}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+
       {showSubtaskForm && (
         <Modal
           isOpen={showSubtaskForm}
@@ -270,20 +275,7 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
           />
         </Modal>
       )}
-
-      {/* Delete Confirmation Modal */}
-      {subtaskToDelete && (
-        <Modal
-          isOpen={!!subtaskToDelete}
-          onClose={() => setSubtaskToDelete(null)}
-          title="Confirm Delete"
-          message={`Are you sure you want to delete the subtask "${subtaskToDelete.title}"? This will mark it as archived.`}
-          onConfirm={handleConfirmDelete}
-          confirmText="Delete"
-          cancelText="Cancel"
-        />
-      )}
-    </Card>
+    </>
   );
 }
 
