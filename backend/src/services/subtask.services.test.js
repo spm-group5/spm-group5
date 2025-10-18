@@ -59,7 +59,7 @@ describe('Subtask Service', () => {
         projectId: mockProjectId,
         ownerId: mockOwnerId,
         status: 'To Do',
-        priority: 'High'
+        priority: 8
       };
 
       const subtask = await subtaskService.createSubtask(subtaskData);
@@ -70,7 +70,7 @@ describe('Subtask Service', () => {
       expect(subtask.parentTaskId.toString()).toBe(mockTaskId.toString());
       expect(subtask.projectId.toString()).toBe(mockProjectId.toString());
       expect(subtask.status).toBe('To Do');
-      expect(subtask.priority).toBe('High');
+      expect(subtask.priority).toBe(8);
     });
 
     it('should create subtask with default status and priority', async () => {
@@ -84,7 +84,7 @@ describe('Subtask Service', () => {
       const subtask = await subtaskService.createSubtask(subtaskData);
 
       expect(subtask.status).toBe('To Do');
-      expect(subtask.priority).toBe('Medium');
+      expect(subtask.priority).toBe(5);
     });
 
     it('should throw error when parent task does not exist', async () => {
@@ -133,7 +133,7 @@ describe('Subtask Service', () => {
           parentTaskId: mockTaskId,
           projectId: mockProjectId,
           ownerId: mockOwnerId,
-          status: 'Archived'
+          archived: true
         }
       ]);
     });
@@ -149,7 +149,7 @@ describe('Subtask Service', () => {
     it('should not include archived subtasks', async () => {
       const subtasks = await subtaskService.getSubtasksByParentTask(mockTaskId);
 
-      const archivedSubtask = subtasks.find(s => s.status === 'Archived');
+      const archivedSubtask = subtasks.find(s => s.archived === true);
       expect(archivedSubtask).toBeUndefined();
     });
 
@@ -240,7 +240,7 @@ describe('Subtask Service', () => {
         projectId: mockProjectId,
         ownerId: mockOwnerId,
         status: 'To Do',
-        priority: 'Low'
+        priority: 3
       });
       mockSubtaskId = subtask._id;
     });
@@ -265,14 +265,14 @@ describe('Subtask Service', () => {
         title: 'New Title',
         description: 'New Description',
         status: 'In Progress',
-        priority: 'High'
+        priority: 8
       };
       const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData);
 
       expect(updatedSubtask.title).toBe('New Title');
       expect(updatedSubtask.description).toBe('New Description');
       expect(updatedSubtask.status).toBe('In Progress');
-      expect(updatedSubtask.priority).toBe('High');
+      expect(updatedSubtask.priority).toBe(8);
     });
 
     it('should throw error when subtask does not exist', async () => {
@@ -319,6 +319,192 @@ describe('Subtask Service', () => {
       const nonExistentId = new mongoose.Types.ObjectId();
 
       await expect(subtaskService.deleteSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
+    });
+  });
+
+  describe('Recurring Subtasks', () => {
+    it('should create recurring subtask with valid interval and due date', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
+      const subtaskData = {
+        title: 'Recurring Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        dueDate: futureDate,
+        isRecurring: true,
+        recurrenceInterval: 7
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.isRecurring).toBe(true);
+      expect(subtask.recurrenceInterval).toBe(7);
+    });
+
+    it('should throw error for recurring subtask without interval', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
+      const subtaskData = {
+        title: 'Recurring Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        dueDate: futureDate,
+        isRecurring: true
+      };
+
+      await expect(subtaskService.createSubtask(subtaskData))
+        .rejects.toThrow('Recurrence interval must be a positive number for recurring subtasks');
+    });
+
+    it('should throw error for recurring subtask without due date', async () => {
+      const subtaskData = {
+        title: 'Recurring Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        isRecurring: true,
+        recurrenceInterval: 7
+      };
+
+      await expect(subtaskService.createSubtask(subtaskData))
+        .rejects.toThrow('Due date is required for recurring subtasks');
+    });
+
+    it('should create recurring subtask instance when original is completed', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
+      // Create original recurring subtask
+      const originalSubtask = await Subtask.create({
+        title: 'Recurring Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        status: 'To Do',
+        priority: 5,
+        dueDate: futureDate,
+        isRecurring: true,
+        recurrenceInterval: 7
+      });
+
+      // Create new recurring subtask
+      const newSubtask = await subtaskService.createRecurringSubtask(originalSubtask);
+
+      expect(newSubtask).toBeDefined();
+      expect(newSubtask.title).toBe(originalSubtask.title);
+      expect(newSubtask.isRecurring).toBe(true);
+      expect(newSubtask.recurrenceInterval).toBe(7);
+      expect(newSubtask.status).toBe('To Do');
+      
+      // Check that due date is updated
+      const expectedNewDate = new Date(futureDate);
+      expectedNewDate.setDate(expectedNewDate.getDate() + 7);
+      expect(newSubtask.dueDate.getTime()).toBe(expectedNewDate.getTime());
+    });
+
+    it('should return null when creating recurring instance for non-recurring subtask', async () => {
+      const subtask = await Subtask.create({
+        title: 'Non-recurring Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        status: 'To Do',
+        priority: 5,
+        isRecurring: false
+      });
+
+      const result = await subtaskService.createRecurringSubtask(subtask);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Time Taken Field', () => {
+    it('should create subtask with timeTaken', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '2 hours'
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.timeTaken).toBe('2 hours');
+    });
+
+    it('should update subtask timeTaken', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '1 hour'
+      });
+
+      const updateData = { timeTaken: '3 hours' };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.timeTaken).toBe('3 hours');
+    });
+  });
+
+  describe('Archive Functionality', () => {
+    beforeEach(async () => {
+      const subtask = await Subtask.create({
+        title: 'Subtask to Archive',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        status: 'To Do'
+      });
+      mockSubtaskId = subtask._id;
+    });
+
+    it('should archive a subtask', async () => {
+      const archivedSubtask = await subtaskService.archiveSubtask(mockSubtaskId);
+
+      expect(archivedSubtask.archived).toBe(true);
+      expect(archivedSubtask.archivedAt).toBeInstanceOf(Date);
+
+      // Verify the subtask still exists in database
+      const subtaskInDb = await Subtask.findById(mockSubtaskId);
+      expect(subtaskInDb.archived).toBe(true);
+    });
+
+    it('should get archived subtasks for a parent task', async () => {
+      await subtaskService.archiveSubtask(mockSubtaskId);
+
+      const archivedSubtasks = await subtaskService.getArchivedSubtasksByParentTask(mockTaskId);
+      expect(archivedSubtasks).toHaveLength(1);
+      expect(archivedSubtasks[0]._id.toString()).toBe(mockSubtaskId.toString());
+    });
+
+    it('should unarchive a subtask', async () => {
+      // First archive the subtask
+      await subtaskService.archiveSubtask(mockSubtaskId);
+      
+      // Then unarchive it
+      const unarchivedSubtask = await subtaskService.unarchiveSubtask(mockSubtaskId);
+
+      expect(unarchivedSubtask.archived).toBe(false);
+      expect(unarchivedSubtask.archivedAt).toBeNull();
+    });
+
+    it('should throw error when trying to archive non-existent subtask', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId();
+
+      await expect(subtaskService.archiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
+    });
+
+    it('should throw error when trying to unarchive non-existent subtask', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId();
+
+      await expect(subtaskService.unarchiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
     });
   });
 });
