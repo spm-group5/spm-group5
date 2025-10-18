@@ -54,7 +54,7 @@ function DashboardPage() {
       <Header />
       <div className={`container ${styles.page}`}>
         <div className={styles.welcome}>
-          <h1>Welcome back, {user?.name || user?.email || 'User'}!</h1>
+          <h1>Welcome back, {user?.username || 'User'}!</h1>
           <p>Here's what's happening with your tasks and projects.</p>
         </div>
 

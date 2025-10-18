@@ -18,7 +18,7 @@ function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link to="/dashboard" className={styles.logoLink}>
-            <h2>TaskManager</h2>
+            <h2>All-In-One Task Management System</h2>
           </Link>
         </div>
 
