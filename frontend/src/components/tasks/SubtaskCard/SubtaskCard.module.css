@@ -168,8 +168,13 @@
   color: #ffffff !important;
 }
 
-.deleteButton {
-  background-color: #f44336 !important;
+.archiveButton {
+  background-color: #ff9800 !important;
+  color: #ffffff !important;
+}
+
+.unarchiveButton {
+  background-color: #4caf50 !important;
   color: #ffffff !important;
 }
 

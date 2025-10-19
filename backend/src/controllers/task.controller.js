@@ -1,6 +1,7 @@
 import taskService from '../services/task.services.js';
 import notificationModel from '../models/notification.model.js';
 import taskModel from '../models/task.model.js';
+import mongoose from 'mongoose';
 
 class TaskController {
     async createTask(req, res) {
@@ -271,35 +272,35 @@ class TaskController {
             // Get Socket.IO instance
             const io = req.app.get('io');
             const userSockets = req.app.get('userSockets');
-    
-            // Create notifications for assignees (excluding the person who archived)
-            const usersToNotify = [];
+
+            // ✅ NEW: Create notification for ALL users (including archiver)
+            const usersToNotify = new Set(); // Use Set to avoid duplicates
             
-            // Add assignees
+            // Add all assignees (including the archiver if they're assigned)
             if (task.assignee && task.assignee.length > 0) {
-                usersToNotify.push(...task.assignee.filter(assigneeId => 
-                    assigneeId.toString() !== userId.toString()
-                ));
+                task.assignee.forEach(assigneeId => {
+                    usersToNotify.add(assigneeId.toString());
+                });
             }
             
-            // Add owner if different from current user
-            if (task.owner && task.owner.toString() !== userId.toString()) {
-                usersToNotify.push(task.owner);
+            // Add owner
+            if (task.owner) {
+                usersToNotify.add(task.owner.toString());
             }
-    
-            // Create DB notifications
-            if (usersToNotify.length > 0) {
-                await Promise.all(usersToNotify.map(userId =>
+
+            // Create DB notifications for everyone
+            if (usersToNotify.size > 0) {
+                await Promise.all(Array.from(usersToNotify).map(userId =>
                     notificationModel.create({
                         user: userId,
                         message: `${userName} archived task: "${task.title}"`,
                         task: task._id
                     })
                 ));
-    
+
                 // Send socket notifications to online users
-                usersToNotify.forEach(userId => {
-                    const socketId = userSockets.get(userId.toString());
+                Array.from(usersToNotify).forEach(notifyUserId => {
+                    const socketId = userSockets.get(notifyUserId);
                     if (socketId) {
                         io.to(socketId).emit('task-archived', {
                             message: `${userName} archived task: "${task.title}"`,
@@ -409,78 +410,204 @@ class TaskController {
     // }
 
     async addComment(req, res) {
-        try {
-            const { taskId } = req.params;
-            const { text } = req.body;
-            const userId = req.user._id;
-            const userName = req.user.username;
-    
-            if (!text || text.trim() === '') {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Comment text is required'
+    try {
+        const { taskId } = req.params;
+        const { text } = req.body;
+        const userId = req.user._id;
+        const userName = req.user.username;
+        const userRoles = req.user.roles || [];
+        const userDepartment = req.user.department;
+
+        if (!text || text.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Comment text is required'
+            });
+        }
+
+        // Get the task with populated assignee details (need department info)
+        const task = await taskModel.findById(taskId)
+            .populate('assignee', 'username department');
+            
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                message: 'Task not found'
+            });
+        }
+
+        // ✅ AUTHORIZATION CHECK
+        let hasPermission = false;
+        
+        // 1. Admin can comment on all tasks (optional)
+        if (userRoles.includes('admin')) {
+            hasPermission = true;
+        }
+        // 2. Staff can only comment if they are assigned to the task
+        else if (userRoles.includes('staff') && !userRoles.includes('manager')) {
+            hasPermission = task.assignee.some(
+                assignee => assignee._id.toString() === userId.toString()
+            );
+        }
+        // 3. Manager can comment if ANY assignee is from their department
+        else if (userRoles.includes('manager')) {
+            hasPermission = task.assignee.some(assignee => {
+                // Manager is assigned directly
+                if (assignee._id.toString() === userId.toString()) {
+                    return true;
+                }
+                // Manager's department has an assignee
+                if (assignee.department === userDepartment) {
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        if (!hasPermission) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to comment on this task'
+            });
+        }
+
+        // Add the comment
+        const comment = {
+            text: text.trim(),
+            author: userId,
+            authorName: userName,
+            createdAt: new Date()
+        };
+
+        task.comments = task.comments || [];
+        task.comments.push(comment);
+        await task.save();
+
+        // Get Socket.IO instance
+        const io = req.app.get('io');
+        const userSockets = req.app.get('userSockets');
+
+        // Notify assignees (exclude the comment author)
+        if (task.assignee && task.assignee.length > 0) {
+            // Create DB notifications
+            const notificationsToCreate = task.assignee
+                .filter(assignee => assignee._id.toString() !== userId.toString())
+                .map(assignee =>
+                    notificationModel.create({
+                        user: assignee._id,
+                        message: `${userName} commented on task: "${task.title}"`,
+                        task: task._id,
+                        type: 'comment'
+                    })
+                );
+            
+            await Promise.all(notificationsToCreate);
+
+            // Send socket notifications to online users
+            if (io && userSockets) {
+                task.assignee.forEach(assignee => {
+                    if (assignee._id.toString() !== userId.toString()) {
+                        const socketId = userSockets.get(assignee._id.toString());
+                        if (socketId) {
+                            io.to(socketId).emit('task-comment', {
+                                message: `${userName} commented on task: "${task.title}"`,
+                                task: task,
+                                comment: comment,
+                                timestamp: new Date()
+                            });
+                        }
+                    }
                 });
             }
-    
-            // Get the task
-            const task = await taskService.getTaskById(taskId);
-            
-            // Add the comment
-            const comment = {
-                text: text.trim(),
-                author: userId,
-                authorName: userName,
-                createdAt: new Date()
-            };
-    
-            task.comments = task.comments || [];
-            task.comments.push(comment);
-            await task.save();
-    
-            // Get Socket.IO instance
-            const io = req.app.get('io');
-            const userSockets = req.app.get('userSockets');
-    
-            // Notify assignees (exclude the comment author)
-            if (task.assignee && task.assignee.length > 0) {
-                // Create DB notifications
-                const notificationsToCreate = task.assignee
-                    .filter(assigneeId => assigneeId.toString() !== userId.toString())
-                    .map(assigneeId =>
-                        notificationModel.create({
-                            user: assigneeId,
-                            message: `${userName} commented on task: "${task.title}"`,
-                            task: task._id
-                        })
-                    );
-                
-                await Promise.all(notificationsToCreate);
-    
-                // Send socket notifications to online users
-                if (io && userSockets) {
-                    task.assignee.forEach(assigneeId => {
-                        if (assigneeId.toString() !== userId.toString()) {
-                            const socketId = userSockets.get(assigneeId.toString());
-                            if (socketId) {
-                                io.to(socketId).emit('task-comment', {
-                                    message: `${userName} commented on task: "${task.title}"`,
-                                    task: task,
-                                    comment: comment,
-                                    timestamp: new Date()
-                                });
-                            }
-                        }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Comment added successfully',
+            data: task
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+    /**
+     * Get tasks for a specific project with authorization
+     * Validates input and delegates to service layer for business logic
+     */
+    async getTasksByProject(req, res) {
+        try {
+            const { projectId } = req.params;
+
+            // Validate authentication
+            if (!req.user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Validate projectId format (PTV-013)
+            // Empty or whitespace-only
+            if (!projectId || projectId.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid project ID format'
+                });
+            }
+
+            // MongoDB ObjectIds are 24-character hex strings OR 12-byte strings
+            // For validation, we check if it's a valid ObjectId using mongoose
+            // Strict validation applies to IDs that are clearly meant to be ObjectIds but are malformed
+
+            // If it's exactly 24 chars, it should be a valid hex string
+            if (projectId.length === 24) {
+                if (!mongoose.Types.ObjectId.isValid(projectId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid project ID format'
                     });
                 }
             }
-    
+            // Reject IDs that are too short (< 12) or contain invalid characters for ObjectIds
+            else if (projectId.length < 12 || projectId.includes('-') || projectId.includes(' ')) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid project ID format'
+                });
+            }
+
+            // Extract user data
+            const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0]; // Get first role
+            const userDepartment = req.user.department;
+
+            // Call service layer
+            const tasks = await taskService.getTasksByProject(
+                projectId,
+                userId,
+                userRole,
+                userDepartment
+            );
+
             res.status(200).json({
                 success: true,
-                message: 'Comment added successfully',
-                data: task
+                data: tasks
             });
         } catch (error) {
-            res.status(400).json({
+            // Map errors to appropriate HTTP status codes
+            let statusCode = 500;
+
+            if (error.message === 'Project not found') {
+                statusCode = 404;
+            } else if (error.message.includes('Access denied') || error.message.includes('not have permission')) {
+                statusCode = 403;
+            }
+
+            res.status(statusCode).json({
                 success: false,
                 message: error.message
             });

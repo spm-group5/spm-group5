@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import taskController from './task.controller.js';
 import taskService from '../services/task.services.js';
 import notificationModel from '../models/notification.model.js';
+import taskModel from '../models/task.model.js';
 
 // Mock dependencies
 vi.mock('../services/task.services.js');
 vi.mock('../models/notification.model.js');
+vi.mock('../models/task.model.js');
 
 describe('Task Controller - Comment Notifications', () => {
     let req, res, mockIo, mockUserSockets;
@@ -24,7 +26,9 @@ describe('Task Controller - Comment Notifications', () => {
         req = {
             user: { 
                 _id: 'commenterUserId', 
-                username: 'commenter@example.com' 
+                username: 'commenter@example.com',
+                roles: ['staff', 'manager'],
+                department: 'Engineering'     
             },
             params: { taskId: 'task123' },
             body: {},
@@ -55,13 +59,20 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task123',
                 title: 'Implement login feature',
-                assignee: ['assignee1', 'assignee2', 'commenterUserId'],
+                // ✅ CHANGE: assignees should be objects with populated fields
+                assignee: [
+                    { _id: 'assignee1', username: 'user1@example.com', department: 'Engineering' },
+                    { _id: 'assignee2', username: 'user2@example.com', department: 'Engineering' },
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
 
             req.body = { text: 'Updated the requirements' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockResolvedValue({ _id: 'notif123' });
 
             await taskController.addComment(req, res);
@@ -109,13 +120,18 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task789',
                 title: 'Code review PR #45',
-                assignee: ['assignee1', 'commenterUserId'], // Commenter is also assignee
+                assignee: [
+                    { _id: 'assignee1', username: 'user1@example.com', department: 'Engineering' },
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
 
             req.body = { text: 'I completed the initial review' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockResolvedValue({ _id: 'notif456' });
 
             await taskController.addComment(req, res);
@@ -140,13 +156,17 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task505',
                 title: 'Personal note task',
-                assignee: ['commenterUserId'], // Only commenter assigned
+                assignee: [
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
 
             req.body = { text: 'Personal note' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
 
             await taskController.addComment(req, res);
 
@@ -160,7 +180,12 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task101',
                 title: 'Sprint planning',
-                assignee: ['user1', 'user2', 'user3', 'commenterUserId'],
+                assignee: [
+                    { _id: 'user1', username: 'user1@example.com', department: 'Engineering' },
+                    { _id: 'user2', username: 'user2@example.com', department: 'Engineering' },
+                    { _id: 'user3', username: 'user3@example.com', department: 'Engineering' },
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
@@ -170,7 +195,9 @@ describe('Task Controller - Comment Notifications', () => {
             mockUserSockets.set('user3', 'socket3');
 
             req.body = { text: 'Meeting scheduled for Tuesday' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockResolvedValue({ _id: 'notif789' });
 
             await taskController.addComment(req, res);
@@ -212,14 +239,16 @@ describe('Task Controller - Comment Notifications', () => {
 
         it('should handle task not found error', async () => {
             req.body = { text: 'Valid comment' };
-            taskService.getTaskById.mockRejectedValue(new Error('Task not found'));
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockRejectedValue(new Error('Cast to ObjectId failed for value "task123" (type string) at path "_id" for model "Task"'))
+            });
 
             await taskController.addComment(req, res);
 
             expect(res.status).toHaveBeenCalledWith(400);
             expect(res.json).toHaveBeenCalledWith({
                 success: false,
-                message: 'Task not found'
+                message: 'Cast to ObjectId failed for value "task123" (type string) at path "_id" for model "Task"'
             });
             expect(notificationModel.create).not.toHaveBeenCalled();
         });
@@ -228,13 +257,17 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task999',
                 title: 'Test task',
-                assignee: ['assignee1'],
+                assignee: [
+                    { _id: 'assignee1', username: 'user1@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
 
             req.body = { text: 'Valid comment' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockRejectedValue(new Error('Database error'));
 
             await taskController.addComment(req, res);
@@ -250,7 +283,11 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task202',
                 title: 'Offline user task',
-                assignee: ['onlineUser', 'offlineUser', 'commenterUserId'],
+                assignee: [
+                    { _id: 'onlineUser', username: 'online@example.com', department: 'Engineering' },
+                    { _id: 'offlineUser', username: 'offline@example.com', department: 'Engineering' },
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
@@ -260,7 +297,9 @@ describe('Task Controller - Comment Notifications', () => {
             mockUserSockets.set('onlineUser', 'socketOnline');
 
             req.body = { text: 'Comment for online and offline users' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockResolvedValue({ _id: 'notif101' });
 
             await taskController.addComment(req, res);
@@ -280,7 +319,10 @@ describe('Task Controller - Comment Notifications', () => {
             const mockTask = {
                 _id: 'task303',
                 title: 'No socket task',
-                assignee: ['assignee1', 'commenterUserId'],
+                assignee: [
+                    { _id: 'assignee1', username: 'user1@example.com', department: 'Engineering' },
+                    { _id: 'commenterUserId', username: 'commenter@example.com', department: 'Engineering' }
+                ],
                 comments: [],
                 save: vi.fn().mockResolvedValue(true)
             };
@@ -292,7 +334,9 @@ describe('Task Controller - Comment Notifications', () => {
             });
 
             req.body = { text: 'Comment without socket' };
-            taskService.getTaskById.mockResolvedValue(mockTask);
+            taskModel.findById.mockReturnValue({
+                populate: vi.fn().mockResolvedValue(mockTask)
+            });
             notificationModel.create.mockResolvedValue({ _id: 'notif202' });
 
             await taskController.addComment(req, res);

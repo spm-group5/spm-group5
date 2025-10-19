@@ -374,6 +374,64 @@ class TaskService {
 
         return await Task.findByIdAndDelete(taskId);
     }
+
+    /**
+     * Get tasks for a specific project with authorization
+     * Authorization rules:
+     * - Admin: can view all tasks
+     * - Staff: can view tasks if they or a department colleague is assigned
+     */
+    async getTasksByProject(projectId, userId, userRole, userDepartment) {
+        // Validate project exists
+        const project = await Project.findById(projectId);
+        if (!project) {
+            throw new Error('Project not found');
+        }
+
+        // Admin can view all tasks without restrictions
+        if (userRole === 'admin') {
+            return await Task.find({ project: projectId })
+                .populate('owner', 'username department')
+                .populate('assignee', 'username department');
+        }
+
+        // Staff and Manager authorization logic
+        // Both roles require department-based access
+        // Staff/Manager with null/undefined department cannot access
+        if (!userDepartment) {
+            throw new Error('Access denied to view tasks in this project');
+        }
+
+        // Get all tasks for this project
+        const tasks = await Task.find({ project: projectId })
+            .populate('owner', 'username department')
+            .populate('assignee', 'username department');
+
+        // If no tasks exist, return empty array (permissive approach - PTV-015)
+        if (tasks.length === 0) {
+            return [];
+        }
+
+        // Filter tasks to only include tasks that the user has access to
+        const departmentFilteredTasks = tasks.filter(task => {
+            return task.assignee.some(assignee => {
+                if (assignee._id.toString() === userId.toString()) {
+                    return true;
+                }
+                if (assignee.department && assignee.department === userDepartment) {
+                    return true;
+                }
+                return false;
+            });
+        });
+
+        if (departmentFilteredTasks.length === 0) {
+            throw new Error('Access denied to view tasks in this project');
+        }
+
+        // Return tasks that the user has access to
+        return departmentFilteredTasks;
+    }
 }
 
 export default new TaskService();

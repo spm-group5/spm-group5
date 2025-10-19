@@ -44,10 +44,11 @@ function ProjectForm({ project, onSubmit, onCancel }) {
           />
 
           <div className={styles.textareaContainer}>
-            <label className={styles.textareaLabel}>
+            <label className={styles.textareaLabel} htmlFor="project-description-textarea">
               Description
             </label>
             <textarea
+              id="project-description-textarea"
               className={styles.textarea}
               rows={4}
               {...register('description')}
@@ -56,10 +57,11 @@ function ProjectForm({ project, onSubmit, onCancel }) {
           </div>
 
           <div className={styles.selectContainer}>
-            <label className={styles.selectLabel}>
+            <label className={styles.selectLabel} htmlFor="project-status-select">
               Status <span className={styles.required}>*</span>
             </label>
             <select
+              id="project-status-select"
               className={styles.select}
               {...register('status', { required: 'Status is required' })}
             >

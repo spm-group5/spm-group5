@@ -10,16 +10,20 @@ const SubtaskList = ({
   projectId, 
   ownerId,
   onShowSubtaskForm,
-  onShowDeleteModal 
+  onArchiveSubtask,
+  onUnarchiveSubtask
 }) => {
   const { 
     subtasks, 
     fetchSubtasksByParentTask, 
-    deleteSubtask,
+    archiveSubtask,
+    unarchiveSubtask,
     loading 
   } = useSubtasks();
 
   const [activeSubtasks, setActiveSubtasks] = useState([]);
+  const [archivedSubtasks, setArchivedSubtasks] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (parentTaskId) {
@@ -29,16 +33,25 @@ const SubtaskList = ({
 
   useEffect(() => {
     // Filter out archived subtasks for display
-    const filtered = subtasks.filter(subtask => subtask.status !== 'Archived');
+    const filtered = subtasks.filter(subtask => !subtask.archived);
     setActiveSubtasks(filtered);
+  }, [subtasks]);
+
+  useEffect(() => {
+    // Set archived subtasks
+    setArchivedSubtasks(subtasks.filter(subtask => subtask.archived));
   }, [subtasks]);
 
   const handleEdit = (subtask) => {
     onShowSubtaskForm(subtask);
   };
 
-  const handleDelete = (subtask) => {
-    onShowDeleteModal(subtask);
+  const handleArchive = (subtask) => {
+    onArchiveSubtask(subtask);
+  };
+
+  const handleUnarchive = (subtask) => {
+    onUnarchiveSubtask(subtask);
   };
 
   const getStatusStats = () => {
@@ -70,6 +83,11 @@ const SubtaskList = ({
         <div className={styles.titleSection}>
           <h3 className={styles.title}>
             Subtasks ({activeSubtasks.length})
+            {archivedSubtasks.length > 0 && (
+              <span className={styles.archivedCount}>
+                {' '}({archivedSubtasks.length} archived)
+              </span>
+            )}
           </h3>
           <div className={styles.stats}>
             <span className={styles.stat}>To Do: {stats['To Do']}</span>
@@ -97,9 +115,42 @@ const SubtaskList = ({
               key={subtask._id}
               subtask={subtask}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
+              isArchived={false}
             />
           ))}
+        </div>
+      )}
+
+      {archivedSubtasks.length > 0 && (
+        <div className={styles.archivedSection}>
+          <div className={styles.archivedHeader}>
+            <h4 className={styles.archivedTitle}>
+              Archived Subtasks ({archivedSubtasks.length})
+            </h4>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              {showArchived ? 'Hide' : 'Show'} Archived
+            </Button>
+          </div>
+          {showArchived && (
+            <div className={styles.archivedList}>
+              {archivedSubtasks.map(subtask => (
+                <SubtaskCard
+                  key={subtask._id}
+                  subtask={subtask}
+                  onEdit={handleEdit}
+                  onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
+                  isArchived={true}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -67,6 +67,14 @@ const taskSchema = new Schema({
         validate: {
             validator: function(v) {
                 if (!v) return true;
+                
+                // Only validate if:
+                // 1. This is a new task (this.isNew), OR
+                // 2. The dueDate field is being modified
+                if (!this.isNew) {
+                    return true; // Skip validation entirely for existing tasks
+                }
+                
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const dueDate = new Date(v);

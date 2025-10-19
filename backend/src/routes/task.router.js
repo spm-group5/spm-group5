@@ -11,4 +11,7 @@ router.patch('/tasks/:taskId/archive', requireAuth, taskController.archiveTask);
 router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTask);
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
 
+// Project task viewing endpoint with authorization
+router.get('/projects/:projectId/tasks', requireAuth, taskController.getTasksByProject);
+
 export default router;

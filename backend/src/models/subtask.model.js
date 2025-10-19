@@ -25,13 +25,15 @@ const subtaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['To Do', 'In Progress', 'Completed', 'Blocked', 'Archived'],
+    enum: ['To Do', 'In Progress', 'Completed', 'Blocked'],
     default: 'To Do'
   },
   priority: {
-    type: String,
-    enum: ['Low', 'Medium', 'High'],
-    default: 'Medium'
+    type: Number,
+    required: true,
+    min: 1,
+    max: 10,
+    default: 5
   },
   assigneeId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -47,6 +49,33 @@ const subtaskSchema = new mongoose.Schema({
     type: Date,
     required: false
   },
+  isRecurring: {
+    type: Boolean,
+    default: false
+  },
+  recurrenceInterval: {
+    type: Number,
+    default: null,
+    validate: {
+      validator: function(v) {
+        // If subtask is recurring, interval must be positive
+        if (this.isRecurring && (!v || v <= 0)) {
+          return false;
+        }
+        // If not recurring, interval should be null or undefined
+        if (!this.isRecurring && v) {
+          return false;
+        }
+        return true;
+      },
+      message: 'Recurrence interval must be a positive number for recurring subtasks'
+    }
+  },
+  timeTaken: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Time taken cannot exceed 100 characters']
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -54,6 +83,14 @@ const subtaskSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  archived: {
+    type: Boolean,
+    default: false
+  },
+  archivedAt: {
+    type: Date,
+    default: null
   }
 });
 

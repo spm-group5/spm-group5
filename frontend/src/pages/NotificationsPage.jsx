@@ -4,6 +4,7 @@ import { useNotifications } from "../hooks/useNotifications.js"; // ← For toas
 import NotificationCard from "../components/common/Notifications/NotificationCard.jsx";
 import Header from "../components/common/Header/Header";
 import styles from "./NotificationsPage.module.css";
+import { useSocket } from '../hooks/useSocket';
 
 export default function NotificationsPage() {
     const { 

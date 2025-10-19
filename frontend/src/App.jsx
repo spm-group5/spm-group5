@@ -13,15 +13,14 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import ProjectsPage from './pages/ProjectsPage';
-import './styles/subtask-override.css';
+import ProjectTasksPage from './pages/ProjectTasksPage';
 import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 
 function SocketManager() {
-  useSocket(); //Start the socket connection
+  useSocket(); // Start the socket connection
   return null;
 }
-
 
 function App() {
   return (
@@ -50,6 +49,11 @@ function App() {
                       <ProjectsPage />
                     </ProtectedRoute>
                   } />
+                  <Route path="/projects/:projectId/tasks" element={
+                    <ProtectedRoute>
+                      <ProjectTasksPage />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/notifications" element={
                     <ProtectedRoute>
                       <NotificationsPage />
@@ -74,4 +78,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
