@@ -24,23 +24,23 @@ describe('Project Controller Test', () => {
     describe('createProject', () => {
         // Create project with default status "To Do" and owner
         it('should create project successfully with default status "To Do"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const mockProject = {
                 _id: 'projectId123',
                 name: 'Test Project',
                 description: 'Test description',
                 owner: 'userId123',
                 status: 'To Do',
-                dueDate: futureDate,
+                priority: 5, // Default priority
                 tags: [],
+                archived: false,
+                archivedAt: null,
                 members: ['userId123'],
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
             req.body = {
                 name: 'Test Project',
-                description: 'Test description',
-                dueDate: futureDate
+                description: 'Test description'
             };
             projectService.createProject.mockResolvedValue(mockProject);
 
@@ -57,34 +57,30 @@ describe('Project Controller Test', () => {
 
         // Empty name returns 400 error
         it('should return 400 when name is empty', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
-            req.body = { name: '', dueDate: futureDate };
-            projectService.createProject.mockRejectedValue(new Error('Project title is required'));
+            req.body = { name: '' };
+            projectService.createProject.mockRejectedValue(new Error('Project name is required'));
 
             await projectController.createProject(req, res);
 
             expect(res.status).toHaveBeenCalledWith(400);
             expect(res.json).toHaveBeenCalledWith({
                 success: false,
-                message: 'Project title is required'
+                message: 'Project name is required'
             });
         });
 
         // Valid priority (1-10) returns 201
         it('should create project with valid priority', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const mockProject = {
                 _id: 'projectId123',
                 name: 'Priority Project',
                 owner: 'userId123',
                 status: 'To Do',
                 priority: 5,
-                dueDate: futureDate,
                 tags: []
             };
             req.body = {
                 name: 'Priority Project',
-                dueDate: futureDate,
                 priority: 5
             };
             projectService.createProject.mockResolvedValue(mockProject);

@@ -36,13 +36,11 @@ describe('Task Service Test', () => {
             hashed_password: 'password123'
         });
 
-        const futureDate = new Date(Date.now() + 86400000);
         testProject = await Project.create({
             name: 'Test Project',
             description: 'Test project description',
             owner: testUser._id,
-            status: 'In Progress',
-            dueDate: futureDate
+            status: 'In Progress' // Allowed status for task creation
         });
     });
 
@@ -365,7 +363,7 @@ describe('Task Service Test', () => {
             const newProject = await Project.create({
                 name: 'New Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'In Progress'
             });
 
             const updateData = {
@@ -642,7 +640,7 @@ describe('Task Service Test', () => {
             anotherProject = await Project.create({
                 name: 'Another Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'In Progress'
             });
 
             await Task.create([
@@ -986,14 +984,14 @@ describe('Task Service Test', () => {
                 name: 'Engineering Project',
                 description: 'Project for engineering team',
                 owner: staff123._id,
-                status: 'Active'
+                status: 'In Progress'
             });
 
             marketingProject = await Project.create({
                 name: 'Marketing Project',
                 description: 'Project for marketing team',
                 owner: marketing001._id,
-                status: 'Active'
+                status: 'In Progress'
             });
         });
 
@@ -1043,7 +1041,7 @@ describe('Task Service Test', () => {
                 const emptyProject = await Project.create({
                     name: 'Empty Project',
                     owner: staff123._id,
-                    status: 'Active'
+                    status: 'In Progress'
                 });
 
                 // Act: Request tasks for empty project
@@ -1276,7 +1274,7 @@ describe('Task Service Test', () => {
                     name: 'Empty Project',
                     description: 'Project without tasks',
                     owner: staff123._id,
-                    status: 'Active'
+                    status: 'In Progress'
                 });
 
                 // Act: staff123 (project owner) requests tasks
@@ -1298,7 +1296,7 @@ describe('Task Service Test', () => {
                 const emptyProject = await Project.create({
                     name: 'Admin Empty Project',
                     owner: staff123._id,
-                    status: 'Active'
+                    status: 'In Progress'
                 });
 
                 // Act: Admin requests tasks

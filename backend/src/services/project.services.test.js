@@ -45,11 +45,9 @@ describe('Project Service Test', () => {
     describe('createProject', () => {
         // Create project with name defaults to status "To Do" and owner=creator
         it('should create a project with valid data and default status "To Do"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'New Project',
-                description: 'Project description',
-                dueDate: futureDate
+                description: 'Project description'
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
@@ -57,16 +55,15 @@ describe('Project Service Test', () => {
             expect(project.name).toBe('New Project');
             expect(project.description).toBe('Project description');
             expect(project.status).toBe('To Do'); // Default status
+            expect(project.priority).toBe(5); // Default priority
             expect(project.owner.toString()).toBe(testUser._id.toString());
             expect(project.members).toContain(testUser._id);
         });
 
-        // Create project with only required fields
-        it('should create project with only required fields (name and dueDate)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
+        // Create project with only required fields (just name)
+        it('should create project with only required field (name)', async () => {
             const projectData = {
-                name: 'Simple Project',
-                dueDate: futureDate
+                name: 'Simple Project'
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
@@ -74,51 +71,45 @@ describe('Project Service Test', () => {
             expect(project.name).toBe('Simple Project');
             expect(project.description).toBe('');
             expect(project.status).toBe('To Do');
+            expect(project.priority).toBe(5); // Default priority
             expect(project.owner.toString()).toBe(testUser._id.toString());
             expect(project.tags).toEqual([]); // Default empty array
+            expect(project.archived).toBe(false); // Default archived
         });
 
         // Empty name shows error
         it('should throw error for empty project name', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: '',
-                dueDate: futureDate
+                name: ''
             };
 
             await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Project title is required');
+                .rejects.toThrow('Project name is required');
         });
 
         // Missing name throws error
         it('should throw error for missing project name', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                description: 'Project without name',
-                dueDate: futureDate
+                description: 'Project without name'
             };
 
             await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Project title is required');
+                .rejects.toThrow('Project name is required');
         });
 
         // Whitespace-only name throws error
         it('should throw error for whitespace-only project name', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: '   ',
-                dueDate: futureDate
+                name: '   '
             };
 
             await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Project title is required');
+                .rejects.toThrow('Project name is required');
         });
 
         it('should trim whitespace from project name', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: '  Trimmed Project  ',
-                dueDate: futureDate
+                name: '  Trimmed Project  '
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
@@ -128,10 +119,8 @@ describe('Project Service Test', () => {
 
         // Valid priority (1-10) succeeds
         it('should create project with valid priority 1', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Priority Project',
-                dueDate: futureDate,
                 priority: 1
             };
 
@@ -141,10 +130,8 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with valid priority 10', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Priority Project',
-                dueDate: futureDate,
                 priority: 10
             };
 
@@ -154,11 +141,21 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with valid priority 5', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Priority Project',
-                dueDate: futureDate,
                 priority: 5
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.priority).toBe(5);
+        });
+
+        // Priority defaults to 5 when not specified
+        it('should create project with default priority 5 when not specified', async () => {
+            const projectData = {
+                name: 'Default Priority Project'
+                // priority not specified
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
@@ -168,10 +165,8 @@ describe('Project Service Test', () => {
 
         // Invalid priority throws error
         it('should throw error for priority below 1', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
-                dueDate: futureDate,
                 priority: 0
             };
 
@@ -180,10 +175,8 @@ describe('Project Service Test', () => {
         });
 
         it('should throw error for priority above 10', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
-                dueDate: futureDate,
                 priority: 11
             };
 
@@ -192,10 +185,8 @@ describe('Project Service Test', () => {
         });
 
         it('should throw error for negative priority', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
-                dueDate: futureDate,
                 priority: -5
             };
 
@@ -204,10 +195,8 @@ describe('Project Service Test', () => {
         });
 
         it('should throw error for priority as string', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
-                dueDate: futureDate,
                 priority: 'high'
             };
 
@@ -228,35 +217,29 @@ describe('Project Service Test', () => {
             expect(project.dueDate).toBeInstanceOf(Date);
         });
 
-        // Missing dueDate throws error
-        it('should throw error when dueDate is missing', async () => {
+        // DueDate is optional - create project without dueDate succeeds
+        it('should create project without dueDate (optional field)', async () => {
             const projectData = {
                 name: 'No DueDate Project'
-                // dueDate missing
+                // dueDate not specified
             };
 
-            await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Due date is required');
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.name).toBe('No DueDate Project');
+            expect(project.dueDate).toBeUndefined();
         });
 
-        it('should throw error when dueDate is null', async () => {
+        it('should create project with null dueDate', async () => {
             const projectData = {
                 name: 'Null DueDate Project',
                 dueDate: null
             };
 
-            await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Due date is required');
-        });
+            const project = await projectService.createProject(projectData, testUser._id);
 
-        it('should throw error when dueDate is undefined', async () => {
-            const projectData = {
-                name: 'Undefined DueDate Project',
-                dueDate: undefined
-            };
-
-            await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Due date is required');
+            expect(project.name).toBe('Null DueDate Project');
+            expect(project.dueDate).toBeNull();
         });
 
         // Past dueDate throws error
@@ -287,10 +270,8 @@ describe('Project Service Test', () => {
 
         // Valid status values succeed
         it('should create project with status "To Do"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'To Do Project',
-                dueDate: futureDate,
                 status: 'To Do'
             };
 
@@ -300,10 +281,8 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with status "In Progress"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'In Progress Project',
-                dueDate: futureDate,
                 status: 'In Progress'
             };
 
@@ -313,10 +292,8 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with status "Completed"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Completed Project',
-                dueDate: futureDate,
                 status: 'Completed'
             };
 
@@ -326,10 +303,8 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with status "Blocked"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Blocked Project',
-                dueDate: futureDate,
                 status: 'Blocked'
             };
 
@@ -340,10 +315,8 @@ describe('Project Service Test', () => {
 
         // Invalid status throws error
         it('should throw error for invalid status value', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Status Project',
-                dueDate: futureDate,
                 status: 'InvalidStatus'
             };
 
@@ -352,10 +325,8 @@ describe('Project Service Test', () => {
         });
 
         it('should throw error for old status value "Active"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Old Status Project',
-                dueDate: futureDate,
                 status: 'Active'
             };
 
@@ -364,10 +335,8 @@ describe('Project Service Test', () => {
         });
 
         it('should throw error for old status value "Archived"', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Old Status Project',
-                dueDate: futureDate,
                 status: 'Archived'
             };
 
@@ -377,10 +346,8 @@ describe('Project Service Test', () => {
 
         // Tags array succeeds
         it('should create project with tags array', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Tagged Project',
-                dueDate: futureDate,
                 tags: ['frontend', 'urgent']
             };
 
@@ -389,12 +356,22 @@ describe('Project Service Test', () => {
             expect(project.tags).toEqual(['frontend', 'urgent']);
         });
 
+        // Tags parsed from # separated string
+        it('should parse tags from # separated string', async () => {
+            const projectData = {
+                name: 'Tagged Project',
+                tags: 'frontend#urgent#react'
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.tags).toEqual(['frontend', 'urgent', 'react']);
+        });
+
         // Project without tags field succeeds (defaults to empty array)
         it('should create project without tags field (defaults to empty array)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: 'No Tags Project',
-                dueDate: futureDate
+                name: 'No Tags Project'
                 // tags not specified
             };
 
@@ -405,10 +382,8 @@ describe('Project Service Test', () => {
 
         // Empty tags array accepted
         it('should accept empty tags array', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Empty Tags Project',
-                dueDate: futureDate,
                 tags: []
             };
 
@@ -439,6 +414,8 @@ describe('Project Service Test', () => {
             expect(project.priority).toBe(7);
             expect(project.dueDate).toBeInstanceOf(Date);
             expect(project.tags).toEqual(['important', 'milestone']);
+            expect(project.archived).toBe(false); // Default archived
+            expect(project.archivedAt).toBeNull(); // Default archivedAt
             expect(project.owner).toBeDefined();
             expect(project.members).toBeDefined();
             expect(project.createdAt).toBeInstanceOf(Date);
@@ -446,10 +423,8 @@ describe('Project Service Test', () => {
         });
 
         it('should create project with custom members', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Team Project',
-                dueDate: futureDate,
                 members: [testUser._id, otherUser._id]
             };
 
