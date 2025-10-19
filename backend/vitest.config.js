@@ -7,11 +7,7 @@ export default {
     css: false, // Disable CSS handling
     testTimeout: 20000, // 20 second timeout for tests
     hookTimeout: 30000, // 30 second timeout for hooks (setup/teardown)
-    pool: 'forks', // Run tests in separate processes to avoid connection conflicts
-    poolOptions: {
-      forks: {
-        singleFork: true // Run all tests in a single fork to share the connection
-      }
+    pool: 'threads'
     },
     coverage: {
       provider: 'v8', // Use V8 for coverage
@@ -41,5 +37,4 @@ export default {
         }
       }
     },
-  },
 };
