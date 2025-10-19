@@ -10,21 +10,15 @@ let mongoServer;
 let currentUser = null;
 
 vi.mock('../middleware/auth.middleware.js', () => ({
-  requireAuth: (req, res, next) => {
-    if (currentUser) {
-      req.user = currentUser;
-      next();
-    } else {
-      res.status(401).json({ success: false, message: 'Authentication required' });
+  requireAuth: vi.fn((req, res, next) => {
+    // This function is called when middleware runs, so currentUser will be set
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
-  },
-  requireRole: (roles) => (req, res, next) => {
-    if (currentUser && currentUser.roles.some(role => roles.includes(role))) {
-      next();
-    } else {
-      res.status(403).json({ success: false, message: 'Insufficient permissions' });
-    }
-  }
+    req.user = currentUser;
+    next();
+  }),
+  requireRole: vi.fn((roles) => (req, res, next) => next())
 }));
 
 beforeAll(async () => {

@@ -39,12 +39,6 @@ jobs:
       - name: Ensure environments directory exists
         run: mkdir -p backend/environments
 
-      - name: Create backend .env file
-        if: ${{ !env.ACT }}
-        run: |
-          echo "MONGO_URI=${{ secrets.TEST_DB_CONNECTION_STRING }}" > backend/environments/.env.test
-      
-
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         if: ${{ !env.ACT }}  # Skip checkout when running with 'act'
