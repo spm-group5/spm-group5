@@ -1,6 +1,28 @@
 import projectService from '../services/project.services.js';
 
 class ProjectController {
+    /**
+     * Create a new project
+     *
+     * Purpose: Handle HTTP request to create a project with attributes
+     *
+     * Expected Request Body:
+     * - name: Required project name (String)
+     * - description: Optional project description (String)
+     * - status: Optional status (Enum: To Do, In Progress, Completed, Blocked), defaults to "To Do"
+     * - priority: Optional priority ranking (Number, 1-10)
+     * - dueDate: Optional due date (Date, cannot be in past if provided)
+     * - tags: Optional array of tags (String[])
+     * - members: Optional array of member IDs (ObjectId[])
+     * - archived: Optional boolean flag (defaults to false)
+     *
+     * Response:
+     * - 201 Created: Project created successfully with complete project object
+     * - 400 Bad Request: Validation error (empty name, invalid priority, past due date, etc.)
+     *
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
     async createProject(req, res) {
         try {
             const userId = req.user._id;

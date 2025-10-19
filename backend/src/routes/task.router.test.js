@@ -82,7 +82,7 @@ describe('Task Router Test', () => {
         testProject = await Project.create({
             name: 'Active Test Project',
             owner: testUser._id,
-            status: 'Active'
+            status: 'To Do'
         });
 
         managerUser = await User.create({
@@ -228,7 +228,7 @@ describe('Task Router Test', () => {
                 .expect(400);
 
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Active');
+            expect(response.body.message).toContain('completed');
         });
     });
 
@@ -237,7 +237,7 @@ describe('Task Router Test', () => {
             const project = await Project.create({
                 name: 'Test Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'To Do'
             });
 
             await Task.create([
@@ -413,7 +413,7 @@ describe('Task Router Test', () => {
             const newProject = await Project.create({
                 name: 'Another Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'To Do'
             });
 
             const updateData = {
@@ -701,14 +701,14 @@ describe('Task Router Test', () => {
                 name: 'Engineering Project',
                 description: 'Project for engineering team',
                 owner: staff123._id,
-                status: 'Active'
+                status: 'To Do'
             });
 
             marketingProject = await Project.create({
                 name: 'Marketing Project',
                 description: 'Project for marketing team',
                 owner: marketing001._id,
-                status: 'Active'
+                status: 'To Do'
             });
         });
 
@@ -970,7 +970,7 @@ describe('Task Router Test', () => {
                         _id: validId,
                         name: 'Valid ID Project',
                         owner: staff123._id,
-                        status: 'Active'
+                        status: 'To Do'
                     });
 
                     await Task.create({
@@ -1039,7 +1039,7 @@ describe('Task Router Test', () => {
                         name: 'Empty Project',
                         description: 'Project without tasks',
                         owner: staff123._id,
-                        status: 'Active'
+                        status: 'To Do'
                     });
 
                     currentUser = staff123;
@@ -1061,7 +1061,7 @@ describe('Task Router Test', () => {
                     const emptyProject = await Project.create({
                         name: 'Admin Empty Project',
                         owner: staff123._id,
-                        status: 'Active'
+                        status: 'To Do'
                     });
 
                     currentUser = adminUser;

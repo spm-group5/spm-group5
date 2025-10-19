@@ -48,7 +48,7 @@ describe('Project Model Test', () => {
             expect(project.name).toBe('Test Project');
             expect(project.owner.toString()).toBe(testUser._id.toString());
             expect(project.status).toBe('To Do'); // Default status
-            expect(project.priority).toBe(5); // Default priority
+            expect(project.priority).toBeUndefined(); // No default priority
             expect(project.createdAt).toBeDefined();
             expect(project.updatedAt).toBeDefined();
         });
@@ -76,7 +76,7 @@ describe('Project Model Test', () => {
             const project = await Project.create(projectData);
 
             expect(project.status).toBe('To Do'); // Default status
-            expect(project.priority).toBe(5); // Default priority
+            expect(project.priority).toBeUndefined(); // No default priority
             expect(project.tags).toEqual([]); // Default empty tags array
             expect(project.archived).toBe(false); // Default archived = false
             expect(project.archivedAt).toBeNull(); // Default archivedAt = null
@@ -334,7 +334,7 @@ describe('Project Model Test', () => {
             expect(project.priority).toBe(10);
         });
 
-        it('should create project without priority (defaults to 5)', async () => {
+        it('should create project without priority (optional field)', async () => {
             const projectData = {
                 name: 'No Priority Project',
                 owner: testUser._id
@@ -342,7 +342,7 @@ describe('Project Model Test', () => {
             };
 
             const project = await Project.create(projectData);
-            expect(project.priority).toBe(5); // Should default to 5
+            expect(project.priority).toBeUndefined(); // Priority is optional, no default
         });
 
         it('should reject project with priority below 1', async () => {
@@ -412,7 +412,7 @@ describe('Project Model Test', () => {
             expect(project.dueDate).toBeNull();
         });
 
-        it('should fail to create project with past dueDate', async () => {
+        it('should allow creating project with past dueDate at model level (validation is in service layer)', async () => {
             const pastDate = new Date(Date.now() - 86400000); // Yesterday
             const projectData = {
                 name: 'Past Due Date Project',
@@ -420,7 +420,9 @@ describe('Project Model Test', () => {
                 dueDate: pastDate
             };
 
-            await expect(Project.create(projectData)).rejects.toThrow();
+            // Model allows past dates - validation happens in service layer
+            const project = await Project.create(projectData);
+            expect(project.dueDate).toBeInstanceOf(Date);
         });
 
         it('should allow today as dueDate', async () => {

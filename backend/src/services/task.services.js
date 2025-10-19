@@ -14,14 +14,20 @@ class TaskService {
             throw new Error('Project is required');
         }
 
-        // Verify project exists and is active
+        // Verify project exists and is not archived or completed
         const projectExists = await Project.findById(project);
         if (!projectExists) {
             throw new Error('Selected project does not exist');
         }
 
-        if (projectExists.status !== 'Active') {
-            throw new Error('Project must be Active to assign tasks');
+        // Check if project is archived - archived projects cannot have new tasks
+        if (projectExists.archived === true) {
+            throw new Error('Cannot assign tasks to archived projects');
+        }
+
+        // Check if project is completed - completed projects cannot have new tasks
+        if (projectExists.status === 'Completed') {
+            throw new Error('Cannot assign tasks to completed projects');
         }
 
         // Creator is always the default assignee
