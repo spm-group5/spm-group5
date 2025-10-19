@@ -265,3 +265,36 @@
     grid-template-columns: 1fr;
   }
 }
+
+.assignmentTabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.assignmentTab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.assignmentTab:hover {
+  color: var(--color-primary);
+  background-color: var(--color-background-hover);
+}
+
+.activeAssignmentTab {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
