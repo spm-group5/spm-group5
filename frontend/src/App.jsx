@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { TaskProvider } from './context/TaskContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { NotificationCenterProvider } from './context/NotificationsCenterContext';
 import { SubtaskProvider } from './context/SubtaskContext';
 import { useSocket } from './hooks/useSocket';
 import NotificationContainer from './components/common/Notifications/NotificationContainer';
@@ -14,6 +15,7 @@ import TasksPage from './pages/TasksPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProjectTasksPage from './pages/ProjectTasksPage';
 import ReportsPage from './pages/ReportsPage';
+import NotificationsPage from './pages/NotificationsPage.jsx';
 
 function SocketManager() {
   useSocket(); // Start the socket connection
@@ -24,6 +26,7 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
+        <NotificationCenterProvider>
         <TaskProvider>
           <ProjectProvider>
             <SubtaskProvider>
@@ -51,6 +54,11 @@ function App() {
                       <ProjectTasksPage />
                     </ProtectedRoute>
                   } />
+                  <Route path="/notifications" element={
+                    <ProtectedRoute>
+                      <NotificationsPage />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/reports" element={
                     <AdminRoute>
                       <ReportsPage />
@@ -64,6 +72,7 @@ function App() {
             </SubtaskProvider>
           </ProjectProvider>
         </TaskProvider>
+        </NotificationCenterProvider>
       </NotificationProvider>
     </AuthProvider>
   );

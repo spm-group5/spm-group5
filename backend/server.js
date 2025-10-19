@@ -16,6 +16,9 @@ dotenv.config({path: path.join(__dirname, 'environments', '.env.test')}); //defi
 // Debug: Check if MONGO_URI is loaded
 console.log('MONGO_URI loaded:', process.env.MONGO_URI ? 'Yes' : 'No');
 
+// Debug: Check if SESSION_SECRET is loaded
+console.log('SESSION_SECRET loaded:', process.env.SESSION_SECRET ? 'Yes' : 'No');
+
 // Now import other modules after environment variables are loaded
 import app, { server } from "./src/app.js"; //import the Express application and server from src/app.js
 import db from './src/config/db.js'; //import the database connection, automatically starting the connection

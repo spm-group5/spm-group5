@@ -22,6 +22,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTasks } from '../context/TaskContext';
 import { useProjects } from '../context/ProjectContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header/Header';
 import Button from '../components/common/Button/Button';
 import Spinner from '../components/common/Spinner/Spinner';
@@ -35,6 +36,8 @@ function ProjectTasksPage() {
   const navigate = useNavigate();
   const { fetchTasksByProject, createTask, updateTask, archiveTask, unarchiveTask } = useTasks();
   const { getProjectById } = useProjects();
+  const { user } = useAuth();
+  const userId = user?.id || user?._id;
 
   const [tasks, setTasks] = useState([]);
   const [project, setProject] = useState(null);
@@ -49,6 +52,7 @@ function ProjectTasksPage() {
   const [activeTab, setActiveTab] = useState('active');
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [taskToArchive, setTaskToArchive] = useState(null);
+  const [assignmentView, setAssignmentView] = useState('all'); // 'my-tasks', 'team-tasks', 'all'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +68,7 @@ function ProjectTasksPage() {
         }
 
         // Fetch tasks for this project
-        const tasksResponse = await fetchTasksByProject(projectId);
+        const tasksResponse = await fetchTasksByProject(projectId, userId, user?.role, user?.department);
         if (tasksResponse.success) {
           setTasks(tasksResponse.data || []);
         }
@@ -91,7 +95,7 @@ function ProjectTasksPage() {
     };
 
     fetchData();
-  }, [projectId, fetchTasksByProject, getProjectById]);
+  }, [projectId, fetchTasksByProject, getProjectById, userId, user]);
 
   const handleBackToProjects = () => {
     navigate('/projects');
@@ -195,7 +199,28 @@ function ProjectTasksPage() {
   const filteredAndSortedTasks = useMemo(() => {
     let filtered = [...tasks];
 
-    // Apply tab filter
+    // 1. Filter by assignment view
+    if (assignmentView === 'my-tasks') {
+      // Show only tasks assigned to ME
+      filtered = filtered.filter(task => 
+        task.assignee?.some(assignee => {
+          const assigneeId = assignee._id || assignee;
+          return assigneeId === userId;
+        })
+      );
+    } else if (assignmentView === 'team-tasks') {
+      // Show only tasks assigned to DEPARTMENT COLLEAGUES (not me)
+      filtered = filtered.filter(task => {
+        const isAssignedToMe = task.assignee?.some(assignee => {
+          const assigneeId = assignee._id || assignee;
+          return assigneeId === userId;
+        });
+        return !isAssignedToMe; // Only tasks NOT assigned to me
+      });
+    }
+    // if 'all', show all tasks (backend already filtered by department)
+
+    // 2. Apply status filter (Active/Done/Archived)
     if (activeTab === 'active') {
       filtered = filtered.filter(task => !task.archived && task.status !== 'Done');
     } else if (activeTab === 'done') {
@@ -204,7 +229,7 @@ function ProjectTasksPage() {
       filtered = filtered.filter(task => task.archived);
     }
 
-    // Apply tag filter
+    // 3. Apply tag filter
     if (filterTag) {
       filtered = filtered.filter(task => {
         if (!task.tags) return false;
@@ -213,7 +238,7 @@ function ProjectTasksPage() {
       });
     }
 
-    // Apply sorting
+    // 4. Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'priority':
@@ -230,7 +255,42 @@ function ProjectTasksPage() {
     });
 
     return filtered;
-  }, [tasks, sortBy, filterTag, activeTab]);
+  }, [tasks, assignmentView, activeTab, filterTag, sortBy, userId]);
+
+  // Calculate counts based on current status tab
+  const taskCounts = useMemo(() => {
+    // First filter by status tab
+    let statusFilteredTasks = [...tasks];
+    if (activeTab === 'active') {
+      statusFilteredTasks = tasks.filter(task => !task.archived && task.status !== 'Done');
+    } else if (activeTab === 'done') {
+      statusFilteredTasks = tasks.filter(task => !task.archived && task.status === 'Done');
+    } else if (activeTab === 'archived') {
+      statusFilteredTasks = tasks.filter(task => task.archived);
+    }
+
+    // Then calculate assignment counts from status-filtered tasks
+    const myTasks = statusFilteredTasks.filter(task => 
+      task.assignee?.some(assignee => {
+        const assigneeId = assignee._id || assignee;
+        return assigneeId === userId;
+      })
+    );
+    
+    const teamTasks = statusFilteredTasks.filter(task => {
+      const isAssignedToMe = task.assignee?.some(assignee => {
+        const assigneeId = assignee._id || assignee;
+        return assigneeId === userId;
+      });
+      return !isAssignedToMe;
+    });
+
+    return {
+      all: statusFilteredTasks.length,
+      myTasks: myTasks.length,
+      teamTasks: teamTasks.length,
+    };
+  }, [tasks, userId, activeTab]);
 
   if (loading) {
     return (
@@ -314,6 +374,28 @@ function ProjectTasksPage() {
                   </button>
                 </div>
 
+                {/* Assignment View Filter */}
+                <div className={styles.assignmentTabs}>
+                  <button
+                    className={`${styles.assignmentTab} ${assignmentView === 'all' ? styles.activeAssignmentTab : ''}`}
+                    onClick={() => setAssignmentView('all')}
+                  >
+                    All Department Tasks ({taskCounts.all})
+                  </button>
+                  <button
+                    className={`${styles.assignmentTab} ${assignmentView === 'my-tasks' ? styles.activeAssignmentTab : ''}`}
+                    onClick={() => setAssignmentView('my-tasks')}
+                  >
+                    My Tasks ({taskCounts.myTasks})
+                  </button>
+                  <button
+                    className={`${styles.assignmentTab} ${assignmentView === 'team-tasks' ? styles.activeAssignmentTab : ''}`}
+                    onClick={() => setAssignmentView('team-tasks')}
+                  >
+                    Team Tasks ({taskCounts.teamTasks})
+                  </button>
+                </div>
+
                 <div className={styles.viewToggle}>
                   <button
                     className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
@@ -375,30 +457,34 @@ function ProjectTasksPage() {
 
             {tasks.length === 0 ? (
               <div className={styles.emptyState}>
-                <h3>No tasks yet</h3>
-                <p>Create the first task for this project to get started!</p>
+                <h3>No tasks in this project</h3>
+                <p>Create a new task to get started.</p>
                 <Button variant="primary" onClick={handleCreateTask}>
-                  Create Task
+                  Create First Task
                 </Button>
               </div>
-            ) : filteredAndSortedTasks.length === 0 ? (
-              <div className={styles.emptyState}>
-                <h3>No tasks match your filters</h3>
-                <p>Try adjusting your filters or create a new task.</p>
-              </div>
             ) : (
-              <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
-                {filteredAndSortedTasks.map((task) => (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    onEdit={handleEditTask}
-                    onArchive={handleArchiveTask}
-                    onUnarchive={handleUnarchiveTask}
-                    isArchived={task.archived}
-                  />
-                ))}
-              </div>
+              <>
+                {filteredAndSortedTasks.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <h3>No tasks match your filters</h3>
+                    <p>Try adjusting your filters or create a new task.</p>
+                  </div>
+                ) : (
+                  <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
+                    {filteredAndSortedTasks.map((task) => (
+                      <TaskCard
+                        key={task._id}
+                        task={task}
+                        onEdit={handleEditTask}
+                        onArchive={handleArchiveTask}
+                        onUnarchive={handleUnarchiveTask}
+                        isArchived={task.archived}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

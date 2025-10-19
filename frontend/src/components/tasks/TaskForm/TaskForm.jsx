@@ -128,10 +128,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
           />
 
           <div className={styles.textareaContainer}>
-            <label className={styles.textareaLabel}>
+            <label className={styles.textareaLabel} htmlFor="description-textarea">
               Description
             </label>
             <textarea
+              id="description-textarea"
               className={styles.textarea}
               rows={4}
               {...register('description')}
@@ -141,10 +142,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
           <div className={styles.row}>
             <div className={styles.selectContainer}>
-              <label className={styles.selectLabel}>
+              <label className={styles.selectLabel} htmlFor="status-select">
                 Status <span className={styles.required}>*</span>
               </label>
               <select
+                id="status-select"
                 className={styles.select}
                 {...register('status', { required: 'Status is required' })}
               >
@@ -180,10 +182,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
           <div className={styles.row}>
             <div className={styles.selectContainer}>
-              <label className={styles.selectLabel}>
+              <label className={styles.selectLabel} htmlFor="project-select">
                 Project <span className={styles.required}>*</span>
               </label>
               <select
+                id="project-select"
                 className={styles.select}
                 {...register('project', { required: 'Project is required' })}
                 disabled={isEditing}
@@ -208,10 +211,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
             </div>
 
             <div className={styles.selectContainer}>
-              <label className={styles.selectLabel}>
+              <label className={styles.selectLabel} htmlFor="assignee-select">
                 Assign To <span className={styles.required}>*</span>
               </label>
               <select
+                id="assignee-select"
                 className={styles.select}
                 multiple // Enable multiple selection
                 size="5" // Show 5 options at once

@@ -12,27 +12,14 @@ describe('Subtask Service', () => {
   let mockSubtaskId;
 
   beforeEach(async () => {
-    // Clear the database before each test
     await Subtask.deleteMany({});
     await Task.deleteMany({});
     await Project.deleteMany({});
 
-    // Create mock IDs
-    mockTaskId = new mongoose.Types.ObjectId();
-    mockProjectId = new mongoose.Types.ObjectId();
+    // Create owner ID
     mockOwnerId = new mongoose.Types.ObjectId();
 
-    // Create a mock task
-    const mockTask = new Task({
-      title: 'Test Task',
-      project: mockProjectId,
-      owner: mockOwnerId,
-      status: 'To Do'
-    });
-    await mockTask.save();
-    mockTaskId = mockTask._id;
-
-    // Create a mock project
+    // ✅ Create project FIRST
     const mockProject = new Project({
       name: 'Test Project',
       description: 'Test Description',
@@ -40,7 +27,17 @@ describe('Subtask Service', () => {
       status: 'Active'
     });
     await mockProject.save();
-    mockProjectId = mockProject._id;
+    mockProjectId = mockProject._id;  // Get the REAL project ID
+
+    // ✅ Create task SECOND using the REAL project ID
+    const mockTask = new Task({
+      title: 'Test Task',
+      project: mockProjectId,  // Now this is valid!
+      owner: mockOwnerId,
+      status: 'To Do'
+    });
+    await mockTask.save();
+    mockTaskId = mockTask._id;
   });
 
   afterEach(async () => {

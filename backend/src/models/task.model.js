@@ -67,6 +67,14 @@ const taskSchema = new Schema({
         validate: {
             validator: function(v) {
                 if (!v) return true;
+                
+                // Only validate if:
+                // 1. This is a new task (this.isNew), OR
+                // 2. The dueDate field is being modified
+                if (!this.isNew) {
+                    return true; // Skip validation entirely for existing tasks
+                }
+                
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const dueDate = new Date(v);
@@ -98,6 +106,25 @@ const taskSchema = new Schema({
             message: 'Recurrence interval must be a positive number for recurring tasks'
         }
     },
+    comments: [{
+        text: {
+            type: String,
+            required: true
+        },
+        author: {
+            type: Schema.Types.ObjectId,
+            ref: 'users',
+            required: true
+        },
+        authorName: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
     archived: {
         type: Boolean,
         default: false

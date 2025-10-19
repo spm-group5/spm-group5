@@ -1,0 +1,48 @@
+.page {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.action {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+}
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text-primary, #333);
+}
+
+.unreadCount {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+  font-weight: 600;
+}
+
+.action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

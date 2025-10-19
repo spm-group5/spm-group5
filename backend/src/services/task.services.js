@@ -313,7 +313,11 @@ class TaskService {
             assigneeId => assigneeId.toString() === userId.toString()
         );
 
-        if (!isOwner && !isAssignee) {
+        // Get user to check roles
+        const user = await User.findById(userId);
+        const isManagerOrAdmin = user && (user.roles.includes('manager') || user.roles.includes('admin'));
+
+        if (!isOwner && !isAssignee && !isManagerOrAdmin) {
             throw new Error('You do not have permission to archive this task');
         }
 
@@ -408,15 +412,12 @@ class TaskService {
             return [];
         }
 
-        // Check if user or department colleague is assigned to any task
-        const hasAccess = tasks.some(task => {
-            // Check if any assignee matches user ID or department
+        // Filter tasks to only include tasks that the user has access to
+        const departmentFilteredTasks = tasks.filter(task => {
             return task.assignee.some(assignee => {
-                // Direct assignment
                 if (assignee._id.toString() === userId.toString()) {
                     return true;
                 }
-                // Department colleague assignment
                 if (assignee.department && assignee.department === userDepartment) {
                     return true;
                 }
@@ -424,12 +425,12 @@ class TaskService {
             });
         });
 
-        if (!hasAccess) {
+        if (departmentFilteredTasks.length === 0) {
             throw new Error('Access denied to view tasks in this project');
         }
 
-        // User has access - return all tasks in the project
-        return tasks;
+        // Return tasks that the user has access to
+        return departmentFilteredTasks;
     }
 }
 

@@ -284,6 +284,38 @@ class ApiService {
         
         return { success: true, filename };
     }
+
+    // Notifications API
+    async getNotifications(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        const endpoint = query ? `/notifications?${query}` : '/notifications';
+        return this.request(endpoint);
+    }
+
+    async markNotificationRead(notificationId) {
+        return this.request(`/notifications/${notificationId}/read`, {
+            method: 'PATCH',
+        });
+    }
+
+    async markAllNotificationsRead() {
+        return this.request('/notifications/mark-all-read', {
+            method: 'PATCH',
+        });
+    }
+
+    async deleteNotification(notificationId) {
+        return this.request(`/notifications/${notificationId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async addTaskComment(taskId, text) {
+        return this.request(`/tasks/${taskId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ text })
+        });
+    }
 }
 
 export default new ApiService();
