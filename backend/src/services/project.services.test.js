@@ -43,55 +43,82 @@ describe('Project Service Test', () => {
     });
 
     describe('createProject', () => {
-        it('should create a project with valid data', async () => {
+        // Create project with name defaults to status "To Do" and owner=creator
+        it('should create a project with valid data and default status "To Do"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'New Project',
-                description: 'Project description'
+                description: 'Project description',
+                dueDate: futureDate
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
 
             expect(project.name).toBe('New Project');
             expect(project.description).toBe('Project description');
-            expect(project.status).toBe('Active');
+            expect(project.status).toBe('To Do'); // Default status
             expect(project.owner.toString()).toBe(testUser._id.toString());
             expect(project.members).toContain(testUser._id);
         });
 
-        it('should create project with only required fields', async () => {
+        // Create project with only required fields
+        it('should create project with only required fields (name and dueDate)', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: 'Simple Project'
+                name: 'Simple Project',
+                dueDate: futureDate
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
 
             expect(project.name).toBe('Simple Project');
             expect(project.description).toBe('');
-            expect(project.status).toBe('Active');
+            expect(project.status).toBe('To Do');
             expect(project.owner.toString()).toBe(testUser._id.toString());
+            expect(project.tags).toEqual([]); // Default empty array
         });
 
+        // Empty name shows error
         it('should throw error for empty project name', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: ''
+                name: '',
+                dueDate: futureDate
             };
 
             await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Project name is required');
+                .rejects.toThrow('Project title is required');
         });
 
+        // Missing name throws error
         it('should throw error for missing project name', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                description: 'Project without name'
+                description: 'Project without name',
+                dueDate: futureDate
             };
 
             await expect(projectService.createProject(projectData, testUser._id))
-                .rejects.toThrow('Project name is required');
+                .rejects.toThrow('Project title is required');
+        });
+
+        // Whitespace-only name throws error
+        it('should throw error for whitespace-only project name', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: '   ',
+                dueDate: futureDate
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Project title is required');
         });
 
         it('should trim whitespace from project name', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: '  Trimmed Project  '
+                name: '  Trimmed Project  ',
+                dueDate: futureDate
             };
 
             const project = await projectService.createProject(projectData, testUser._id);
@@ -99,9 +126,330 @@ describe('Project Service Test', () => {
             expect(project.name).toBe('Trimmed Project');
         });
 
+        // Valid priority (1-10) succeeds
+        it('should create project with valid priority 1', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Priority Project',
+                dueDate: futureDate,
+                priority: 1
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.priority).toBe(1);
+        });
+
+        it('should create project with valid priority 10', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Priority Project',
+                dueDate: futureDate,
+                priority: 10
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.priority).toBe(10);
+        });
+
+        it('should create project with valid priority 5', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Priority Project',
+                dueDate: futureDate,
+                priority: 5
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.priority).toBe(5);
+        });
+
+        // Invalid priority throws error
+        it('should throw error for priority below 1', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Invalid Priority Project',
+                dueDate: futureDate,
+                priority: 0
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Priority must be a number between 1 and 10');
+        });
+
+        it('should throw error for priority above 10', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Invalid Priority Project',
+                dueDate: futureDate,
+                priority: 11
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Priority must be a number between 1 and 10');
+        });
+
+        it('should throw error for negative priority', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Invalid Priority Project',
+                dueDate: futureDate,
+                priority: -5
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Priority must be a number between 1 and 10');
+        });
+
+        it('should throw error for priority as string', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Invalid Priority Project',
+                dueDate: futureDate,
+                priority: 'high'
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Priority must be a number between 1 and 10');
+        });
+
+        // Valid future dueDate succeeds
+        it('should create project with valid future dueDate', async () => {
+            const futureDate = new Date(Date.now() + 86400000); // Tomorrow
+            const projectData = {
+                name: 'Future Project',
+                dueDate: futureDate
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.dueDate).toBeInstanceOf(Date);
+        });
+
+        // Missing dueDate throws error
+        it('should throw error when dueDate is missing', async () => {
+            const projectData = {
+                name: 'No DueDate Project'
+                // dueDate missing
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Due date is required');
+        });
+
+        it('should throw error when dueDate is null', async () => {
+            const projectData = {
+                name: 'Null DueDate Project',
+                dueDate: null
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Due date is required');
+        });
+
+        it('should throw error when dueDate is undefined', async () => {
+            const projectData = {
+                name: 'Undefined DueDate Project',
+                dueDate: undefined
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Due date is required');
+        });
+
+        // Past dueDate throws error
+        it('should throw error when dueDate is in the past', async () => {
+            const yesterday = new Date(Date.now() - 86400000);
+            const projectData = {
+                name: 'Past DueDate Project',
+                dueDate: yesterday
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Due date cannot be in the past');
+        });
+
+        // Today's date should succeed (boundary test)
+        it('should accept dueDate set to today', async () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const projectData = {
+                name: 'Today DueDate Project',
+                dueDate: today
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.dueDate).toBeInstanceOf(Date);
+        });
+
+        // Valid status values succeed
+        it('should create project with status "To Do"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'To Do Project',
+                dueDate: futureDate,
+                status: 'To Do'
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.status).toBe('To Do');
+        });
+
+        it('should create project with status "In Progress"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'In Progress Project',
+                dueDate: futureDate,
+                status: 'In Progress'
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.status).toBe('In Progress');
+        });
+
+        it('should create project with status "Completed"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Completed Project',
+                dueDate: futureDate,
+                status: 'Completed'
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.status).toBe('Completed');
+        });
+
+        it('should create project with status "Blocked"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Blocked Project',
+                dueDate: futureDate,
+                status: 'Blocked'
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.status).toBe('Blocked');
+        });
+
+        // Invalid status throws error
+        it('should throw error for invalid status value', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Invalid Status Project',
+                dueDate: futureDate,
+                status: 'InvalidStatus'
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Status must be one of: To Do, In Progress, Completed, Blocked');
+        });
+
+        it('should throw error for old status value "Active"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Old Status Project',
+                dueDate: futureDate,
+                status: 'Active'
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Status must be one of: To Do, In Progress, Completed, Blocked');
+        });
+
+        it('should throw error for old status value "Archived"', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Old Status Project',
+                dueDate: futureDate,
+                status: 'Archived'
+            };
+
+            await expect(projectService.createProject(projectData, testUser._id))
+                .rejects.toThrow('Status must be one of: To Do, In Progress, Completed, Blocked');
+        });
+
+        // Tags array succeeds
+        it('should create project with tags array', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Tagged Project',
+                dueDate: futureDate,
+                tags: ['frontend', 'urgent']
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.tags).toEqual(['frontend', 'urgent']);
+        });
+
+        // Project without tags field succeeds (defaults to empty array)
+        it('should create project without tags field (defaults to empty array)', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'No Tags Project',
+                dueDate: futureDate
+                // tags not specified
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.tags).toEqual([]);
+        });
+
+        // Empty tags array accepted
+        it('should accept empty tags array', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Empty Tags Project',
+                dueDate: futureDate,
+                tags: []
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            expect(project.tags).toEqual([]);
+        });
+
+        // Response contains all required fields
+        it('should return complete project object with all fields', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const projectData = {
+                name: 'Complete Project',
+                description: 'Full description',
+                dueDate: futureDate,
+                priority: 7,
+                status: 'In Progress',
+                tags: ['important', 'milestone']
+            };
+
+            const project = await projectService.createProject(projectData, testUser._id);
+
+            // Verify all fields are present
+            expect(project._id).toBeDefined();
+            expect(project.name).toBe('Complete Project');
+            expect(project.description).toBe('Full description');
+            expect(project.status).toBe('In Progress');
+            expect(project.priority).toBe(7);
+            expect(project.dueDate).toBeInstanceOf(Date);
+            expect(project.tags).toEqual(['important', 'milestone']);
+            expect(project.owner).toBeDefined();
+            expect(project.members).toBeDefined();
+            expect(project.createdAt).toBeInstanceOf(Date);
+            expect(project.updatedAt).toBeInstanceOf(Date);
+        });
+
         it('should create project with custom members', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Team Project',
+                dueDate: futureDate,
                 members: [testUser._id, otherUser._id]
             };
 
@@ -115,22 +463,26 @@ describe('Project Service Test', () => {
 
     describe('getProjects', () => {
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             // Create projects for different scenarios
             await Project.create([
                 {
                     name: 'User1 Owner Project',
                     owner: testUser._id,
-                    members: [testUser._id]
+                    members: [testUser._id],
+                    dueDate: futureDate
                 },
                 {
                     name: 'User1 Member Project',
                     owner: otherUser._id,
-                    members: [otherUser._id, testUser._id]
+                    members: [otherUser._id, testUser._id],
+                    dueDate: futureDate
                 },
                 {
                     name: 'Other User Project',
                     owner: otherUser._id,
-                    members: [otherUser._id]
+                    members: [otherUser._id],
+                    dueDate: futureDate
                 }
             ]);
         });
@@ -165,13 +517,15 @@ describe('Project Service Test', () => {
         });
 
         it('should sort projects by creation date (newest first)', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             // Wait a bit to ensure different timestamps
             await new Promise(resolve => setTimeout(resolve, 10));
 
             await Project.create({
                 name: 'Newest Project',
                 owner: testUser._id,
-                members: [testUser._id]
+                members: [testUser._id],
+                dueDate: futureDate
             });
 
             const projects = await projectService.getProjects(testUser._id);
@@ -184,11 +538,13 @@ describe('Project Service Test', () => {
         let testProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Test Project',
                 description: 'Test description',
                 owner: testUser._id,
-                members: [testUser._id]
+                members: [testUser._id],
+                dueDate: futureDate
             });
         });
 
@@ -224,11 +580,13 @@ describe('Project Service Test', () => {
         let testProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Original Project',
                 description: 'Original description',
                 owner: testUser._id,
-                members: [testUser._id]
+                members: [testUser._id],
+                dueDate: futureDate
             });
         });
 
@@ -397,11 +755,13 @@ describe('Project Service Test', () => {
         let testProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Project to Delete',
                 description: 'This will be deleted',
                 owner: testUser._id,
-                members: [testUser._id]
+                members: [testUser._id],
+                dueDate: futureDate
             });
         });
 

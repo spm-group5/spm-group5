@@ -36,10 +36,13 @@ describe('Task Service Test', () => {
             hashed_password: 'password123'
         });
 
+        const futureDate = new Date(Date.now() + 86400000);
         testProject = await Project.create({
             name: 'Test Project',
             description: 'Test project description',
-            owner: testUser._id
+            owner: testUser._id,
+            status: 'In Progress',
+            dueDate: futureDate
         });
     });
 
@@ -168,20 +171,80 @@ describe('Task Service Test', () => {
                 .rejects.toThrow('Selected project does not exist');
         });
 
-        it('should throw error for inactive project', async () => {
-            const inactiveProject = await Project.create({
-                name: 'Inactive Project',
+        // Test project status validation with new status enum values
+        it('should allow task creation in "To Do" project', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const todoProject = await Project.create({
+                name: 'To Do Project',
                 owner: testUser._id,
-                status: 'Completed'
+                status: 'To Do',
+                dueDate: futureDate
             });
 
             const taskData = {
-                title: 'Task',
-                project: inactiveProject._id
+                title: 'Task in To Do Project',
+                project: todoProject._id
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+            expect(task.title).toBe('Task in To Do Project');
+            expect(task.project.toString()).toBe(todoProject._id.toString());
+        });
+
+        it('should allow task creation in "In Progress" project', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const inProgressProject = await Project.create({
+                name: 'In Progress Project',
+                owner: testUser._id,
+                status: 'In Progress',
+                dueDate: futureDate
+            });
+
+            const taskData = {
+                title: 'Task in In Progress Project',
+                project: inProgressProject._id
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+            expect(task.title).toBe('Task in In Progress Project');
+            expect(task.project.toString()).toBe(inProgressProject._id.toString());
+        });
+
+        it('should allow task creation in "Blocked" project', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const blockedProject = await Project.create({
+                name: 'Blocked Project',
+                owner: testUser._id,
+                status: 'Blocked',
+                dueDate: futureDate
+            });
+
+            const taskData = {
+                title: 'Task in Blocked Project',
+                project: blockedProject._id
+            };
+
+            const task = await taskService.createTask(taskData, testUser._id);
+            expect(task.title).toBe('Task in Blocked Project');
+            expect(task.project.toString()).toBe(blockedProject._id.toString());
+        });
+
+        it('should throw error for tasks in "Completed" project', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
+            const completedProject = await Project.create({
+                name: 'Completed Project',
+                owner: testUser._id,
+                status: 'Completed',
+                dueDate: futureDate
+            });
+
+            const taskData = {
+                title: 'Task in Completed Project',
+                project: completedProject._id
             };
 
             await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Project must be Active');
+                .rejects.toThrow('Cannot assign tasks to completed projects');
         });
     });
 
