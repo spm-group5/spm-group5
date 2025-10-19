@@ -38,11 +38,9 @@ describe('Project Model Test', () => {
 
     describe('Project Creation', () => {
         it('should create project with required fields', async () => {
-            const futureDate = new Date(Date.now() + 86400000); // Tomorrow
             const projectData = {
                 name: 'Test Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -50,18 +48,16 @@ describe('Project Model Test', () => {
             expect(project.name).toBe('Test Project');
             expect(project.owner.toString()).toBe(testUser._id.toString());
             expect(project.status).toBe('To Do'); // Default status
-            expect(project.dueDate).toBeInstanceOf(Date);
+            expect(project.priority).toBe(5); // Default priority
             expect(project.createdAt).toBeDefined();
             expect(project.updatedAt).toBeDefined();
         });
 
         it('should create project with optional description', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Project with Description',
                 description: 'This is a test project description',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -72,17 +68,18 @@ describe('Project Model Test', () => {
         });
 
         it('should create project with default values', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Default Values Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
 
             expect(project.status).toBe('To Do'); // Default status
+            expect(project.priority).toBe(5); // Default priority
             expect(project.tags).toEqual([]); // Default empty tags array
+            expect(project.archived).toBe(false); // Default archived = false
+            expect(project.archivedAt).toBeNull(); // Default archivedAt = null
             expect(project.createdAt).toBeInstanceOf(Date);
             expect(project.updatedAt).toBeInstanceOf(Date);
         });
@@ -130,14 +127,12 @@ describe('Project Model Test', () => {
 
     describe('Project Status', () => {
         it('should accept valid status values', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const statusValues = ['To Do', 'In Progress', 'Completed', 'Blocked'];
 
             for (const status of statusValues) {
                 const projectData = {
                     name: `Project ${status}`,
                     owner: testUser._id,
-                    dueDate: futureDate,
                     status: status
                 };
 
@@ -147,11 +142,9 @@ describe('Project Model Test', () => {
         });
 
         it('should reject invalid status values', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Status Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 status: 'InvalidStatus'
             };
 
@@ -159,14 +152,12 @@ describe('Project Model Test', () => {
         });
 
         it('should reject old status values', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const oldStatusValues = ['Active', 'Archived'];
 
             for (const status of oldStatusValues) {
                 const projectData = {
                     name: `Old Status Project ${status}`,
                     owner: testUser._id,
-                    dueDate: futureDate,
                     status: status
                 };
 
@@ -175,11 +166,9 @@ describe('Project Model Test', () => {
         });
 
         it('should default to To Do status', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Default Status Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
                 // No status specified
             };
 
@@ -190,7 +179,6 @@ describe('Project Model Test', () => {
 
     describe('Project Name Validation', () => {
         it('should accept valid project names', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const validNames = [
                 'Simple Project',
                 'Project-With-Dashes',
@@ -203,8 +191,7 @@ describe('Project Model Test', () => {
             for (const name of validNames) {
                 const projectData = {
                     name: name,
-                    owner: testUser._id,
-                    dueDate: futureDate
+                    owner: testUser._id
                 };
 
                 const project = await Project.create(projectData);
@@ -213,11 +200,9 @@ describe('Project Model Test', () => {
         });
 
         it('should trim whitespace from project name', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: '  Trimmed Project Name  ',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -227,11 +212,9 @@ describe('Project Model Test', () => {
 
     describe('Project Timestamps', () => {
         it('should automatically set createdAt and updatedAt', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Timestamp Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -242,11 +225,9 @@ describe('Project Model Test', () => {
         });
 
         it('should update updatedAt when project is modified', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Update Test Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -264,11 +245,9 @@ describe('Project Model Test', () => {
 
     describe('Project Relationships', () => {
         it('should populate owner information', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Population Test Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             };
 
             const project = await Project.create(projectData);
@@ -281,18 +260,15 @@ describe('Project Model Test', () => {
 
     describe('Project Queries', () => {
         it('should find projects by owner', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             // Create multiple projects for the same owner
             await Project.create({
                 name: 'Project 1',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             });
 
             await Project.create({
                 name: 'Project 2',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
             });
 
             const projects = await Project.find({ owner: testUser._id });
@@ -302,19 +278,15 @@ describe('Project Model Test', () => {
         });
 
         it('should find projects by status', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
-
             await Project.create({
                 name: 'To Do Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 status: 'To Do'
             });
 
             await Project.create({
                 name: 'Completed Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 status: 'Completed'
             });
 
@@ -330,11 +302,9 @@ describe('Project Model Test', () => {
 
     describe('Project Priority Field', () => {
         it('should create project with valid priority between 1 and 10', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: 5
             };
 
@@ -343,11 +313,9 @@ describe('Project Model Test', () => {
         });
 
         it('should create project with priority 1 (minimum)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Min Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: 1
             };
 
@@ -356,11 +324,9 @@ describe('Project Model Test', () => {
         });
 
         it('should create project with priority 10 (maximum)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Max Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: 10
             };
 
@@ -368,25 +334,21 @@ describe('Project Model Test', () => {
             expect(project.priority).toBe(10);
         });
 
-        it('should create project without priority (optional field)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
+        it('should create project without priority (defaults to 5)', async () => {
             const projectData = {
                 name: 'No Priority Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
                 // priority not specified
             };
 
             const project = await Project.create(projectData);
-            expect(project.priority).toBeUndefined();
+            expect(project.priority).toBe(5); // Should default to 5
         });
 
         it('should reject project with priority below 1', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: 0
             };
 
@@ -394,11 +356,9 @@ describe('Project Model Test', () => {
         });
 
         it('should reject project with priority above 10', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Invalid Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: 11
             };
 
@@ -406,11 +366,9 @@ describe('Project Model Test', () => {
         });
 
         it('should reject project with negative priority', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Negative Priority Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 priority: -5
             };
 
@@ -432,44 +390,58 @@ describe('Project Model Test', () => {
             expect(project.dueDate.getTime()).toBe(futureDate.getTime());
         });
 
-        it('should fail to create project without dueDate (required field)', async () => {
+        it('should create project without dueDate (optional field)', async () => {
             const projectData = {
                 name: 'No Due Date Project',
                 owner: testUser._id
-                // dueDate missing
+                // dueDate not specified - should be optional
             };
 
-            await expect(Project.create(projectData)).rejects.toThrow();
+            const project = await Project.create(projectData);
+            expect(project.dueDate).toBeUndefined();
         });
 
-        it('should fail to create project with null dueDate', async () => {
+        it('should create project with null dueDate', async () => {
             const projectData = {
                 name: 'Null Due Date Project',
                 owner: testUser._id,
                 dueDate: null
             };
 
-            await expect(Project.create(projectData)).rejects.toThrow();
+            const project = await Project.create(projectData);
+            expect(project.dueDate).toBeNull();
         });
 
-        it('should fail to create project with undefined dueDate', async () => {
+        it('should fail to create project with past dueDate', async () => {
+            const pastDate = new Date(Date.now() - 86400000); // Yesterday
             const projectData = {
-                name: 'Undefined Due Date Project',
+                name: 'Past Due Date Project',
                 owner: testUser._id,
-                dueDate: undefined
+                dueDate: pastDate
             };
 
             await expect(Project.create(projectData)).rejects.toThrow();
+        });
+
+        it('should allow today as dueDate', async () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const projectData = {
+                name: 'Today Due Date Project',
+                owner: testUser._id,
+                dueDate: today
+            };
+
+            const project = await Project.create(projectData);
+            expect(project.dueDate).toBeInstanceOf(Date);
         });
     });
 
     describe('Project Tags Field', () => {
         it('should create project with tags array', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Tagged Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 tags: ['frontend', 'urgent', 'react']
             };
 
@@ -479,11 +451,9 @@ describe('Project Model Test', () => {
         });
 
         it('should create project without tags field (defaults to empty array)', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'No Tags Project',
-                owner: testUser._id,
-                dueDate: futureDate
+                owner: testUser._id
                 // tags not specified
             };
 
@@ -493,11 +463,9 @@ describe('Project Model Test', () => {
         });
 
         it('should create project with empty tags array', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Empty Tags Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 tags: []
             };
 
@@ -507,17 +475,77 @@ describe('Project Model Test', () => {
         });
 
         it('should create project with single tag', async () => {
-            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'Single Tag Project',
                 owner: testUser._id,
-                dueDate: futureDate,
                 tags: ['backend']
             };
 
             const project = await Project.create(projectData);
             expect(project.tags).toEqual(['backend']);
             expect(project.tags).toHaveLength(1);
+        });
+    });
+
+    describe('Project Archived Field', () => {
+        it('should create project with archived = false by default', async () => {
+            const projectData = {
+                name: 'Not Archived Project',
+                owner: testUser._id
+            };
+
+            const project = await Project.create(projectData);
+            expect(project.archived).toBe(false);
+            expect(project.archivedAt).toBeNull();
+        });
+
+        it('should create project with archived = true', async () => {
+            const projectData = {
+                name: 'Archived Project',
+                owner: testUser._id,
+                archived: true,
+                archivedAt: new Date()
+            };
+
+            const project = await Project.create(projectData);
+            expect(project.archived).toBe(true);
+            expect(project.archivedAt).toBeInstanceOf(Date);
+        });
+
+        it('should allow updating archived status', async () => {
+            const projectData = {
+                name: 'Archive Update Project',
+                owner: testUser._id
+            };
+
+            const project = await Project.create(projectData);
+            expect(project.archived).toBe(false);
+
+            project.archived = true;
+            project.archivedAt = new Date();
+            await project.save();
+
+            expect(project.archived).toBe(true);
+            expect(project.archivedAt).toBeInstanceOf(Date);
+        });
+
+        it('should allow unarchiving project', async () => {
+            const projectData = {
+                name: 'Unarchive Project',
+                owner: testUser._id,
+                archived: true,
+                archivedAt: new Date()
+            };
+
+            const project = await Project.create(projectData);
+            expect(project.archived).toBe(true);
+
+            project.archived = false;
+            project.archivedAt = null;
+            await project.save();
+
+            expect(project.archived).toBe(false);
+            expect(project.archivedAt).toBeNull();
         });
     });
 
@@ -531,7 +559,8 @@ describe('Project Model Test', () => {
                 status: 'In Progress',
                 priority: 7,
                 dueDate: futureDate,
-                tags: ['important', 'milestone']
+                tags: ['important', 'milestone'],
+                archived: false
             };
 
             const project = await Project.create(projectData);
@@ -543,6 +572,8 @@ describe('Project Model Test', () => {
             expect(project.priority).toBe(7);
             expect(project.dueDate).toBeInstanceOf(Date);
             expect(project.tags).toEqual(['important', 'milestone']);
+            expect(project.archived).toBe(false);
+            expect(project.archivedAt).toBeNull();
             expect(project.createdAt).toBeInstanceOf(Date);
             expect(project.updatedAt).toBeInstanceOf(Date);
         });
