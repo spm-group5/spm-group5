@@ -411,7 +411,7 @@ describe('Project Router Test', () => {
         beforeEach(async () => {
             // Clean up
             await Project.deleteMany({});
-            await User.deleteMany({ username: { $ne: 'projectuser@example.com', $ne: 'otheruser@example.com' } });
+            await User.deleteMany({ username: { $nin: ['projectuser@example.com', 'otheruser@example.com'] } });
 
             // Import Task model and clean
             const TaskModel = await Task;
