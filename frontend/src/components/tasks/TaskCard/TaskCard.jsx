@@ -23,7 +23,6 @@ function TaskCard({
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState(null);
-  const [subtaskToArchive, setSubtaskToArchive] = useState(null);
   
   const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();

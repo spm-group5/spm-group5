@@ -7,8 +7,6 @@ import styles from './SubtaskList.module.css';
 
 const SubtaskList = ({ 
   parentTaskId, 
-  projectId, 
-  ownerId,
   onShowSubtaskForm,
   onArchiveSubtask,
   onUnarchiveSubtask
@@ -16,8 +14,6 @@ const SubtaskList = ({
   const { 
     subtasks, 
     fetchSubtasksByParentTask, 
-    archiveSubtask,
-    unarchiveSubtask,
     loading 
   } = useSubtasks();
 
@@ -63,7 +59,7 @@ const SubtaskList = ({
     };
 
     activeSubtasks.forEach(subtask => {
-      if (stats.hasOwnProperty(subtask.status)) {
+      if (Object.prototype.hasOwnProperty.call(stats, subtask.status)) {
         stats[subtask.status]++;
       }
     });

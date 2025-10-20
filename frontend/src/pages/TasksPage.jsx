@@ -150,10 +150,11 @@ function TasksPage() {
           // Most recent first
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
 
-        case 'project':
+        case 'project': {
           const projectA = typeof a.project === 'object' ? (a.project?.name || '') : (a.project || '');
           const projectB = typeof b.project === 'object' ? (b.project?.name || '') : (b.project || '');
           return projectA.localeCompare(projectB);
+        }
 
         default:
           return 0;
