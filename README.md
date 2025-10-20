@@ -136,10 +136,36 @@ Frontend: `frontend/.env`
 
 ## Contributing
 
-Create feature branches from `main`
-Follow the guidelines in individual README files
-Test both frontend and backend before creating pull requests
-Update documentation for new features
+### Before Committing
+
+**Always run the pre-commit check script to ensure your code passes CI:**
+
+```bash
+# macOS/Linux
+./scripts/check.sh
+
+# Windows
+scripts\check.bat
+
+# Cross-platform (Node.js)
+node scripts/check.js
+```
+
+This will:
+- ✅ Lint frontend code
+- ✅ Lint backend code  
+- ✅ Run backend tests
+- ✅ Check git status
+
+See **[scripts/README.md](scripts/README.md)** for complete guide with quick reference and troubleshooting.
+
+### Contribution Guidelines
+
+- Create feature branches from `main`
+- Follow the guidelines in individual README files
+- Run pre-commit checks before pushing
+- Test both frontend and backend before creating pull requests
+- Update documentation for new features
 
 ## Getting Help
 
