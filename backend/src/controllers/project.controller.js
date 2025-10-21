@@ -17,7 +17,7 @@ class ProjectController {
      * - archived: Optional boolean flag (defaults to false)
      *
      * Response:
-     * - 201 Created: Project created successfully with complete project object
+     * - 201 Created: Project created successfully with complete project object and canViewTasks flag
      * - 400 Bad Request: Validation error (empty name, invalid priority, past due date, etc.)
      *
      * @param {Object} req - Express request object
@@ -28,10 +28,15 @@ class ProjectController {
             const userId = req.user._id;
             const project = await projectService.createProject(req.body, userId);
 
+            // Convert to object and add canViewTasks flag
+            // The creator is always the owner, so they can always view tasks in their project
+            const projectObj = project.toObject ? project.toObject() : project;
+            projectObj.canViewTasks = true;
+
             res.status(201).json({
                 success: true,
                 message: 'Project created successfully',
-                data: project
+                data: projectObj
             });
         } catch (error) {
             res.status(400).json({
@@ -80,17 +85,24 @@ class ProjectController {
         try {
             const { projectId } = req.params;
             const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0]; // Get first role
 
-            const updatedProject = await projectService.updateProject(projectId, req.body, userId);
+            const updatedProject = await projectService.updateProject(projectId, req.body, userId, userRole);
+
+            // Convert to object and add canViewTasks flag
+            // Since only the owner can update a project, they can always view tasks
+            const projectObj = updatedProject.toObject ? updatedProject.toObject() : updatedProject;
+            projectObj.canViewTasks = true;
 
             res.status(200).json({
                 success: true,
                 message: 'Project updated successfully',
-                data: updatedProject
+                data: projectObj
             });
         } catch (error) {
             const statusCode = error.message.includes('permission') ||
-                             error.message.includes('owner') ? 403 : 400;
+                             error.message.includes('owner') ||
+                             error.message.includes('admin') ? 403 : 400;
             res.status(statusCode).json({
                 success: false,
                 message: error.message

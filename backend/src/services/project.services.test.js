@@ -22,6 +22,7 @@ afterAll(async () => {
 describe('Project Service Test', () => {
     let testUser;
     let otherUser;
+    let adminUser;
 
     beforeEach(async () => {
         await Project.deleteMany({});
@@ -39,6 +40,13 @@ describe('Project Service Test', () => {
             roles: ['staff'],
             department: 'hr',
             hashed_password: 'password456'
+        });
+
+        adminUser = await User.create({
+            username: 'admin@example.com',
+            roles: ['admin'],
+            department: 'it',
+            hashed_password: 'adminpass123'
         });
     });
 
@@ -575,7 +583,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.name).toBe('Updated Project Name');
@@ -590,7 +599,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.description).toBe('Updated description');
@@ -605,7 +615,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.status).toBe('Completed');
@@ -619,7 +630,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.members).toHaveLength(2);
@@ -637,7 +649,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.name).toBe('Completely Updated Project');
@@ -653,7 +666,8 @@ describe('Project Service Test', () => {
             await expect(projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             )).rejects.toThrow('Project name cannot be empty');
         });
 
@@ -665,7 +679,8 @@ describe('Project Service Test', () => {
             await expect(projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             )).rejects.toThrow('Project name cannot be empty');
         });
 
@@ -677,8 +692,25 @@ describe('Project Service Test', () => {
             await expect(projectService.updateProject(
                 testProject._id,
                 updateData,
-                otherUser._id
-            )).rejects.toThrow('Only project owner can update the project');
+                otherUser._id,
+                'staff'
+            )).rejects.toThrow('Only project owner or admin can update the project');
+        });
+
+        it('should allow admin to update any project', async () => {
+            const updateData = {
+                name: 'Admin Updated Project'
+            };
+
+            const updatedProject = await projectService.updateProject(
+                testProject._id,
+                updateData,
+                adminUser._id,
+                'admin'
+            );
+
+            expect(updatedProject.name).toBe('Admin Updated Project');
+            expect(updatedProject.owner.toString()).toBe(testUser._id.toString()); // Owner unchanged
         });
 
         it('should throw error for non-existent project', async () => {
@@ -690,7 +722,8 @@ describe('Project Service Test', () => {
             await expect(projectService.updateProject(
                 fakeId,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             )).rejects.toThrow('Project not found');
         });
 
@@ -702,7 +735,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.name).toBe('Trimmed Updated Name');
@@ -710,7 +744,7 @@ describe('Project Service Test', () => {
 
         it('should update updatedAt timestamp', async () => {
             const originalUpdatedAt = testProject.updatedAt;
-            
+
             // Wait a bit to ensure different timestamp
             await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -721,7 +755,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
@@ -816,7 +851,8 @@ describe('Project Service Test', () => {
             const updatedProject = await projectService.updateProject(
                 testProject._id,
                 updateData,
-                testUser._id
+                testUser._id,
+                'staff'
             );
 
             expect(updatedProject.name).toBe('Updated Project');
@@ -835,8 +871,8 @@ describe('Project Service Test', () => {
 
             // Simulate concurrent updates
             const [result1, result2] = await Promise.all([
-                projectService.updateProject(testProject._id, updateData1, testUser._id),
-                projectService.updateProject(testProject._id, updateData2, testUser._id)
+                projectService.updateProject(testProject._id, updateData1, testUser._id, 'staff'),
+                projectService.updateProject(testProject._id, updateData2, testUser._id, 'staff')
             ]);
 
             // Both updates should succeed
@@ -1022,10 +1058,10 @@ describe('Project Service Test', () => {
                     'engineering'
                 );
 
-                // Assert: Project Delta should have canViewTasks: false (no tasks exist)
+                // Assert: Project Delta should have canViewTasks: true (staff123 is the owner, even with no tasks)
                 const projectDelta = projects.find(p => p.name === 'Project Delta');
                 expect(projectDelta).toBeDefined();
-                expect(projectDelta.canViewTasks).toBe(false);
+                expect(projectDelta.canViewTasks).toBe(true); // Owner can always view tasks in their project
             });
 
             it('should add canViewTasks: true for ALL projects when user is admin', async () => {
@@ -1163,9 +1199,9 @@ describe('Project Service Test', () => {
                 expect(gamma).toBeDefined();
                 expect(gamma.canViewTasks).toBe(true);
 
-                // Project Delta: no tasks
+                // Project Delta: no tasks, but staff123 is the owner
                 expect(delta).toBeDefined();
-                expect(delta.canViewTasks).toBe(false);
+                expect(delta.canViewTasks).toBe(true); // Owner can always view tasks
 
                 // Project Alpha might not be in results if staff123 isn't a member
             });

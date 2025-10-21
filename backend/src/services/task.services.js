@@ -397,6 +397,13 @@ class TaskService {
                 .populate('assignee', 'username department');
         }
 
+        // Project owner can always view tasks in their own project
+        if (project.owner?._id?.toString() === userId?.toString()) {
+            return await Task.find({ project: projectId })
+                .populate('owner', 'username department')
+                .populate('assignee', 'username department');
+        }
+
         // Staff and Manager authorization logic
         // Both roles require department-based access
         // Staff/Manager with null/undefined department cannot access

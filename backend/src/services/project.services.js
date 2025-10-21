@@ -118,7 +118,7 @@ class ProjectService {
      * Purpose: Update project fields with validation and cascade archive to tasks
      *
      * Validation Rules:
-     * - Only project owner can update the project
+     * - Only project owner or admin can update the project
      * - Name: Cannot be empty if provided
      * - Due Date: Cannot be in the past if provided
      * - Priority: Must be 1-10 if provided
@@ -131,18 +131,23 @@ class ProjectService {
      * @param {String} projectId - ID of the project to update
      * @param {Object} updateData - Fields to update (including archived field)
      * @param {String} userId - ID of the user updating the project
+     * @param {String} userRole - Role of the user updating the project (for admin authorization)
      * @returns {Promise<Object>} Updated project object
      * @throws {Error} If validation fails or user lacks permission
      */
-    async updateProject(projectId, updateData, userId) {
+    async updateProject(projectId, updateData, userId, userRole) {
         const project = await Project.findById(projectId);
 
         if (!project) {
             throw new Error('Project not found');
         }
 
-        if (project.owner.toString() !== userId.toString()) {
-            throw new Error('Only project owner can update the project');
+        // Check authorization: owner or admin can update
+        const isOwner = project.owner.toString() === userId.toString();
+        const isAdmin = userRole === 'admin';
+
+        if (!isOwner && !isAdmin) {
+            throw new Error('Only project owner or admin can update the project');
         }
 
         // Validate name if provided
@@ -269,7 +274,8 @@ class ProjectService {
      * The canViewTasks flag indicates whether the user can view tasks in each project
      * Based on authorization rules:
      * - Admin: can view all tasks (canViewTasks: true for all projects)
-     * - Staff: can view tasks if they or a department colleague is assigned
+     * - Project Owner: can always view tasks in their own project (canViewTasks: true)
+     * - Staff/Manager: can view tasks if they or a department colleague is assigned
      */
     async getProjectsWithAccessMetadata(userId, userRole, userDepartment) {
         // Import Task model dynamically to avoid circular dependency
@@ -283,13 +289,38 @@ class ProjectService {
             .select('name description status priority dueDate tags archived archivedAt owner members createdAt updatedAt')
             .sort({ createdAt: -1 });
 
+        // Normalize userId to string for consistent comparison
+        const userIdString = userId.toString();
+
         // Add canViewTasks metadata to each project
         const projectsWithMetadata = await Promise.all(
             projects.map(async (project) => {
                 const projectObj = project.toObject();
 
-                // Admin can view all tasks
+                // Admin can view all tasks in all projects
                 if (userRole === 'admin') {
+                    projectObj.canViewTasks = true;
+                    return projectObj;
+                }
+
+                // Project owner can always view tasks in their own project
+                // This applies to all roles (manager, staff, etc.) who own a project
+                // Handle all possible owner ID formats (populated object, ObjectId, string, etc.)
+                let ownerIdString = null;
+                if (projectObj.owner) {
+                    if (projectObj.owner._id) {
+                        // Case 1: Populated object after toObject() {_id, username}
+                        ownerIdString = projectObj.owner._id.toString();
+                    } else if (typeof projectObj.owner === 'object' && projectObj.owner.$oid) {
+                        // Case 2: Extended JSON format {$oid: "..."}
+                        ownerIdString = projectObj.owner.$oid;
+                    } else {
+                        // Case 3: Direct ObjectId or string
+                        ownerIdString = projectObj.owner.toString();
+                    }
+                }
+
+                if (ownerIdString && ownerIdString === userIdString) {
                     projectObj.canViewTasks = true;
                     return projectObj;
                 }
@@ -299,7 +330,7 @@ class ProjectService {
                 const tasks = await Task.find({ project: project._id })
                     .populate('assignee', 'username department');
 
-                // If no tasks exist, canViewTasks is false
+                // If no tasks exist, non-owners cannot view tasks
                 if (tasks.length === 0) {
                     projectObj.canViewTasks = false;
                     return projectObj;
@@ -309,7 +340,7 @@ class ProjectService {
                 const hasAccess = tasks.some(task => {
                     return task.assignee.some(assignee => {
                         // Direct assignment
-                        if (assignee._id.toString() === userId.toString()) {
+                        if (assignee._id.toString() === userIdString) {
                             return true;
                         }
                         // Department colleague assignment

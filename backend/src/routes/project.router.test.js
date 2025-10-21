@@ -306,7 +306,7 @@ describe('Project Router Test', () => {
                 .expect(403);
 
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Only project owner can update');
+            expect(response.body.message).toContain('Only project owner or admin can update');
         });
 
         it('should return 400 for non-existent project', async () => {
@@ -713,10 +713,10 @@ describe('Project Router Test', () => {
                         .get('/api/projects')
                         .expect(200);
 
-                    // Assert: Project Delta should have canViewTasks: false
+                    // Assert: Project Delta should have canViewTasks: true (currentUser is the owner)
                     const projectDelta = response.body.data.find(p => p.name === 'Project Delta');
                     expect(projectDelta).toBeDefined();
-                    expect(projectDelta.canViewTasks).toBe(false);
+                    expect(projectDelta.canViewTasks).toBe(true); // Owner can always view tasks
                 });
 
                 it('should add canViewTasks: true for ALL projects when user is admin', async () => {
@@ -862,9 +862,9 @@ describe('Project Router Test', () => {
                     expect(gamma).toBeDefined();
                     expect(gamma.canViewTasks).toBe(true);
 
-                    // Project Delta: no tasks
+                    // Project Delta: no tasks, but currentUser is the owner
                     expect(delta).toBeDefined();
-                    expect(delta.canViewTasks).toBe(false);
+                    expect(delta.canViewTasks).toBe(true); // Owner can always view tasks
                 });
             });
         });

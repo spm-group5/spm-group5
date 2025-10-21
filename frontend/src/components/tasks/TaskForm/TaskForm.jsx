@@ -190,7 +190,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
               >
                 <option value="">Select Project</option>
                 {projects
-                  .filter(project => project.status === 'Active')
+                  .filter(project => !project.archived && ['To Do', 'In Progress'].includes(project.status))
                   .map((project) => (
                     <option key={project._id} value={project._id}>
                       {project.name}

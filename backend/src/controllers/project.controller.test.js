@@ -394,11 +394,12 @@ describe('Project Controller Test', () => {
             };
             req.params = { projectId: 'projectId123' };
             req.body = { name: 'Updated Project', description: 'Updated description' };
+            req.user.roles = ['staff']; // Add roles to user
             projectService.updateProject.mockResolvedValue(mockUpdatedProject);
 
             await projectController.updateProject(req, res);
 
-            expect(projectService.updateProject).toHaveBeenCalledWith('projectId123', req.body, 'userId123');
+            expect(projectService.updateProject).toHaveBeenCalledWith('projectId123', req.body, 'userId123', 'staff');
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({
                 success: true,

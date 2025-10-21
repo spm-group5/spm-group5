@@ -22,20 +22,28 @@ import Button from '../../common/Button/Button';
 import Card from '../../common/Card/Card';
 import styles from './ProjectCard.module.css';
 
-function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
+function ProjectCard({ project, canViewTasks = true, onEdit, onArchive, onUnarchive }) {
   const navigate = useNavigate();
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'Active':
-        return styles.statusActive;
+      case 'To Do':
+        return styles.statusToDo;
+      case 'In Progress':
+        return styles.statusInProgress;
       case 'Completed':
         return styles.statusCompleted;
-      case 'Archived':
-        return styles.statusArchived;
+      case 'Blocked':
+        return styles.statusBlocked;
       default:
-        return styles.statusActive;
+        return styles.statusToDo;
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const handleCardClick = (e) => {
@@ -69,9 +77,16 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
       <Card.Body>
         <div className={styles.header}>
           <h3 className={styles.title}>{project.name}</h3>
-          <span className={`${styles.statusBadge} ${getStatusBadgeClass(project.status)}`}>
-            {project.status}
-          </span>
+          <div className={styles.badges}>
+            <span className={`${styles.statusBadge} ${getStatusBadgeClass(project.status)}`}>
+              {project.status}
+            </span>
+            {project.archived && (
+              <span className={styles.archivedBadge}>
+                Archived
+              </span>
+            )}
+          </div>
         </div>
 
         {project.description && (
@@ -79,15 +94,39 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
         )}
 
         <div className={styles.metadata}>
+          {project.priority && (
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Priority:</span>
+              <span className={`${styles.priorityBadge} ${styles['priority' + project.priority]}`}>
+                {project.priority}
+              </span>
+            </div>
+          )}
+          {project.dueDate && (
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Due:</span>
+              <span className={styles.metaValue}>{formatDate(project.dueDate)}</span>
+            </div>
+          )}
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Members:</span>
             <span className={styles.metaValue}>{project.members?.length || 0}</span>
           </div>
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Owner:</span>
-            <span className={styles.metaValue}>{project.owner?.name || project.owner?.email || 'Unknown'}</span>
+            <span className={styles.metaValue}>{project.owner?.username || project.owner?.email || 'Unknown'}</span>
           </div>
         </div>
+
+        {project.tags && project.tags.length > 0 && (
+          <div className={styles.tags}>
+            {project.tags.map((tag, index) => (
+              <span key={index} className={styles.tag}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {!canViewTasks && (
           <div className={styles.accessMessage}>
@@ -96,12 +135,18 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
         )}
 
         <div className={styles.actions}>
-          <Button variant="secondary" size="small" onClick={() => onEdit(project)}>
+          <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onEdit(project); }}>
             Edit
           </Button>
-          <Button variant="danger" size="small" onClick={() => onDelete(project._id)}>
-            Delete
-          </Button>
+          {!project.archived ? (
+            <Button variant="warning" size="small" onClick={(e) => { e.stopPropagation(); onArchive(project._id); }}>
+              Archive
+            </Button>
+          ) : (
+            <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onUnarchive(project._id); }}>
+              Unarchive
+            </Button>
+          )}
         </div>
       </Card.Body>
     </Card>
