@@ -154,9 +154,9 @@ module "vpc" {
   name = "${var.project_name}-${var.environment}"
   cidr = var.vpc_cidr
 
-  azs             = slice(data.aws_availability_zones.available.names, 0, 1)
-  private_subnets = ["10.0.1.0/24"]
-  public_subnets  = ["10.0.101.0/24"]
+  azs             = slice(data.aws_availability_zones.available.names, 0, 2)
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
   enable_nat_gateway = false
   enable_vpn_gateway = false
@@ -183,38 +183,3 @@ module "nat_instance" {
   }
   eip_allocation_ids = []
 }
-
-# module "ec2_instance" {
-#   source  = "./modules/ec2"
-
-#   name = "spm-g4t5-backend-instance"
-
-#   instance_type = "t3.micro"
-#   key_name      = "user1"
-#   monitoring    = true
-#   subnet_id     = "subnet-eddcdzz4"
-#   create_elastic
-
-#   tags = {
-#     Terraform   = "true"
-#     Environment = "dev"
-#   }
-# }
-
-# Uncomment when ready to deploy backend
-# module "backend" {
-#   source = "./modules/backend"
-#   
-#   project_name    = var.project_name
-#   environment     = var.environment
-#   vpc_id          = module.vpc.vpc_id
-#   private_subnets = module.vpc.private_subnets
-#   public_subnets  = module.vpc.public_subnets
-#   key_pair_name   = var.key_pair_name
-#   instance_type   = var.backend_instance_type
-#   
-#   db_instance_class = var.db_instance_class
-#   db_name           = var.db_name
-#   db_username       = var.db_username
-#   db_password       = var.db_password
-# }
