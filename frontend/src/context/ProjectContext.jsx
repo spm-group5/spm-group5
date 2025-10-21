@@ -65,6 +65,40 @@ export function ProjectProvider({ children }) {
     }
   };
 
+  const archiveProject = async (projectId) => {
+    try {
+      setError(null);
+      const response = await apiService.archiveProject(projectId);
+      const archivedProject = response.data || response;
+      setProjects(prevProjects =>
+        prevProjects.map(project =>
+          project._id === projectId ? archivedProject : project
+        )
+      );
+      return { success: true, data: archivedProject };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const unarchiveProject = async (projectId) => {
+    try {
+      setError(null);
+      const response = await apiService.unarchiveProject(projectId);
+      const unarchivedProject = response.data || response;
+      setProjects(prevProjects =>
+        prevProjects.map(project =>
+          project._id === projectId ? unarchivedProject : project
+        )
+      );
+      return { success: true, data: unarchivedProject };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
   const getProjectById = async (projectId) => {
     try {
       setError(null);
@@ -84,6 +118,8 @@ export function ProjectProvider({ children }) {
     createProject,
     updateProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
     getProjectById,
   };
 

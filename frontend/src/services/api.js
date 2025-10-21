@@ -215,6 +215,20 @@ class ApiService {
         });
     }
 
+    async archiveProject(projectId) {
+        return this.request(`/projects/${projectId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ archived: true }),
+        });
+    }
+
+    async unarchiveProject(projectId) {
+        return this.request(`/projects/${projectId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ archived: false }),
+        });
+    }
+
     // Admin-only Methods for Reports
     async getAllUsers() {
         return this.request('/users');
