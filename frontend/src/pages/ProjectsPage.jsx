@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useProjects } from '../context/ProjectContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header/Header';
 import Button from '../components/common/Button/Button';
 import Spinner from '../components/common/Spinner/Spinner';
@@ -9,6 +10,7 @@ import styles from './ProjectsPage.module.css';
 
 function ProjectsPage() {
   const { projects, loading, error, fetchProjects, createProject, updateProject, archiveProject, unarchiveProject } = useProjects();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [sortBy, setSortBy] = useState('dateCreated');
@@ -281,6 +283,7 @@ function ProjectsPage() {
                     key={project._id}
                     project={project}
                     canViewTasks={project.canViewTasks}
+                    currentUser={user}
                     onEdit={handleEditProject}
                     onArchive={handleArchiveProject}
                     onUnarchive={handleUnarchiveProject}

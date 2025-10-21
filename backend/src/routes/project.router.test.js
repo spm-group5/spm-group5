@@ -306,7 +306,7 @@ describe('Project Router Test', () => {
                 .expect(403);
 
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Only project owner or admin can update');
+            expect(response.body.message).toContain('You do not have permission to update this project');
         });
 
         it('should return 400 for non-existent project', async () => {

@@ -584,7 +584,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.name).toBe('Updated Project Name');
@@ -600,7 +601,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.description).toBe('Updated description');
@@ -616,7 +618,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.status).toBe('Completed');
@@ -631,7 +634,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.members).toHaveLength(2);
@@ -650,7 +654,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.name).toBe('Completely Updated Project');
@@ -667,7 +672,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             )).rejects.toThrow('Project name cannot be empty');
         });
 
@@ -680,7 +686,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             )).rejects.toThrow('Project name cannot be empty');
         });
 
@@ -693,8 +700,9 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 otherUser._id,
-                'staff'
-            )).rejects.toThrow('Only project owner or admin can update the project');
+                'staff',
+                'engineering'
+            )).rejects.toThrow('You do not have permission to update this project');
         });
 
         it('should allow admin to update any project', async () => {
@@ -706,7 +714,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 adminUser._id,
-                'admin'
+                'admin',
+                'managing director'
             );
 
             expect(updatedProject.name).toBe('Admin Updated Project');
@@ -723,7 +732,8 @@ describe('Project Service Test', () => {
                 fakeId,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             )).rejects.toThrow('Project not found');
         });
 
@@ -736,7 +746,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.name).toBe('Trimmed Updated Name');
@@ -756,7 +767,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
@@ -852,7 +864,8 @@ describe('Project Service Test', () => {
                 testProject._id,
                 updateData,
                 testUser._id,
-                'staff'
+                'staff',
+                'engineering'
             );
 
             expect(updatedProject.name).toBe('Updated Project');
@@ -871,8 +884,8 @@ describe('Project Service Test', () => {
 
             // Simulate concurrent updates
             const [result1, result2] = await Promise.all([
-                projectService.updateProject(testProject._id, updateData1, testUser._id, 'staff'),
-                projectService.updateProject(testProject._id, updateData2, testUser._id, 'staff')
+                projectService.updateProject(testProject._id, updateData1, testUser._id, 'staff', 'engineering'),
+                projectService.updateProject(testProject._id, updateData2, testUser._id, 'staff', 'engineering')
             ]);
 
             // Both updates should succeed

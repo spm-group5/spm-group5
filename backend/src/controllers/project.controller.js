@@ -86,11 +86,12 @@ class ProjectController {
             const { projectId } = req.params;
             const userId = req.user._id;
             const userRole = req.user.roles && req.user.roles[0]; // Get first role
+            const userDepartment = req.user.department;
 
-            const updatedProject = await projectService.updateProject(projectId, req.body, userId, userRole);
+            const updatedProject = await projectService.updateProject(projectId, req.body, userId, userRole, userDepartment);
 
             // Convert to object and add canViewTasks flag
-            // Since only the owner can update a project, they can always view tasks
+            // User can view tasks if they updated successfully
             const projectObj = updatedProject.toObject ? updatedProject.toObject() : updatedProject;
             projectObj.canViewTasks = true;
 

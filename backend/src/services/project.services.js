@@ -135,19 +135,47 @@ class ProjectService {
      * @returns {Promise<Object>} Updated project object
      * @throws {Error} If validation fails or user lacks permission
      */
-    async updateProject(projectId, updateData, userId, userRole) {
+    async updateProject(projectId, updateData, userId, userRole, userDepartment) {
         const project = await Project.findById(projectId);
 
         if (!project) {
             throw new Error('Project not found');
         }
 
-        // Check authorization: owner or admin can update
+        // Check authorization for general updates
         const isOwner = project.owner.toString() === userId.toString();
         const isAdmin = userRole === 'admin';
 
-        if (!isOwner && !isAdmin) {
-            throw new Error('Only project owner or admin can update the project');
+        // Check if manager has task access (can update if they have task access)
+        let isManagerWithAccess = false;
+        if (userRole === 'manager') {
+            const Task = (await import('../models/task.model.js')).default;
+            const tasks = await Task.find({ project: project._id })
+                .populate('assignee', 'username department');
+
+            if (tasks.length > 0) {
+                const hasAccess = tasks.some(task => {
+                    return task.assignee.some(assignee => {
+                        // Direct assignment or department colleague
+                        return assignee._id.toString() === userId.toString() ||
+                               (userDepartment && assignee.department === userDepartment);
+                    });
+                });
+                isManagerWithAccess = hasAccess;
+            }
+        }
+
+        // Can update project fields if: owner, admin, or manager with task access
+        const canUpdateProject = isOwner || isAdmin || isManagerWithAccess;
+        if (!canUpdateProject) {
+            throw new Error('You do not have permission to update this project');
+        }
+
+        // Archive/unarchive is ADMIN-ONLY
+        if (updateData.archived !== undefined) {
+            if (!isAdmin) {
+                throw new Error('Only admins can archive or unarchive projects');
+            }
         }
 
         // Validate name if provided
