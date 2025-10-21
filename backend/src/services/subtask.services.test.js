@@ -24,7 +24,7 @@ describe('Subtask Service', () => {
       name: 'Test Project',
       description: 'Test Description',
       owner: mockOwnerId,
-      status: 'Active'
+      status: 'To Do'
     });
     await mockProject.save();
     mockProjectId = mockProject._id;  // Get the REAL project ID

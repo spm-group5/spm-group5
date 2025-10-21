@@ -1,20 +1,24 @@
 /**
  * Component: ProjectCard
  *
- * Purpose: Displays a single project with access-controlled navigation to tasks
+ * Purpose: Displays a single project with access-controlled navigation and editing permissions
  *
  * Key Features:
  * - Shows project information (name, description, status, members, owner)
  * - Implements visual indicators for task viewing permissions
  * - Prevents navigation to tasks when user lacks access (canViewTasks = false)
- * - Provides edit and delete actions for project management
+ * - Role-based permission checks for editing projects
+ * - Admin-only archive/unarchive controls
+ * - Manager with task access can edit projects
  * - Uses ARIA attributes for accessibility
  *
  * Props:
  * - project: Object - Project data including name, description, status, etc.
  * - canViewTasks: Boolean - Whether user can view tasks in this project
+ * - currentUser: Object - Current authenticated user with roles and ID
  * - onEdit: Function - Callback to edit the project
- * - onDelete: Function - Callback to delete the project
+ * - onArchive: Function - Callback to archive the project
+ * - onUnarchive: Function - Callback to unarchive the project
  */
 
 import { useNavigate } from 'react-router-dom';
@@ -22,20 +26,40 @@ import Button from '../../common/Button/Button';
 import Card from '../../common/Card/Card';
 import styles from './ProjectCard.module.css';
 
-function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
+function ProjectCard({ project, canViewTasks = true, currentUser, onEdit, onArchive, onUnarchive }) {
   const navigate = useNavigate();
+
+  // Calculate permissions based on user role and task access
+  const isOwner = project.owner?._id === currentUser?._id ||
+                  project.owner === currentUser?._id;
+  const isAdmin = currentUser?.roles?.includes('admin');
+  const isManager = currentUser?.roles?.includes('manager');
+
+  // Can edit if: owner, admin, or manager with task access
+  const canEdit = isOwner || isAdmin || (isManager && canViewTasks);
+
+  // Can archive/unarchive only if: admin
+  const canArchive = isAdmin;
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'Active':
-        return styles.statusActive;
+      case 'To Do':
+        return styles.statusToDo;
+      case 'In Progress':
+        return styles.statusInProgress;
       case 'Completed':
         return styles.statusCompleted;
-      case 'Archived':
-        return styles.statusArchived;
+      case 'Blocked':
+        return styles.statusBlocked;
       default:
-        return styles.statusActive;
+        return styles.statusToDo;
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const handleCardClick = (e) => {
@@ -69,9 +93,16 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
       <Card.Body>
         <div className={styles.header}>
           <h3 className={styles.title}>{project.name}</h3>
-          <span className={`${styles.statusBadge} ${getStatusBadgeClass(project.status)}`}>
-            {project.status}
-          </span>
+          <div className={styles.badges}>
+            <span className={`${styles.statusBadge} ${getStatusBadgeClass(project.status)}`}>
+              {project.status}
+            </span>
+            {project.archived && (
+              <span className={styles.archivedBadge}>
+                Archived
+              </span>
+            )}
+          </div>
         </div>
 
         {project.description && (
@@ -79,15 +110,39 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
         )}
 
         <div className={styles.metadata}>
+          {project.priority && (
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Priority:</span>
+              <span className={`${styles.priorityBadge} ${styles['priority' + project.priority]}`}>
+                {project.priority}
+              </span>
+            </div>
+          )}
+          {project.dueDate && (
+            <div className={styles.metaItem}>
+              <span className={styles.metaLabel}>Due:</span>
+              <span className={styles.metaValue}>{formatDate(project.dueDate)}</span>
+            </div>
+          )}
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Members:</span>
             <span className={styles.metaValue}>{project.members?.length || 0}</span>
           </div>
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Owner:</span>
-            <span className={styles.metaValue}>{project.owner?.name || project.owner?.email || 'Unknown'}</span>
+            <span className={styles.metaValue}>{project.owner?.username || project.owner?.email || 'Unknown'}</span>
           </div>
         </div>
+
+        {project.tags && project.tags.length > 0 && (
+          <div className={styles.tags}>
+            {project.tags.map((tag, index) => (
+              <span key={index} className={styles.tag}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {!canViewTasks && (
           <div className={styles.accessMessage}>
@@ -96,12 +151,22 @@ function ProjectCard({ project, canViewTasks = true, onEdit, onDelete }) {
         )}
 
         <div className={styles.actions}>
-          <Button variant="secondary" size="small" onClick={() => onEdit(project)}>
-            Edit
-          </Button>
-          <Button variant="danger" size="small" onClick={() => onDelete(project._id)}>
-            Delete
-          </Button>
+          {canEdit && (
+            <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onEdit(project); }}>
+              Edit
+            </Button>
+          )}
+          {canArchive && (
+            !project.archived ? (
+              <Button variant="warning" size="small" onClick={(e) => { e.stopPropagation(); onArchive(project._id); }}>
+                Archive
+              </Button>
+            ) : (
+              <Button variant="secondary" size="small" onClick={(e) => { e.stopPropagation(); onUnarchive(project._id); }}>
+                Unarchive
+              </Button>
+            )
+          )}
         </div>
       </Card.Body>
     </Card>

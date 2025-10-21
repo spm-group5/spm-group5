@@ -71,9 +71,11 @@ describe('Project Router Test', () => {
 
     describe('POST /api/projects - Create Project', () => {
         it('should create a new project successfully', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
                 name: 'New Project',
-                description: 'Project description'
+                description: 'Project description',
+                dueDate: futureDate
             };
 
             const response = await request(app)
@@ -85,12 +87,15 @@ describe('Project Router Test', () => {
             expect(response.body.message).toBe('Project created successfully');
             expect(response.body.data.name).toBe('New Project');
             expect(response.body.data.description).toBe('Project description');
+            expect(response.body.data.status).toBe('To Do');
             expect(response.body.data.owner.toString()).toBe(testUser._id.toString());
         });
 
         it('should fail to create project without name', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                description: 'Project without name'
+                description: 'Project without name',
+                dueDate: futureDate
             };
 
             const response = await request(app)
@@ -102,9 +107,11 @@ describe('Project Router Test', () => {
             expect(response.body.message).toContain('Project name is required');
         });
 
-        it('should create project with only name (description optional)', async () => {
+        it('should create project with only name and dueDate (description optional)', async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: 'Simple Project'
+                name: 'Simple Project',
+                dueDate: futureDate
             };
 
             const response = await request(app)
@@ -120,8 +127,10 @@ describe('Project Router Test', () => {
         it('should fail without authentication', async () => {
             currentUser = null; // No authenticated user
 
+            const futureDate = new Date(Date.now() + 86400000);
             const projectData = {
-                name: 'Unauthenticated Project'
+                name: 'Unauthenticated Project',
+                dueDate: futureDate
             };
 
             const response = await request(app)
@@ -136,23 +145,27 @@ describe('Project Router Test', () => {
 
     describe('GET /api/projects - Get All Projects', () => {
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             // Create test projects
             await Project.create({
                 name: 'User Project 1',
                 description: 'First project',
-                owner: testUser._id
+                owner: testUser._id,
+                dueDate: futureDate
             });
 
             await Project.create({
                 name: 'User Project 2',
                 description: 'Second project',
-                owner: testUser._id
+                owner: testUser._id,
+                dueDate: futureDate
             });
 
             await Project.create({
                 name: 'Other User Project',
                 description: 'Project by other user',
-                owner: otherUser._id
+                owner: otherUser._id,
+                dueDate: futureDate
             });
         });
 
@@ -197,10 +210,12 @@ describe('Project Router Test', () => {
         let testProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Test Project',
                 description: 'Project for testing',
-                owner: testUser._id
+                owner: testUser._id,
+                dueDate: futureDate
             });
         });
 
@@ -248,16 +263,19 @@ describe('Project Router Test', () => {
         let testProject, otherUserProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Original Project',
                 description: 'Original description',
-                owner: testUser._id
+                owner: testUser._id,
+                dueDate: futureDate
             });
 
             otherUserProject = await Project.create({
                 name: 'Other User Project',
                 description: 'Other user description',
-                owner: otherUser._id
+                owner: otherUser._id,
+                dueDate: futureDate
             });
         });
 
@@ -288,7 +306,7 @@ describe('Project Router Test', () => {
                 .expect(403);
 
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Only project owner can update');
+            expect(response.body.message).toContain('You do not have permission to update this project');
         });
 
         it('should return 400 for non-existent project', async () => {
@@ -320,16 +338,19 @@ describe('Project Router Test', () => {
         let testProject, otherUserProject;
 
         beforeEach(async () => {
+            const futureDate = new Date(Date.now() + 86400000);
             testProject = await Project.create({
                 name: 'Project to Delete',
                 description: 'This will be deleted',
-                owner: testUser._id
+                owner: testUser._id,
+                dueDate: futureDate
             });
 
             otherUserProject = await Project.create({
                 name: 'Other User Project',
                 description: 'Other user project',
-                owner: otherUser._id
+                owner: otherUser._id,
+                dueDate: futureDate
             });
         });
 
@@ -450,6 +471,7 @@ describe('Project Router Test', () => {
         describe('GET /api/projects (with canViewTasks metadata)', () => {
             describe('[PTV-001] Staff member views all projects', () => {
                 it('should return all projects for authenticated staff member', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create 3 projects
                     await Project.insertMany([
                         {
@@ -457,21 +479,24 @@ describe('Project Router Test', () => {
                             description: 'First project',
                             owner: staff123._id,
                             members: [staff123._id],
-                            status: 'Active'
+                            status: 'To Do',
+                            dueDate: futureDate
                         },
                         {
                             name: 'Project Beta',
                             description: 'Second project',
                             owner: staff456._id,
                             members: [staff456._id],
-                            status: 'Active'
+                            status: 'In Progress',
+                            dueDate: futureDate
                         },
                         {
                             name: 'Project Gamma',
                             description: 'Third project',
                             owner: marketing001._id,
                             members: [marketing001._id],
-                            status: 'Active'
+                            status: 'To Do',
+                            dueDate: futureDate
                         }
                     ]);
 
@@ -504,6 +529,7 @@ describe('Project Router Test', () => {
 
             describe('[PTV-004] Admin views all projects', () => {
                 it('should return all projects for authenticated admin', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create 3 projects
                     await Project.insertMany([
                         {
@@ -511,21 +537,24 @@ describe('Project Router Test', () => {
                             description: 'Admin accessible project 1',
                             owner: staff123._id,
                             members: [staff123._id],
-                            status: 'Active'
+                            status: 'To Do',
+                            dueDate: futureDate
                         },
                         {
                             name: 'Admin Project 2',
                             description: 'Admin accessible project 2',
                             owner: staff456._id,
                             members: [staff456._id],
-                            status: 'Active'
+                            status: 'In Progress',
+                            dueDate: futureDate
                         },
                         {
                             name: 'Admin Project 3',
                             description: 'Admin accessible project 3',
                             owner: marketing001._id,
                             members: [marketing001._id],
-                            status: 'Active'
+                            status: 'To Do',
+                            dueDate: futureDate
                         }
                     ]);
 
@@ -567,13 +596,15 @@ describe('Project Router Test', () => {
                 });
 
                 it('should proceed when authenticated', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create project and authenticate
                     await Project.create({
                         name: 'Auth Test Project',
                         description: 'Test auth',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     currentUser = staff123;
@@ -590,13 +621,15 @@ describe('Project Router Test', () => {
 
             describe('[PTV-010] Backend returns project access metadata with canViewTasks flag', () => {
                 it('should add canViewTasks: true for projects where user is directly assigned to tasks', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create project and task assigned to staff123
                     const project = await Project.create({
                         name: 'Project Beta',
                         description: 'Direct assignment project',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     const TaskModel = await Task;
@@ -626,13 +659,15 @@ describe('Project Router Test', () => {
                 });
 
                 it('should add canViewTasks: true for projects where department colleague is assigned', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create project with task assigned to staff456
                     const project = await Project.create({
                         name: 'Project Gamma',
                         description: 'Department colleague project',
                         owner: staff456._id,
                         members: [staff123._id, staff456._id], // staff123 is member
-                        status: 'Active'
+                        status: 'In Progress',
+                        dueDate: futureDate
                     });
 
                     const TaskModel = await Task;
@@ -660,13 +695,15 @@ describe('Project Router Test', () => {
                 });
 
                 it('should add canViewTasks: false for projects with no tasks', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create project without any tasks
                     await Project.create({
                         name: 'Project Delta',
                         description: 'Empty project',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     currentUser = staff123;
@@ -676,26 +713,29 @@ describe('Project Router Test', () => {
                         .get('/api/projects')
                         .expect(200);
 
-                    // Assert: Project Delta should have canViewTasks: false
+                    // Assert: Project Delta should have canViewTasks: true (currentUser is the owner)
                     const projectDelta = response.body.data.find(p => p.name === 'Project Delta');
                     expect(projectDelta).toBeDefined();
-                    expect(projectDelta.canViewTasks).toBe(false);
+                    expect(projectDelta.canViewTasks).toBe(true); // Owner can always view tasks
                 });
 
                 it('should add canViewTasks: true for ALL projects when user is admin', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create projects with tasks assigned to staff
                     const project1 = await Project.create({
                         name: 'Staff Project 1',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     const project2 = await Project.create({
                         name: 'Staff Project 2',
                         owner: marketing001._id,
                         members: [marketing001._id],
-                        status: 'Active'
+                        status: 'In Progress',
+                        dueDate: futureDate
                     });
 
                     const TaskModel = await Task;
@@ -733,13 +773,15 @@ describe('Project Router Test', () => {
                 });
 
                 it('should handle complex scenario with multiple projects and access levels', async () => {
+                    const futureDate = new Date(Date.now() + 86400000);
                     // Arrange: Create 4 projects as described in PTV-010
                     const projectAlpha = await Project.create({
                         name: 'Project Alpha',
                         description: 'Marketing only',
                         owner: marketing001._id,
                         members: [marketing001._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     const projectBeta = await Project.create({
@@ -747,7 +789,8 @@ describe('Project Router Test', () => {
                         description: 'Directly assigned to staff123',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'In Progress',
+                        dueDate: futureDate
                     });
 
                     const projectGamma = await Project.create({
@@ -755,7 +798,8 @@ describe('Project Router Test', () => {
                         description: 'Assigned to engineering colleague',
                         owner: staff456._id,
                         members: [staff123._id, staff456._id],
-                        status: 'Active'
+                        status: 'To Do',
+                        dueDate: futureDate
                     });
 
                     const projectDelta = await Project.create({
@@ -763,7 +807,8 @@ describe('Project Router Test', () => {
                         description: 'No tasks',
                         owner: staff123._id,
                         members: [staff123._id],
-                        status: 'Active'
+                        status: 'Blocked',
+                        dueDate: futureDate
                     });
 
                     // Create tasks
@@ -817,9 +862,9 @@ describe('Project Router Test', () => {
                     expect(gamma).toBeDefined();
                     expect(gamma.canViewTasks).toBe(true);
 
-                    // Project Delta: no tasks
+                    // Project Delta: no tasks, but currentUser is the owner
                     expect(delta).toBeDefined();
-                    expect(delta.canViewTasks).toBe(false);
+                    expect(delta.canViewTasks).toBe(true); // Owner can always view tasks
                 });
             });
         });

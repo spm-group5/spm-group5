@@ -41,6 +41,12 @@
   flex: 1;
 }
 
+.badges {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
 .statusBadge {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-sm);
@@ -48,22 +54,84 @@
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  flex-shrink: 0;
 }
 
-.statusActive {
-  background-color: var(--color-primary);
+.statusToDo {
+  background-color: #6c757d;
   color: white;
+}
+
+.statusInProgress {
+  background-color: #007bff;
+  color: #000;
 }
 
 .statusCompleted {
-  background-color: var(--color-success);
+  background-color: var(--color-success, #28a745);
   color: white;
 }
 
-.statusArchived {
-  background-color: var(--color-text-tertiary);
+.statusBlocked {
+  background-color: #dc3545;
   color: white;
+}
+
+.archivedBadge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  background-color: var(--color-text-tertiary, #6c757d);
+  color: white;
+}
+
+.priorityBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Priority colors - higher priority = more intense color */
+.priority1, .priority2, .priority3 {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.priority4, .priority5, .priority6 {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.priority7, .priority8 {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.priority9, .priority10 {
+  background-color: #dc3545;
+  color: white;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.tag {
+  padding: 2px 8px;
+  background-color: var(--color-background-secondary, #f8f9fa);
+  border: 1px solid var(--color-border, #dee2e6);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .description {
