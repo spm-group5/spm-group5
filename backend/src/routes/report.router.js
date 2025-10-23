@@ -19,4 +19,12 @@ router.get('/reports/task-completion/user/:userId',
     reportController.generateUserTaskCompletionReport
 );
 
+// Route for generating team summary report for a specific project
+// Only admin users can access this endpoint
+router.get('/reports/team-summary/project/:projectId',
+    requireAuth,
+    requireRole(['admin']),
+    reportController.generateTeamSummaryReport
+);
+
 export default router;

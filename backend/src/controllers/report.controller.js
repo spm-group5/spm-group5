@@ -1,6 +1,12 @@
 import reportService from '../services/report.services.js';
+import mongoose from 'mongoose';
 
 class ReportController {
+    // Add ObjectId validation helper
+    isValidObjectId = (id) => {
+        return mongoose.Types.ObjectId.isValid(id);
+    };
+
     /**
      * Generate task completion report for a specific project
      * GET /api/reports/task-completion/project/:projectId
@@ -174,6 +180,140 @@ class ReportController {
     }
 
     /**
+     * Generate team summary report for a specific project
+     * GET /api/reports/team-summary/project/:projectId
+     * Query parameters (REQUIRED):
+     * - timeframe: 'week' or 'month'
+     * - startDate: Start date for filtering (ISO format YYYY-MM-DD)
+     * - format: 'pdf' or 'excel'
+     */
+    generateTeamSummaryReport = async (req, res) => {
+        try {
+            const { projectId } = req.params;
+            const { timeframe, startDate, format } = req.query;
+
+            // Validate projectId format
+            if (!this.isValidObjectId(projectId)) {
+                return res.status(400).json({
+                    error: 'Invalid project ID format'
+                });
+            }
+
+            // Validate required parameters
+            if (!timeframe || !startDate || !format) {
+                let missing = [];
+                if (!timeframe) missing.push('timeframe');
+                if (!startDate) missing.push('startDate');
+                if (!format) missing.push('format');
+                
+                return res.status(400).json({
+                    error: `Missing required parameter${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}`
+                });
+            }
+
+            // Validate timeframe parameter
+            if (!['week', 'month'].includes(timeframe.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid timeframe parameter. Must be either "week" or "month"'
+                });
+            }
+
+            // Validate format parameter (case-insensitive)
+            if (!['pdf', 'excel'].includes(format.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid format parameter. Must be either "pdf" or "excel"'
+                });
+            }
+
+            // Validate and parse start date
+            const parsedStartDate = new Date(startDate);
+            if (isNaN(parsedStartDate.getTime())) {
+                return res.status(400).json({
+                    error: 'Invalid date format',
+                    message: 'Please use ISO format (YYYY-MM-DD) for startDate'
+                });
+            }
+
+            // Generate report data
+            const reportData = await reportService.generateTeamSummaryReportData(
+                projectId,
+                timeframe.toLowerCase(),
+                parsedStartDate
+            );
+
+            // Check if no tasks found - return JSON message instead of generating files
+            if (reportData.tasks.length === 0) {
+                return res.status(200).json({
+                    success: false,
+                    message: `No tasks found for the specified criteria. Please try a different date range or project.`,
+                    type: 'NO_DATA_FOUND'
+                });
+            }
+
+            // Handle different formats
+            return await this.handleTeamSummaryReportFormat(res, reportData, format.toLowerCase(), projectId);
+
+        } catch (error) {
+            return this.handleReportError(res, error);
+        }
+    }
+
+    /**
+     * Handle team summary report formats (PDF, Excel)
+     * @param {Object} res - Express response object
+     * @param {Object} reportData - Report data
+     * @param {String} format - Format type (pdf or excel)
+     * @param {String} projectId - Project identifier for naming
+     */
+    handleTeamSummaryReportFormat = async (res, reportData, format, projectId) => {
+        const timestamp = Date.now();
+        
+        switch (format) {
+            case 'pdf':
+                try {
+                    const pdfBuffer = await reportService.generateTeamSummaryPdfReport(reportData);
+                    const filename = `team-summary-report-${timestamp}.pdf`;
+                    
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', pdfBuffer.length);
+                    
+                    return res.send(pdfBuffer);
+                } catch (pdfError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate PDF report',
+                        message: 'There was an error generating the PDF. Please try again or contact support.'
+                    });
+                }
+
+            case 'excel':
+                try {
+                    const excelBuffer = await reportService.generateTeamSummaryExcelReport(reportData);
+                    const filename = `team-summary-report-${timestamp}.xlsx`;
+                    
+                    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', excelBuffer.length);
+                    
+                    return res.send(excelBuffer);
+                } catch (excelError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate Excel report',
+                        message: 'There was an error generating the Excel file. Please try again or contact support.'
+                    });
+                }
+
+            default:
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
+                });
+        }
+    }
+
+    // ...existing code...
+
+    /**
      * Handle different report formats (PDF, Excel)
      * @param {Object} res - Express response object
      * @param {Object} reportData - Report data
@@ -193,7 +333,6 @@ class ReportController {
                     
                     return res.send(pdfBuffer);
                 } catch (pdfError) {
-                    console.error('PDF generation error:', pdfError);
                     return res.status(500).json({
                         error: 'Failed to generate PDF report',
                         message: 'There was an error generating the PDF. Please try again or contact support.'
@@ -211,7 +350,6 @@ class ReportController {
                     
                     return res.send(excelBuffer);
                 } catch (excelError) {
-                    console.error('Excel generation error:', excelError);
                     return res.status(500).json({
                         error: 'Failed to generate Excel report',
                         message: 'There was an error generating the Excel file. Please try again or contact support.'
@@ -232,8 +370,6 @@ class ReportController {
      * @param {Error} error - Error object
      */
     handleReportError = (res, error) => {
-        console.error('Report generation error:', error);
-        
         // Handle specific error messages
         if (error.message === 'Project not found' || error.message === 'User not found') {
             return res.status(404).json({
