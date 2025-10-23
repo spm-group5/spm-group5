@@ -111,7 +111,7 @@ describe('Task Service Test', () => {
             };
 
             await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('A task can have a maximum of 5 assignees');
+                .rejects.toThrow('Maximum of 5 assignees allowed');
         });
 
         it('should throw error for empty title', async () => {
@@ -418,7 +418,7 @@ describe('Task Service Test', () => {
                 existingTask._id,
                 updateData,
                 testUser._id.toString()
-            )).rejects.toThrow('Only managers can remove assignees from a task');
+            )).rejects.toThrow('Only managers can remove assignees');
         });
 
         it('should allow manager to remove assignees', async () => {
@@ -463,7 +463,7 @@ describe('Task Service Test', () => {
                 existingTask._id,
                 updateData,
                 testUser._id.toString()
-            )).rejects.toThrow('A task can have a maximum of 5 assignees');
+            )).rejects.toThrow('Maximum of 5 assignees allowed');
         });
 
         it('should throw error when trying to remove all assignees', async () => {

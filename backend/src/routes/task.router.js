@@ -11,6 +11,18 @@ router.patch('/tasks/:taskId/archive', requireAuth, taskController.archiveTask);
 router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTask);
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
 
+// ASSIGNEE-SCOPE: Post-creation assignment endpoint (legacy - reassigns owner)
+router.post('/tasks/:id/assign', requireAuth, taskController.assignOwner);
+
+// ASSIGNEE-SCOPE: List eligible assignees for a task (based on project access)
+router.get('/tasks/:id/assignees', requireAuth, taskController.listEligibleAssignees);
+
+// ASSIGNEE-SCOPE: Add assignee to task (one at a time, up to 5 total)
+router.post('/tasks/:id/assignees', requireAuth, taskController.addAssignee);
+
+// ASSIGNEE-SCOPE: Remove assignee from task (Manager/Admin only)
+router.delete('/tasks/:id/assignees', requireAuth, taskController.removeAssignee);
+
 // Project task viewing endpoint with authorization
 router.get('/projects/:projectId/tasks', requireAuth, taskController.getTasksByProject);
 

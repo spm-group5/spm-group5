@@ -54,12 +54,15 @@ function TaskForm({ task, onSubmit, onCancel }) {
     }
   }, [watchedProject, projects]);
 
-  // Track current assignees in edit mode
+  // Track current assignees in edit mode and update form values
   useEffect(() => {
     if (isEditing && task?.assignee) {
-      setCurrentAssignees(task.assignee.map(a => a._id || a));
+      const assigneeIds = task.assignee.map(a => a._id || a);
+      setCurrentAssignees(assigneeIds);
+      // Update form value to reflect current assignees
+      setValue('assignee', assigneeIds, { shouldValidate: false });
     }
-  }, [isEditing, task]);
+  }, [isEditing, task, setValue]);
 
   // In create mode, ensure creator is always included
   useEffect(() => {

@@ -9,6 +9,7 @@ import SubtaskForm from '../SubtaskForm/SubtaskForm';
 import { useSubtasks } from '../../../context/SubtaskContext';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useAuth } from '../../../context/AuthContext';
+import apiService from '../../../services/api';
 import styles from "./TaskCard.module.css";
 
 function TaskCard({
@@ -23,11 +24,20 @@ function TaskCard({
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState(null);
-  
+  // ASSIGNEE-SCOPE: Assignment modal state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [eligibleAssignees, setEligibleAssignees] = useState([]);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
+  const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
   const { user } = useAuth();
   const canArchive = user?.roles?.includes('manager') || user?.roles?.includes('admin');
+  // ASSIGNEE-SCOPE: Only managers/admins can assign
+  const canAssign = user?.roles?.includes('manager') || user?.roles?.includes('admin');
 
   const canEdit = () => {
     if (!user) return false;
@@ -163,6 +173,96 @@ function TaskCard({
     }
   };
 
+  // ASSIGNEE-SCOPE: Assignment handlers
+  const handleShowAssignModal = async (e) => {
+    e?.stopPropagation();
+    setShowAssignModal(true);
+    setIsLoadingAssignees(true);
+    setSelectedAssignee('');
+
+    try {
+      const data = await apiService.request(`/tasks/${task._id}/assignees`);
+      console.log('✅ Eligible assignees fetched:', data.data); // Debug log
+      console.log('✅ Number of assignees:', data.data?.length);
+      if (data.data && data.data.length > 0) {
+        console.log('✅ First assignee:', data.data[0]);
+        console.log('✅ First assignee email:', data.data[0].email);
+      }
+      setEligibleAssignees(data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch assignees:', error); // Debug log
+      addNotification(error.message || 'Failed to load assignees', 'error');
+      setEligibleAssignees([]);
+    } finally {
+      setIsLoadingAssignees(false);
+    }
+  };
+
+  const handleCloseAssignModal = () => {
+    setShowAssignModal(false);
+    setSelectedAssignee('');
+    setEligibleAssignees([]);
+  };
+
+  // ASSIGNEE-SCOPE: Add assignee to task
+  const handleAddAssignee = async () => {
+    if (!selectedAssignee || selectedAssignee.trim() === '') {
+      addNotification('Please select an assignee', 'error');
+      return;
+    }
+
+    setIsAssigning(true);
+
+    try {
+      const data = await apiService.request(`/tasks/${task._id}/assignees`, {
+        method: 'POST',
+        body: JSON.stringify({ assignee: selectedAssignee })
+      });
+
+      addNotification(data.message || 'Assignee added successfully', 'success');
+      setSelectedAssignee(''); // Clear selection
+
+      // Refresh task data
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error) {
+      addNotification(error.message || 'Failed to add assignee', 'error');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // ASSIGNEE-SCOPE: Remove assignee from task
+  const handleRemoveAssignee = async (assigneeEmail) => {
+    if (!assigneeEmail) return;
+
+    // Confirm before removing
+    if (!window.confirm(`Remove ${assigneeEmail} from this task?`)) {
+      return;
+    }
+
+    setIsRemoving(true);
+
+    try {
+      const data = await apiService.request(`/tasks/${task._id}/assignees`, {
+        method: 'DELETE',
+        body: JSON.stringify({ assignee: assigneeEmail })
+      });
+
+      addNotification(data.message || 'Assignee removed successfully', 'success');
+
+      // Refresh task data
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error) {
+      addNotification(error.message || 'Failed to remove assignee', 'error');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   const handleArchiveSubtask = async (subtask) => {
     try {
       await archiveSubtask(subtask._id);
@@ -246,6 +346,19 @@ function TaskCard({
                   }}
                 >
                   Edit
+                </Button>
+              )}
+              {/* ASSIGNEE-SCOPE: Manage Assignees button visible to all assignees, Manager, Admin, Owner */}
+              {!isArchived && (user?.roles?.includes('manager') || user?.roles?.includes('admin') ||
+                task.assignee?.some(a => (a._id || a) === (user?._id || user?.id)) ||
+                (task.owner?._id || task.owner) === (user?._id || user?.id)) && (
+                <Button
+                  variant="primary"
+                  size="small"
+                  onClick={handleShowAssignModal}
+                  aria-label="Manage Assignees"
+                >
+                  Manage Assignees
                 </Button>
               )}
               {canArchive && (
@@ -367,6 +480,138 @@ function TaskCard({
             projectId={task.project?._id || task.project}
             ownerId={user?._id || user?.id}
           />
+        </Modal>
+      )}
+
+      {/* ASSIGNEE-SCOPE: Assignment modal */}
+      {showAssignModal && (
+        <Modal
+          isOpen={showAssignModal}
+          onClose={handleCloseAssignModal}
+          size="medium"
+        >
+          <div style={{ padding: '20px' }}>
+            <h2 style={{ marginBottom: '20px' }}>Manage Assignees</h2>
+
+            {isLoadingAssignees ? (
+              <p>Loading...</p>
+            ) : (
+              <>
+                {/* Current Assignees Section */}
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+                    Current Assignees ({task.assignee?.length || 0}/5)
+                  </h3>
+                  {task.assignee && task.assignee.length > 0 ? (
+                    <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '8px' }}>
+                      {task.assignee.map((assignee) => (
+                        <div
+                          key={assignee._id || assignee}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '8px',
+                            borderBottom: '1px solid #f0f0f0'
+                          }}
+                        >
+                          <span>
+                            {assignee.username || assignee.name || assignee}
+                            {task.owner?._id === assignee._id && (
+                              <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                                (Owner)
+                              </span>
+                            )}
+                          </span>
+                          {canAssign && task.assignee.length > 1 && (
+                            <Button
+                              variant="danger"
+                              size="small"
+                              onClick={() => handleRemoveAssignee(assignee.username || assignee.email || assignee)}
+                              disabled={isRemoving}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#666', fontSize: '14px' }}>No assignees</p>
+                  )}
+                </div>
+
+                {/* Add Assignee Section */}
+                {task.assignee && task.assignee.length < 5 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+                      Add Assignee
+                    </h3>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <label htmlFor="assignee-select" style={{ display: 'block', marginBottom: '8px' }}>
+                          Select Member:
+                        </label>
+                        <select
+                          id="assignee-select"
+                          value={selectedAssignee}
+                          onChange={(e) => setSelectedAssignee(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            fontSize: '14px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          <option value="">-- Select member --</option>
+                          {eligibleAssignees
+                            .filter(ea => !task.assignee?.some(ta =>
+                              (ta._id || ta) === (ea._id || ea) ||
+                              (ta.username || ta) === (ea.email || ea)
+                            ))
+                            .map((assignee) => (
+                              <option key={assignee._id} value={assignee.email}>
+                                {assignee.email} ({assignee.role})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <Button
+                        variant="primary"
+                        onClick={handleAddAssignee}
+                        disabled={isAssigning || !selectedAssignee}
+                      >
+                        {isAssigning ? 'Adding...' : 'Add'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {task.assignee && task.assignee.length >= 5 && (
+                  <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+                    Maximum of 5 assignees reached
+                  </p>
+                )}
+
+                {eligibleAssignees.length === 0 && (
+                  <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+                    No eligible members found. Users must be project members to be assigned.
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="secondary"
+                    onClick={handleCloseAssignModal}
+                    disabled={isAssigning || isRemoving}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         </Modal>
       )}
     </>
