@@ -29,13 +29,18 @@ describe('User Controller - User Account Creation', () => {
 	});
 
 	beforeEach(() => {
-		req = { body: {} };
+		req = { 
+			body: {},
+			session: {
+				save: vi.fn((callback) => callback(null))  // ✅ Mock the save method
+			}
+		};
 		res = {
 			status: vi.fn().mockReturnThis(),
 			json: vi.fn()
 		};
 		next = vi.fn();
-
+	
 		vi.clearAllMocks();
 		registerSpy = vi.spyOn(UserServices, 'registerUser');
 		loginSpy = vi.spyOn(UserServices, 'loginUser');
@@ -133,8 +138,17 @@ describe('User Controller - User Authentication', () => {
 	});
 
 	beforeEach(() => {
-		req = { body: {}, session: {} };
-		res = { status: vi.fn().mockReturnThis(), json: vi.fn(), clearCookie: vi.fn() };
+		req = { 
+			body: {}, 
+			session: {
+				save: vi.fn((callback) => callback(null))  // ✅ Add the save method
+			}
+		};
+		res = { 
+			status: vi.fn().mockReturnThis(), 
+			json: vi.fn(), 
+			clearCookie: vi.fn() 
+		};
 		next = vi.fn();
 		vi.clearAllMocks();
 		loginSpy = vi.spyOn(UserServices, 'loginUser');
