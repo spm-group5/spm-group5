@@ -167,6 +167,7 @@ describe('Report Router Test', () => {
         };
 
         describe('Authentication and Authorization', () => {
+            // Test case ID: RGE-001
             it('should return 401 when user is not authenticated', async () => {
                 currentUser = null;
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
@@ -179,6 +180,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Unauthorized');
             });
 
+            // Test case ID: RGE-002
             it('should return 403 when user is not admin', async () => {
                 currentUser = staffUser;
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
@@ -191,6 +193,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Forbidden - insufficient privileges');
             });
 
+            // Test case ID: RGE-024
             it('should allow admin users to access the endpoint', async () => {
                 currentUser = adminUser;
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
@@ -210,6 +213,7 @@ describe('Report Router Test', () => {
                 currentUser = adminUser;
             });
 
+            // Test case ID: RGE-003
             it('should generate PDF report successfully', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const response = await request(app)
@@ -222,6 +226,7 @@ describe('Report Router Test', () => {
                 expect(Buffer.isBuffer(response.body)).toBe(true);
             });
 
+            // Test case ID: RGE-004
             it('should generate Excel report successfully', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { ...validQuery, format: 'excel' };
@@ -236,6 +241,7 @@ describe('Report Router Test', () => {
                 expect(response.body).toBeDefined();
             });
 
+            // Test case ID: RGE-014
             it('should accept case-insensitive format parameter', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { ...validQuery, format: 'PDF' };
@@ -270,6 +276,7 @@ describe('Report Router Test', () => {
                 currentUser = adminUser;
             });
 
+            // Test case ID: RGE-006
             it('should return 400 for missing startDate', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { endDate: '2024-02-28', format: 'pdf' };
@@ -283,6 +290,7 @@ describe('Report Router Test', () => {
                 expect(response.body.message).toBe('startDate, endDate, and format are required parameters');
             });
 
+            // Test case ID: RGE-006
             it('should return 400 for missing endDate', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { startDate: '2024-01-01', format: 'pdf' };
@@ -295,6 +303,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Missing required parameters');
             });
 
+            // Test case ID: RGE-006
             it('should return 400 for missing format', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { startDate: '2024-01-01', endDate: '2024-02-28' };
@@ -307,6 +316,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Missing required parameters');
             });
 
+            // Test case ID: RGE-007
             it('should return 400 for invalid format (json not allowed)', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { ...validQuery, format: 'json' };
@@ -320,6 +330,7 @@ describe('Report Router Test', () => {
                 expect(response.body.message).toBe('Format must be either pdf or excel');
             });
 
+            // Test case ID: RGE-007
             it('should return 400 for invalid format (unsupported format)', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { ...validQuery, format: 'csv' };
@@ -332,6 +343,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Invalid format parameter');
             });
 
+            // Test case ID: RGE-008
             it('should return 400 for invalid date format', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = { ...validQuery, startDate: 'invalid-date' };
@@ -344,6 +356,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Invalid start date format. Please use ISO format (YYYY-MM-DD)');
             });
 
+            // Test case ID: RGE-009
             it('should return 400 when start date is after end date', async () => {
                 const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
                 const query = {
@@ -360,6 +373,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Start date cannot be after end date');
             });
 
+            // Test case ID: RGE-010
             it('should return 404 for non-existent project', async () => {
                 const fakeId = new mongoose.Types.ObjectId();
                 const endpoint = `/api/reports/task-completion/project/${fakeId}`;
@@ -382,6 +396,7 @@ describe('Report Router Test', () => {
         };
 
         describe('Authentication and Authorization', () => {
+            // Test case ID: RGE-001
             it('should return 401 when user is not authenticated', async () => {
                 currentUser = null;
                 const endpoint = `/api/reports/task-completion/user/${staffUser._id}`;
@@ -394,6 +409,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Unauthorized');
             });
 
+            // Test case ID: RGE-002
             it('should return 403 when user is not admin', async () => {
                 currentUser = staffUser;
                 const endpoint = `/api/reports/task-completion/user/${staffUser._id}`;
@@ -425,6 +441,7 @@ describe('Report Router Test', () => {
                 currentUser = adminUser;
             });
 
+            // Test case ID: RGE-005
             it('should generate PDF report for user successfully', async () => {
                 const endpoint = `/api/reports/task-completion/user/${staffUser._id}`;
                 const response = await request(app)
@@ -451,6 +468,7 @@ describe('Report Router Test', () => {
                 expect(response.body).toBeDefined();
             });
 
+            // Test case ID: RGE-013
             it('should handle user with no tasks', async () => {
                 // Create a user with no tasks
                 const userWithNoTasks = await User.create({
@@ -480,6 +498,7 @@ describe('Report Router Test', () => {
                 currentUser = adminUser;
             });
 
+            // Test case ID: RGE-006
             it('should return 400 for missing parameters', async () => {
                 const endpoint = `/api/reports/task-completion/user/${staffUser._id}`;
                 const query = { startDate: '2024-01-01' }; // Missing endDate and format
@@ -492,6 +511,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Missing required parameters');
             });
 
+            // Test case ID: RGE-007
             it('should return 400 for invalid format', async () => {
                 const endpoint = `/api/reports/task-completion/user/${staffUser._id}`;
                 const query = { ...validQuery, format: 'json' };
@@ -504,6 +524,7 @@ describe('Report Router Test', () => {
                 expect(response.body.error).toBe('Invalid format parameter');
             });
 
+            // Test case ID: RGE-011
             it('should return 404 for non-existent user', async () => {
                 const fakeId = new mongoose.Types.ObjectId();
                 const endpoint = `/api/reports/task-completion/user/${fakeId}`;
@@ -529,6 +550,7 @@ describe('Report Router Test', () => {
             format: 'pdf'
         };
 
+        // Test case ID: RGE-012
         it('should handle invalid MongoDB ObjectId format in project route', async () => {
             const endpoint = '/api/reports/task-completion/project/invalid-id';
 
@@ -540,6 +562,7 @@ describe('Report Router Test', () => {
             expect(response.body.error).toBe('Internal server error');
         });
 
+        // Test case ID: RGE-012
         it('should handle invalid MongoDB ObjectId format in user route', async () => {
             const endpoint = '/api/reports/task-completion/user/invalid-id';
 
@@ -563,6 +586,7 @@ describe('Report Router Test', () => {
             format: 'pdf'
         };
 
+        // Test case ID: RGE-015
         it('should handle same start and end date', async () => {
             const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
             const query = {
@@ -579,6 +603,7 @@ describe('Report Router Test', () => {
             expect(response.headers['content-type']).toBe('application/pdf');
         });
 
+        // Test case ID: RGE-013
         it('should handle future date ranges with no data', async () => {
             const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
             const query = {
@@ -628,6 +653,7 @@ describe('Report Router Test', () => {
             format: 'pdf'
         };
 
+        // Test case ID: RGE-021
         it('should set correct Content-Disposition header for PDF', async () => {
             const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
 
@@ -639,6 +665,7 @@ describe('Report Router Test', () => {
             expect(response.headers['content-disposition']).toMatch(/attachment; filename=".*\.pdf"/);
         });
 
+        // Test case ID: RGE-021
         it('should set correct Content-Disposition header for Excel', async () => {
             const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
             const query = { ...validQuery, format: 'excel' };
@@ -651,6 +678,7 @@ describe('Report Router Test', () => {
             expect(response.headers['content-disposition']).toMatch(/attachment; filename=".*\.xlsx"/);
         });
 
+        // Test case ID: RGE-021
         it('should include Content-Length header', async () => {
             const endpoint = `/api/reports/task-completion/project/${testProject._id}`;
 
