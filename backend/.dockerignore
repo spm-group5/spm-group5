@@ -1,0 +1,4 @@
+environments/
+node_modules/
+.env*
+.git/

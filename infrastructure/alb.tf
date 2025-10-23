@@ -72,6 +72,12 @@ module "alb" {
       port        = 3000
       target_type = "instance"
 
+      stickiness = {
+      enabled         = true
+      type            = "lb_cookie"
+      cookie_duration = 86400  # 24 hours in seconds
+    }
+
       health_check = {
         enabled             = true
         healthy_threshold   = 2
@@ -82,12 +88,6 @@ module "alb" {
         protocol            = "HTTP"
         timeout             = 5
         unhealthy_threshold = 2
-      }
-
-      targets = {
-        backend_ec2 = {
-          port      = 3000
-        }
       }
     }
   }

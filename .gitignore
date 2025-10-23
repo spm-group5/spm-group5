@@ -24,3 +24,6 @@ backend/node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+
+#deployment files
+deploy.sh

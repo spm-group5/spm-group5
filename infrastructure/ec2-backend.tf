@@ -31,6 +31,31 @@ resource "aws_iam_role" "backend_ssm" {
   })
 }
 
+# SSM Parameter Store policy
+resource "aws_iam_role_policy" "backend_ssm_parameters" {
+  name = "${var.project_name}-${var.environment}-backend-ssm-parameters"
+  role = aws_iam_role.backend_ssm.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+          "ssm:PutParameter",
+          "ssm:DeleteParameter"
+        ]
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:*:parameter/${var.project_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Attach SSM policy
 resource "aws_iam_role_policy_attachment" "backend_ssm" {
   role       = aws_iam_role.backend_ssm.name
