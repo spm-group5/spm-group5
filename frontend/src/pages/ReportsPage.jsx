@@ -31,6 +31,7 @@ function ReportsPage() {
       targetId: '',
       startDate: '',
       endDate: '',
+      timeframe: 'week',
       format: 'pdf',
     },
   });
@@ -90,22 +91,33 @@ function ReportsPage() {
       setError(null);
       setErrorType('error'); // Reset error type
 
-      // Validate dates
-      const startDate = new Date(data.startDate);
-      const endDate = new Date(data.endDate);
+      let result;
 
-      if (startDate > endDate) {
-        throw new Error('Start date cannot be after end date');
+      if (data.reportType === 'team-summary') {
+        // Team Summary Report - no end date, uses timeframe
+        result = await apiService.generateTeamSummaryReport(
+          data.targetId,
+          data.startDate,
+          data.timeframe,
+          data.format
+        );
+      } else {
+        // Task Completion Reports - require start and end dates
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+
+        if (startDate > endDate) {
+          throw new Error('Start date cannot be after end date');
+        }
+
+        result = await apiService.generateReport(
+          data.reportType,
+          data.targetId,
+          data.startDate,
+          data.endDate,
+          data.format
+        );
       }
-
-      // Generate report
-      const result = await apiService.generateReport(
-        data.reportType,
-        data.targetId,
-        data.startDate,
-        data.endDate,
-        data.format
-      );
 
       addNotification(
         `Report generated successfully: ${result.filename}`,
@@ -154,7 +166,7 @@ function ReportsPage() {
         <div className={styles.header}>
           <h1>Report Generation</h1>
           <p className={styles.subtitle}>
-            Generate task completion reports for users and projects
+            Generate task completion and team summary reports
           </p>
         </div>
 
@@ -166,7 +178,7 @@ function ReportsPage() {
 
         <Card className={styles.formCard}>
           <Card.Header>
-            <h2>Generate Task Completion Report</h2>
+            <h2>Generate Report</h2>
           </Card.Header>
           <Card.Body>
             <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
@@ -193,6 +205,15 @@ function ReportsPage() {
                       className={styles.radioInput}
                     />
                     <span className={styles.radioLabel}>Task Completion Report by Project</span>
+                  </label>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      value="team-summary"
+                      {...register('reportType', { required: 'Please select a report type' })}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioLabel}>Team Summary Report</span>
                   </label>
                 </div>
                 {errors.reportType && (
@@ -243,23 +264,67 @@ function ReportsPage() {
                 </div>
               )}
 
+              {/* Timeframe Selection (Team Summary Only) */}
+              {reportType === 'team-summary' && (
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioGroupLabel}>
+                    Timeframe <span className={styles.required}>*</span>
+                  </label>
+                  <div className={styles.radioOptions}>
+                    <label className={styles.radioOption}>
+                      <input
+                        type="radio"
+                        value="week"
+                        {...register('timeframe', { required: 'Please select a timeframe' })}
+                        className={styles.radioInput}
+                      />
+                      <span className={styles.radioLabel}>Week (7 days from start date)</span>
+                    </label>
+                    <label className={styles.radioOption}>
+                      <input
+                        type="radio"
+                        value="month"
+                        {...register('timeframe', { required: 'Please select a timeframe' })}
+                        className={styles.radioInput}
+                      />
+                      <span className={styles.radioLabel}>Month (entire calendar month)</span>
+                    </label>
+                  </div>
+                  {errors.timeframe && (
+                    <div className={styles.errorMessage}>{errors.timeframe.message}</div>
+                  )}
+                </div>
+              )}
+
               {/* Date Range */}
-              <div className={styles.dateRange}>
-                <Input
-                  label="Start Date"
-                  type="date"
-                  {...register('startDate', { required: 'Start date is required' })}
-                  error={errors.startDate?.message}
-                  required
-                />
-                <Input
-                  label="End Date"
-                  type="date"
-                  {...register('endDate', { required: 'End date is required' })}
-                  error={errors.endDate?.message}
-                  required
-                />
-              </div>
+              {reportType !== 'team-summary' ? (
+                <div className={styles.dateRange}>
+                  <Input
+                    label="Start Date"
+                    type="date"
+                    {...register('startDate', { required: 'Start date is required' })}
+                    error={errors.startDate?.message}
+                    required
+                  />
+                  <Input
+                    label="End Date"
+                    type="date"
+                    {...register('endDate', { required: 'End date is required' })}
+                    error={errors.endDate?.message}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className={styles.singleDate}>
+                  <Input
+                    label="Start Date"
+                    type="date"
+                    {...register('startDate', { required: 'Start date is required' })}
+                    error={errors.startDate?.message}
+                    required
+                  />
+                </div>
+              )}
 
               {/* Format Selection */}
               <div className={styles.formatSelection}>
