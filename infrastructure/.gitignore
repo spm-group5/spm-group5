@@ -73,3 +73,4 @@ credentials
 *.crt
 *.p12
 *.pfx
+*.pkg

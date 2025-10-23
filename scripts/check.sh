@@ -122,18 +122,14 @@ if [ -d "backend" ]; then
     echo -e "${YELLOW}Running tests (this may take a minute)...${NC}"
     
     # Run tests
-    if npm test --silent 2>&1 | tee /tmp/test-output.log | grep -q "Test Files.*passed"; then
-        print_success "Backend tests passed"
-    else
-        # Check if tests failed or were skipped
-        if grep -q "skipped" /tmp/test-output.log; then
-            print_warning "Some tests were skipped (MongoDB issues)"
-            echo -e "${YELLOW}This is normal for local runs. Tests will work in CI.${NC}"
-        else
-            print_error "Backend tests failed"
-            echo -e "${YELLOW}Review test output above${NC}"
-        fi
-    fi
+    if npm test 2>&1 | tee /tmp/test-output.log; then
+    # npm test returns exit code 0 on success
+    print_success "Backend tests passed"
+else
+    # npm test returns non-zero exit code on failure
+    print_error "Backend tests failed"
+    echo -e "${YELLOW}Review test output above${NC}"
+fi
     
     cd ..
 else

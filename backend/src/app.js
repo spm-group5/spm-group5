@@ -3,6 +3,7 @@ import session from 'express-session'; //for session management
 import cors from 'cors'; //for handling CORS
 import { createServer } from 'http'; //for HTTP server
 import { Server } from 'socket.io'; //for WebSocket support
+import MongoStore from 'connect-mongo'; //for session storage in MongoDB
 
 const app = express(); //create the Express application
 
@@ -42,6 +43,8 @@ io.on('connection', (socket) => {
 app.set('io', io);
 app.set('userSockets', userSockets);
 
+app.set('trust proxy', 1);
+
 // CORS configuration
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -51,18 +54,34 @@ app.use(cors({
 app.use(express.json()); //middleware to parse JSON request bodies
 app.use(express.urlencoded({extended: true})) //middleware to parse URL-encoded request bodies
 
-// Session middleware configuration
-app.use(session({
+const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     rolling: true,
     cookie: {
-        secure: false, // Set to true in production with HTTPS
-        httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-        maxAge: 15 * 60 * 1000 // 15 mins in milliseconds
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+        maxAge: 15 * 60 * 1000
     }
-}));
+};
+
+// Session middleware configuration
+if (process.env.MONGO_URI) {
+    sessionConfig.store = MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 15 * 60, // 15 minutes (in seconds)
+    }).on('error', (error) => {  
+        console.error('❌ MongoStore error:', error);
+    }).on('create', (sessionId) => {    
+        console.log('✅ Session created:', sessionId);
+    }).on('set', (sessionId) => { 
+        console.log('✅ Session updated:', sessionId);
+    });
+}
+
+app.use(session(sessionConfig));
 
 import userRouter from './routes/user.router.js'; //import user router for user-related routes
 import taskRouter from './routes/task.router.js'; //import task router for task-related routes

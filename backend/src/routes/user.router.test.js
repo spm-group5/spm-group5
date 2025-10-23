@@ -1,4 +1,14 @@
-import { describe, it, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+vi.mock('connect-mongo', () => ({
+    default: {
+        create: vi.fn(() => {
+            const mockStore = {
+                on: vi.fn().mockReturnThis()  // ✅ Returns 'this' to enable chaining
+            };
+            return mockStore;
+        })
+    }
+  }));
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
