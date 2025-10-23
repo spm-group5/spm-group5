@@ -749,4 +749,198 @@ describe('Task Controller Test', () => {
 			});
 		});
 	});
+
+	// TESTS: Task Assignment Feature Tests (TSK-020, TSK-022)
+	describe('Task Assignment Tests - TSK-020, TSK-022', () => {
+		describe('TSK-020: Ownership Transfer via Controller', () => {
+			it('should handle ownership transfer successfully', async () => {
+				// Arrange
+				req.params = { taskId: 'task123' };
+				req.body = {
+					owner: 'staff2Id',
+					assignee: ['staff2Id', 'managerId']
+				};
+				req.user = { _id: 'managerId' };
+
+				const mockUpdatedTask = {
+					_id: 'task123',
+					title: 'T-612: API documentation',
+					owner: 'staff2Id',
+					assignee: ['staff2Id', 'managerId'],
+					project: 'project123'
+				};
+
+				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
+
+				// Act
+				await taskController.updateTask(req, res);
+
+				// Assert
+				expect(taskService.updateTask).toHaveBeenCalledWith(
+					'task123',
+					req.body,
+					'managerId'
+				);
+				expect(res.status).toHaveBeenCalledWith(200);
+				expect(res.json).toHaveBeenCalledWith({
+					success: true,
+					data: mockUpdatedTask
+				});
+			});
+
+			it('should return error when updating with null owner', async () => {
+				// Arrange
+				req.params = { taskId: 'task123' };
+				req.body = {
+					owner: null,
+					assignee: ['staff1Id']
+				};
+				req.user = { _id: 'managerId' };
+
+				taskService.updateTask.mockRejectedValue(
+					new Error('Every task or subtask must have an owner.')
+				);
+
+				// Act
+				await taskController.updateTask(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(400);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'Every task or subtask must have an owner.'
+				});
+			});
+
+			it('should return error when updating with empty assignee array', async () => {
+				// Arrange
+				req.params = { taskId: 'task123' };
+				req.body = {
+					assignee: []
+				};
+				req.user = { _id: 'managerId' };
+
+				taskService.updateTask.mockRejectedValue(
+					new Error('At least one assignee is required')
+				);
+
+				// Act
+				await taskController.updateTask(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(400);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'At least one assignee is required'
+				});
+			});
+		});
+
+		describe('TSK-022: Notification on Assignment', () => {
+			it('should create notification when ownership changes', async () => {
+				// Arrange
+				req.params = { taskId: 'task614' };
+				req.body = {
+					owner: 'staff3Id',
+					assignee: ['staff3Id', 'managerId']
+				};
+				req.user = { _id: 'managerId' };
+
+				const mockTask = {
+					_id: 'task614',
+					title: 'T-614: Implement notifications',
+					owner: 'managerId',
+					assignee: ['managerId']
+				};
+
+				const mockUpdatedTask = {
+					_id: 'task614',
+					title: 'T-614: Implement notifications',
+					owner: 'staff3Id',
+					assignee: ['staff3Id', 'managerId']
+				};
+
+				taskModel.findById.mockResolvedValue(mockTask);
+				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
+				notificationModel.create.mockResolvedValue({
+					_id: 'notif123',
+					userId: 'staff3Id',
+					taskId: 'task614',
+					type: 'task_assigned',
+					message: 'You are now the owner of T-614 (assigned by manager@company.com)'
+				});
+
+				// Act
+				await taskController.updateTask(req, res);
+
+				// Assert - Notification should be created
+				expect(notificationModel.create).toHaveBeenCalled();
+				expect(res.status).toHaveBeenCalledWith(200);
+			});
+
+			it('should emit socket event when ownership changes', async () => {
+				// Arrange
+				req.params = { taskId: 'task614' };
+				req.body = {
+					owner: 'staff3Id',
+					assignee: ['staff3Id']
+				};
+				req.user = { _id: 'managerId' };
+
+				const mockUpdatedTask = {
+					_id: 'task614',
+					title: 'T-614: Implement notifications',
+					owner: 'staff3Id',
+					assignee: ['staff3Id']
+				};
+
+				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
+
+				// Act
+				await taskController.updateTask(req, res);
+
+				// Assert - Socket.io should emit to new owner
+				const mockIo = req.app.get('io');
+				expect(mockIo.to).toHaveBeenCalled();
+			});
+		});
+
+		describe('Department-Agnostic Assignment via Controller', () => {
+			it('should allow cross-department assignment', async () => {
+				// Arrange
+				req.body = {
+					title: 'Cross-department Task',
+					description: 'Task with assignees from multiple departments',
+					priority: 5,
+					status: 'To Do',
+					owner: 'managerId',
+					assignee: ['managerId', 'staff2IdHR', 'staff3IdSales'],
+					project: 'project123'
+				};
+				req.user = { _id: 'managerId' };
+
+				const mockTask = {
+					_id: 'newTaskId',
+					...req.body,
+					assignee: ['managerId', 'staff2IdHR', 'staff3IdSales']
+				};
+
+				taskService.createTask.mockResolvedValue(mockTask);
+
+				// Act
+				await taskController.createTask(req, res);
+
+				// Assert
+				expect(taskService.createTask).toHaveBeenCalledWith(
+					req.body,
+					'managerId'
+				);
+				expect(res.status).toHaveBeenCalledWith(201);
+				expect(res.json).toHaveBeenCalledWith({
+					success: true,
+					data: mockTask
+				});
+			});
+		});
+	});
 });

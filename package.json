@@ -1,0 +1,23 @@
+{
+  "name": "spm-group5",
+  "version": "1.0.0",
+  "description": "SPM Group 5 Project - Task Management System",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:api": "cd backend && npm run test:api",
+    "test:unit": "cd backend && npm run test:unit",
+    "test:ui": "cd frontend && npm test",
+    "test:assign": "cd backend && npm run test:assign",
+    "test:all": "npm run test:backend && npm run test:frontend",
+    "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
+    "test:coverage:backend": "cd backend && npm run test:coverage",
+    "test:coverage:frontend": "cd frontend && npm run test:coverage"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}

@@ -1313,4 +1313,273 @@ describe('Task Service Test', () => {
             });
         });
     });
+
+    // TESTS: Task Assignment Feature Tests (TSK-018 through TSK-022)
+    describe('Task Assignment Tests - TSK-020, TSK-021', () => {
+        let manager, staff1, staff2, staff3;
+
+        beforeEach(async () => {
+            // Create test users for assignment tests
+            manager = await User.create({
+                username: 'manager@company.com',
+                roles: ['manager'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            staff1 = await User.create({
+                username: 'staff1@company.com',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            staff2 = await User.create({
+                username: 'staff2@company.com',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'password123'
+            });
+
+            staff3 = await User.create({
+                username: 'staff3@company.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'password123'
+            });
+        });
+
+        describe('TSK-020: Ownership Transfer', () => {
+            it('should transfer ownership to new assignee', async () => {
+                // Create task owned by manager
+                const task = await Task.create({
+                    title: 'T-612: API documentation',
+                    description: 'Write comprehensive API docs',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Update to assign to staff2
+                const updateData = {
+                    owner: staff2._id,
+                    assignee: [staff2._id, manager._id] // Manager remains participant
+                };
+
+                const updatedTask = await taskService.updateTask(
+                    task._id,
+                    updateData,
+                    manager._id.toString()
+                );
+
+                // Handle populated owner (could be ObjectId or populated object)
+                const ownerId = typeof updatedTask.owner === 'object' && updatedTask.owner._id
+                    ? updatedTask.owner._id.toString()
+                    : updatedTask.owner.toString();
+                expect(ownerId).toBe(staff2._id.toString());
+
+                // Handle populated assignees
+                const assigneeIds = updatedTask.assignee.map(a =>
+                    typeof a === 'object' && a._id ? a._id.toString() : a.toString()
+                );
+                expect(assigneeIds).toContain(staff2._id.toString());
+                expect(assigneeIds).toContain(manager._id.toString());
+            });
+
+            it('should keep prior owner as participant (not owner)', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                const updateData = {
+                    owner: staff1._id,
+                    assignee: [staff1._id, manager._id]
+                };
+
+                const updatedTask = await taskService.updateTask(
+                    task._id,
+                    updateData,
+                    manager._id.toString()
+                );
+
+                // Handle populated owner
+                const ownerId = typeof updatedTask.owner === 'object' && updatedTask.owner._id
+                    ? updatedTask.owner._id.toString()
+                    : updatedTask.owner.toString();
+
+                // Manager is no longer owner
+                expect(ownerId).not.toBe(manager._id.toString());
+                expect(ownerId).toBe(staff1._id.toString());
+
+                // But manager is still a participant
+                const assigneeIds = updatedTask.assignee.map(a =>
+                    typeof a === 'object' && a._id ? a._id.toString() : a.toString()
+                );
+                expect(assigneeIds).toContain(manager._id.toString());
+            });
+
+            it('should keep task visible to prior owner after ownership transfer', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Transfer ownership
+                await taskService.updateTask(
+                    task._id,
+                    {
+                        owner: staff2._id,
+                        assignee: [staff2._id, manager._id]
+                    },
+                    manager._id.toString()
+                );
+
+                // Query tasks where manager is assigned
+                const managerTasks = await Task.find({
+                    assignee: manager._id
+                });
+
+                expect(managerTasks).toHaveLength(1);
+                expect(managerTasks[0]._id.toString()).toBe(task._id.toString());
+            });
+        });
+
+        describe('TSK-021: Validation - Must Always Have Owner', () => {
+            it('should reject null owner', async () => {
+                const taskData = {
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: null,
+                    assignee: [staff1._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                };
+
+                await expect(taskService.createTask(taskData, manager._id))
+                    .rejects
+                    .toThrow(/owner/i);
+            });
+
+            it('should reject empty assignee array if no owner set', async () => {
+                const taskData = {
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    assignee: [],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                };
+
+                await expect(taskService.createTask(taskData, manager._id))
+                    .rejects
+                    .toThrow();
+            });
+
+            it('should reject update that removes all assignees', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id, staff1._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                const updateData = {
+                    assignee: []
+                };
+
+                await expect(
+                    taskService.updateTask(task._id, updateData, manager._id.toString())
+                ).rejects.toThrow('At least one assignee is required');
+            });
+        });
+
+        describe('Department-Agnostic Assignment', () => {
+            it('should allow assigning users from different departments', async () => {
+                // Verify users are from different departments
+                expect(manager.department).toBe('it');
+                expect(staff2.department).toBe('hr');
+                expect(staff3.department).toBe('sales');
+
+                const taskData = {
+                    title: 'Cross-department Task',
+                    description: 'Task with assignees from multiple departments',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id, staff2._id, staff3._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                };
+
+                const task = await taskService.createTask(taskData, manager._id);
+
+                expect(task.assignee).toHaveLength(3);
+                const assigneeIds = task.assignee.map(a =>
+                    typeof a === 'object' && a._id ? a._id.toString() : a.toString()
+                );
+                expect(assigneeIds).toContain(manager._id.toString());
+                expect(assigneeIds).toContain(staff2._id.toString());
+                expect(assigneeIds).toContain(staff3._id.toString());
+            });
+
+            it('should allow transferring ownership across departments', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id, // IT department
+                    assignee: [manager._id],
+                    project: testProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Transfer to staff3 in sales department
+                const updateData = {
+                    owner: staff3._id,
+                    assignee: [staff3._id, manager._id]
+                };
+
+                const updatedTask = await taskService.updateTask(
+                    task._id,
+                    updateData,
+                    manager._id.toString()
+                );
+
+                // Handle populated owner
+                const ownerId = typeof updatedTask.owner === 'object' && updatedTask.owner._id
+                    ? updatedTask.owner._id.toString()
+                    : updatedTask.owner.toString();
+                expect(ownerId).toBe(staff3._id.toString());
+
+                // Verify departments are different
+                const newOwner = await User.findById(staff3._id);
+                const oldOwner = await User.findById(manager._id);
+                expect(newOwner.department).not.toBe(oldOwner.department);
+            });
+        });
+    });
 });
