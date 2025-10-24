@@ -95,8 +95,8 @@ class TaskController {
             const updatedTask = await taskService.updateTask(taskId, req.body, userId);
             const newAssignees = updatedTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
 
-            // Check if task was just marked as Done and is recurring
-            if (originalStatus !== 'Done' && updatedTask.status === 'Done' && updatedTask.isRecurring) {
+            // Check if task was just marked as Completed and is recurring
+            if (originalStatus !== 'Completed' && updatedTask.status === 'Completed' && updatedTask.isRecurring) {
                 console.log('Creating recurring task instance...');
                 const newRecurringTask = await taskService.createRecurringTask(updatedTask);
                 if (newRecurringTask) {

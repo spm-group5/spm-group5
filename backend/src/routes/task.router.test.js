@@ -664,7 +664,7 @@ describe('Task Router Test', () => {
                 .send(updateData)
                 .expect(200);
 
-            expect(response.body.data.status).toBe('Done');
+            expect(response.body.data.status).toBe('Completed');
 
             // Check that a new task was created
             const tasks = await Task.find({

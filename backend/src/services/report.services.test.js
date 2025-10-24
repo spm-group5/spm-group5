@@ -417,13 +417,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -470,13 +470,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -513,8 +513,8 @@ describe('Report Service Test', () => {
             puppeteer.launch.mockResolvedValueOnce(mockBrowser);
 
             const mockReportData = {
-                data: { 'To Do': [], 'In Progress': [], 'Blocked': [], 'Done': [] },
-                aggregates: { 'To Do': 0, 'In Progress': 0, 'Blocked': 0, 'Done': 0, total: 0 },
+                data: { 'To Do': [], 'In Progress': [], 'Blocked': [], 'Completed': [] },
+                aggregates: { 'To Do': 0, 'In Progress': 0, 'Blocked': 0, 'Completed': 0, total: 0 },
                 metadata: { type: 'project', generatedAt: '15-01-2024', dateRange: {} }
             };
 
@@ -541,13 +541,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -578,7 +578,7 @@ describe('Report Service Test', () => {
                     'To Do': [],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': [{
+                    'Completed': [{
                         id: '456',
                         title: 'Done Task',
                         deadline: 'No deadline',
@@ -595,7 +595,7 @@ describe('Report Service Test', () => {
                     'To Do': 0,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 1,
+                    'Completed': 1,
                     total: 1
                 },
                 metadata: {
