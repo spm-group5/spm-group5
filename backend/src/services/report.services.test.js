@@ -126,7 +126,7 @@ describe('Report Service Test', () => {
             {
                 title: 'Task 4 - Done',
                 description: 'Fourth task completed',
-                status: 'Done',
+                status: 'Completed',
                 priority: 9, // High priority (was 'High')
                 owner: testUser2._id,
                 assignee: [testUser2._id],
@@ -146,7 +146,7 @@ describe('Report Service Test', () => {
             {
                 title: 'Task 6 - User Task',
                 description: 'Task for user',
-                status: 'Done',
+                status: 'Completed',
                 priority: 7,
                 owner: testUser1._id,
                 assignee: [testUser1._id],

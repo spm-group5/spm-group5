@@ -263,7 +263,7 @@ describe('Task Router Test', () => {
                 {
                     title: 'Task 3',
                     owner: testUser._id,
-                    status: 'Done',
+                    status: 'Completed',
                     project: testProject._id
                 }
             ]);
@@ -656,7 +656,7 @@ describe('Task Router Test', () => {
             });
 
             const updateData = {
-                status: 'Done'
+                status: 'Completed'
             };
 
             const response = await request(app)

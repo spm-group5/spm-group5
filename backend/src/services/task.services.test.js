@@ -592,7 +592,7 @@ describe('Task Service Test', () => {
                 dueDate: originalDueDate,
                 isRecurring: true,
                 recurrenceInterval: 7,
-                status: 'Done',
+                status: 'Completed',
                 description: 'Submit weekly report',
                 priority: 8,
                 tags: 'report#weekly'
@@ -624,7 +624,7 @@ describe('Task Service Test', () => {
                 owner: testUser._id,
                 assignee: [testUser._id],
                 project: testProject._id,
-                status: 'Done'
+                status: 'Completed'
             });
 
             const newTask = await taskService.createRecurringTask(task);
@@ -659,7 +659,7 @@ describe('Task Service Test', () => {
                 {
                     title: 'Task 3',
                     owner: testUser._id,
-                    status: 'Done',
+                    status: 'Completed',
                     project: testProject._id
                 }
             ]);

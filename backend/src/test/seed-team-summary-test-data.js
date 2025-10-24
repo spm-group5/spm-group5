@@ -147,7 +147,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Week Task 3 - Done',
             description: 'Third weekly task',
-            status: 'Done',
+            status: 'Completed',
             priority: 5,
             owner: teamMember3._id,
             assignee: [teamMember1._id],
@@ -254,7 +254,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Month Task 8 - Done',
             description: 'Monthly done task 1',
-            status: 'Done',
+            status: 'Completed',
             priority: 8,
             owner: teamMember2._id,
             assignee: [teamMember3._id],
@@ -264,7 +264,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Month Task 9 - Done',
             description: 'Monthly done task 2',
-            status: 'Done',
+            status: 'Completed',
             priority: 7,
             owner: teamMember4._id,
             assignee: [teamMember1._id],
@@ -274,7 +274,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Month Task 10 - Done',
             description: 'Monthly done task 3',
-            status: 'Done',
+            status: 'Completed',
             priority: 4,
             owner: teamMember5._id,
             assignee: [teamMember2._id],
@@ -308,7 +308,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Boundary Task 3 - Within Week',
             description: 'Task on last day of week',
-            status: 'Done',
+            status: 'Completed',
             priority: 7,
             owner: teamMember3._id,
             assignee: [teamMember1._id],
@@ -362,7 +362,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Month Boundary 3 - February',
             description: 'Task in February (excluded)',
-            status: 'Done',
+            status: 'Completed',
             priority: 7,
             owner: teamMember3._id,
             assignee: [teamMember1._id],
@@ -547,7 +547,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Integration Done 1',
             description: 'Integration test task',
-            status: 'Done',
+            status: 'Completed',
             priority: 9,
             owner: teamMember2._id,
             assignee: [teamMember1._id],
@@ -557,7 +557,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Integration Done 2',
             description: 'Integration test task',
-            status: 'Done',
+            status: 'Completed',
             priority: 8,
             owner: teamMember3._id,
             assignee: [teamMember2._id],
@@ -567,7 +567,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Integration Done 3',
             description: 'Integration test task',
-            status: 'Done',
+            status: 'Completed',
             priority: 7,
             owner: teamMember4._id,
             assignee: [teamMember3._id],
@@ -577,7 +577,7 @@ export async function seedTeamSummaryTestData() {
         {
             title: 'Integration Done 4',
             description: 'Integration test task',
-            status: 'Done',
+            status: 'Completed',
             priority: 6,
             owner: teamMember5._id,
             assignee: [teamMember4._id],

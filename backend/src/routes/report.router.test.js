@@ -145,7 +145,7 @@ beforeEach(async () => {
         {
             title: 'Task 3 - Done',
             description: 'Third task completed',
-            status: 'Done',
+            status: 'Completed',
             priority: 3, // Low priority
             owner: adminUser._id,
             assignee: staffUser._id,
