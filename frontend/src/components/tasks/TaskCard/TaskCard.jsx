@@ -1,11 +1,12 @@
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Button from "../../common/Button/Button";
 import Card from "../../common/Card/Card";
 import CommentSection from "../TaskComment/TaskCommentSection";
 import Modal from '../../common/Modal/Modal';
 import SubtaskList from '../SubtaskList/SubtaskList';
 import SubtaskForm from '../SubtaskForm/SubtaskForm';
+import StatusUpdatePopup from '../StatusUpdatePopup/StatusUpdatePopup';
 import { useSubtasks } from '../../../context/SubtaskContext';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,6 +32,10 @@ function TaskCard({
   const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  // Status update popup state
+  const [showStatusPopup, setShowStatusPopup] = useState(false);
+  const [statusPopupPosition, setStatusPopupPosition] = useState({ top: 0, left: 0 });
+  const statusBadgeRef = useRef(null);
 
   const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
@@ -84,7 +89,10 @@ function TaskCard({
       case "In Progress":
         return styles.statusInProgress;
       case "Done":
+      case "Completed":
         return styles.statusDone;
+      case "Blocked":
+        return styles.statusBlocked;
       default:
         return styles.statusTodo;
     }
@@ -283,6 +291,37 @@ function TaskCard({
     }
   };
 
+  // Status update handlers
+  const handleStatusBadgeClick = (e) => {
+    e.stopPropagation();
+    if (isArchived || !canEdit()) return;
+
+    const rect = statusBadgeRef.current.getBoundingClientRect();
+    setStatusPopupPosition({
+      top: rect.bottom + window.scrollY + 5,
+      left: rect.left + window.scrollX,
+    });
+    setShowStatusPopup(true);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await apiService.request(`/tasks/${task._id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      addNotification(`Task status updated to "${newStatus}"`, 'success');
+
+      // Refresh task data
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error) {
+      addNotification(error.message || 'Failed to update task status', 'error');
+    }
+  };
+
   return (
     <>
       <Card
@@ -311,7 +350,10 @@ function TaskCard({
                 </span>
               )}
               <span
-                className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)}`}
+                ref={statusBadgeRef}
+                className={`${styles.statusBadge} ${getStatusBadgeClass(task.status)} ${!isArchived && canEdit() ? styles.clickable : ''}`}
+                onClick={handleStatusBadgeClick}
+                style={{ cursor: !isArchived && canEdit() ? 'pointer' : 'default', position: 'relative' }}
               >
                 {task.status}
               </span>
@@ -613,6 +655,16 @@ function TaskCard({
             )}
           </div>
         </Modal>
+      )}
+
+      {/* Status Update Popup */}
+      {showStatusPopup && (
+        <StatusUpdatePopup
+          currentStatus={task.status}
+          onStatusChange={handleStatusChange}
+          onClose={() => setShowStatusPopup(false)}
+          position={statusPopupPosition}
+        />
       )}
     </>
   );

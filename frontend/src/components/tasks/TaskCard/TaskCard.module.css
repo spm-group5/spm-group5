@@ -155,6 +155,19 @@
   letter-spacing: 0.025em;
 }
 
+.statusBadge.clickable {
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.statusBadge.clickable:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.statusBadge.clickable:active {
+  transform: scale(0.98);
+}
+
 .statusTodo {
   background-color: #6c757d;
   color: white;

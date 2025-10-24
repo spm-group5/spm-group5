@@ -113,26 +113,44 @@ class TaskService {
         }
 
         // STEP 2: Check if task exists
-        const task = await Task.findById(taskId);
+        const task = await Task.findById(taskId).populate('assignee');
 
         if (!task) {
             throw new Error('Task not found');
         }
 
         // STEP 3: Check permissions AFTER validation
-        const isOwner = task.owner.toString() === userId.toString();
-        const isAssignee = task.assignee && task.assignee.some(
-            assigneeId => assigneeId.toString() === userId.toString()
-        );
-        const hasPermission = isOwner || isAssignee;
-
-        if (!hasPermission) {
-            throw new Error('You do not have permission to modify this task');
-        }
-
-        // Get user role for assignment validation
+        // Get user to check roles
         const user = await User.findById(userId);
+        const isAdmin = user && user.roles && user.roles.includes('admin');
         const isManager = user && user.roles && user.roles.includes('manager');
+
+        // Admin can edit all tasks
+        if (isAdmin) {
+            // Admin has permission, continue
+        } else {
+            const isOwner = task.owner.toString() === userId.toString();
+            const isAssignee = task.assignee && task.assignee.some(
+                assignee => {
+                    const assigneeId = assignee._id || assignee;
+                    return assigneeId.toString() === userId.toString();
+                }
+            );
+
+            // Manager can edit if they are assigned or if any assignee is from their department
+            let hasManagerPermission = false;
+            if (isManager) {
+                hasManagerPermission = isAssignee || task.assignee.some(assignee =>
+                    assignee.department === user.department
+                );
+            }
+
+            const hasPermission = isOwner || isAssignee || hasManagerPermission;
+
+            if (!hasPermission) {
+                throw new Error('You do not have permission to modify this task');
+            }
+        }
 
         // STEP 4: Apply validated updates
         if (updateData.title !== undefined) {

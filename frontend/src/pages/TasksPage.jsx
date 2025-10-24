@@ -155,13 +155,7 @@ function TasksPage() {
 
     // Apply status filter
     if (filterStatus) {
-      console.log('Filtering by status:', filterStatus);
-      console.log('Before filter:', filtered.map(t => ({ title: t.title, status: t.status })));
-      filtered = filtered.filter(task => {
-        console.log(`Task "${task.title}" status: "${task.status}" === "${filterStatus}"?`, task.status === filterStatus);
-        return task.status === filterStatus;
-      });
-      console.log('After filter:', filtered.map(t => ({ title: t.title, status: t.status })));
+      filtered = filtered.filter(task => task.status === filterStatus);
     }
 
     // Apply sorting
