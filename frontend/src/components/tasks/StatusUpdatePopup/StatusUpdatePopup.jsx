@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import styles from './StatusUpdatePopup.module.css';
 
 const STATUS_OPTIONS = ['To Do', 'In Progress', 'Blocked', 'Completed'];

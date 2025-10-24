@@ -11,10 +11,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const { projects } = useProjects();
   const { user } = useAuth();
   const isEditing = !!task;
-  const isManager = user?.roles?.includes('manager');
 
   const [projectMembers, setProjectMembers] = useState([]);
-  const [currentAssignees, setCurrentAssignees] = useState([]);
 
   const {
     register,
@@ -53,16 +51,6 @@ function TaskForm({ task, onSubmit, onCancel }) {
       setProjectMembers([]);
     }
   }, [watchedProject, projects]);
-
-  // Track current assignees in edit mode and update form values
-  useEffect(() => {
-    if (isEditing && task?.assignee) {
-      const assigneeIds = task.assignee.map(a => a._id || a);
-      setCurrentAssignees(assigneeIds);
-      // Update form value to reflect current assignees
-      setValue('assignee', assigneeIds, { shouldValidate: false });
-    }
-  }, [isEditing, task, setValue]);
 
   // In create mode, ensure creator is always included
   useEffect(() => {

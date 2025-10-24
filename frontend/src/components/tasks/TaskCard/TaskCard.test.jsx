@@ -54,7 +54,7 @@ describe('TaskCard - Assignment Button Visibility', () => {
 
         it('should not trigger API call until Assign button is clicked', () => {
             const task = testTasks['T-610'];
-            const fetchSpy = vi.spyOn(global, 'fetch');
+            const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
             renderAsManager(
                 <TaskCard
