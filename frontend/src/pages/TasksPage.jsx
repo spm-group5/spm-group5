@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTasks } from '../context/TaskContext';
 import { useProjects } from '../context/ProjectContext';
 import Header from '../components/common/Header/Header';
@@ -12,20 +13,39 @@ import styles from './TasksPage.module.css';
 function TasksPage() {
   const { tasks, loading, error, fetchTasks, createTask, updateTask, archiveTask, unarchiveTask } = useTasks();
   const { fetchProjects } = useProjects();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
   const [filterTag, setFilterTag] = useState('');
   const [filterProject, setFilterProject] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [activeTab, setActiveTab] = useState('active'); // 'active', 'done', or 'archived'
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [taskToArchive, setTaskToArchive] = useState(null);
+  const taskRefs = useRef({});
 
   useEffect(() => {
     fetchTasks();
     fetchProjects();
   }, [fetchTasks, fetchProjects]);
+
+  // Auto-scroll and expand task from URL parameter
+  useEffect(() => {
+    const taskId = searchParams.get('taskId');
+    if (taskId && tasks.length > 0 && taskRefs.current[taskId]) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        taskRefs.current[taskId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+        // Clear the URL parameter after scrolling
+        setSearchParams({});
+      }, 300);
+    }
+  }, [searchParams, tasks, setSearchParams]);
 
   const handleCreateTask = () => {
     setEditingTask(null);
@@ -108,9 +128,9 @@ function TasksPage() {
 
     // Apply tab filter
     if (activeTab === 'active') {
-      filtered = filtered.filter(task => !task.archived && task.status !== 'Done');
+      filtered = filtered.filter(task => !task.archived && task.status !== 'Completed');
     } else if (activeTab === 'done') {
-      filtered = filtered.filter(task => !task.archived && task.status === 'Done');
+      filtered = filtered.filter(task => !task.archived && task.status === 'Completed');
     } else if (activeTab === 'archived') {
       filtered = filtered.filter(task => task.archived);
     }
@@ -131,6 +151,17 @@ function TasksPage() {
         const projectName = typeof task.project === 'object' ? task.project.name : task.project;
         return projectName === filterProject;
       });
+    }
+
+    // Apply status filter
+    if (filterStatus) {
+      console.log('Filtering by status:', filterStatus);
+      console.log('Before filter:', filtered.map(t => ({ title: t.title, status: t.status })));
+      filtered = filtered.filter(task => {
+        console.log(`Task "${task.title}" status: "${task.status}" === "${filterStatus}"?`, task.status === filterStatus);
+        return task.status === filterStatus;
+      });
+      console.log('After filter:', filtered.map(t => ({ title: t.title, status: t.status })));
     }
 
     // Apply sorting
@@ -162,7 +193,7 @@ function TasksPage() {
     });
 
     return filtered;
-  }, [tasks, sortBy, filterTag, filterProject, activeTab]);
+  }, [tasks, sortBy, filterTag, filterProject, filterStatus, activeTab]);
 
   if (loading && tasks.length === 0) {
     return (
@@ -288,11 +319,28 @@ function TasksPage() {
                   </div>
                 )}
 
-                {(filterTag || filterProject) && (
+                <div className={styles.filterGroup}>
+                  <label htmlFor="filterStatus" className={styles.filterLabel}>Filter by status:</label>
+                  <select
+                    id="filterStatus"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="To Do">To Do</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Blocked">Blocked</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
+                {(filterTag || filterProject || filterStatus) && (
                   <button
                     onClick={() => {
                       setFilterTag('');
                       setFilterProject('');
+                      setFilterStatus('');
                     }}
                     className={styles.clearFilters}
                   >
@@ -319,17 +367,21 @@ function TasksPage() {
             ) : (
               <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
                 {filteredAndSortedTasks.map((task) => (
-                  <TaskCard
+                  <div
                     key={task._id}
-                    task={task}
-                    onEdit={handleEditTask}
-                    onArchive={handleArchiveTask}
-                    onUnarchive={handleUnarchiveTask}
-                    isArchived={task.archived}
-                    onRefresh={() => {
-                      fetchTasks();
-                    }}
-                  />
+                    ref={(el) => taskRefs.current[task._id] = el}
+                  >
+                    <TaskCard
+                      task={task}
+                      onEdit={handleEditTask}
+                      onArchive={handleArchiveTask}
+                      onUnarchive={handleUnarchiveTask}
+                      isArchived={task.archived}
+                      onRefresh={() => {
+                        fetchTasks();
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}

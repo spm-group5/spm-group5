@@ -155,7 +155,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
               >
                 <option value="To Do">To Do</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
               </select>
               {errors.status && (
                 <div className={styles.errorMessage}>{errors.status.message}</div>

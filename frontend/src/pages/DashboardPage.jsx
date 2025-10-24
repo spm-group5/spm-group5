@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../context/TaskContext';
@@ -14,6 +14,7 @@ function DashboardPage() {
   const { user } = useAuth();
   const { tasks, loading: tasksLoading, fetchTasks } = useTasks();
   const { projects, loading: projectsLoading, fetchProjects } = useProjects();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTasks();
@@ -23,7 +24,7 @@ function DashboardPage() {
   const getTaskStats = () => {
     const total = tasks.length;
     const inProgress = tasks.filter(task => task.status === 'In Progress').length;
-    const completed = tasks.filter(task => task.status === 'Done').length;
+    const completed = tasks.filter(task => task.status === 'Completed').length;
     const pending = tasks.filter(task => task.status === 'To Do').length;
     return { total, inProgress, completed, pending };
   };
@@ -110,7 +111,12 @@ function DashboardPage() {
                 ) : (
                   <div className={styles.taskList}>
                     {recentTasks.map((task) => (
-                      <div key={task._id} className={styles.taskItem}>
+                      <div
+                        key={task._id}
+                        className={styles.taskItem}
+                        onClick={() => navigate(`/tasks?taskId=${task._id}`)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className={styles.taskInfo}>
                           <h4 className={styles.taskTitle}>{task.title}</h4>
                           <div className={styles.taskMeta}>
