@@ -337,4 +337,106 @@ describe('Task Model Test', () => {
             expect(task.assignee[1].toString()).toBe(assignee2._id.toString());
         });
     });
+
+    // TESTS: Task Assignment Model Validation (TSK-021)
+    describe('Task Model - Assignment Validation (TSK-021)', () => {
+        it('should enforce maximum 5 assignees at model level', async () => {
+            // Create 6 users
+            const users = await Promise.all([
+                User.create({ username: 'u1@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'u2@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'u3@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'u4@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'u5@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'u6@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' })
+            ]);
+
+            const taskData = {
+                title: 'Test Task',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: users.map(u => u._id)
+            };
+
+            // Should fail validation - max 5 assignees allowed
+            await expect(Task.create(taskData)).rejects.toThrow();
+        });
+
+        it('should allow exactly 5 assignees', async () => {
+            // Create 5 users
+            const users = await Promise.all([
+                User.create({ username: 'v1@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'v2@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'v3@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'v4@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' }),
+                User.create({ username: 'v5@test.com', roles: ['staff'], department: 'it', hashed_password: 'pass' })
+            ]);
+
+            const taskData = {
+                title: 'Test Task with 5 Assignees',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: users.map(u => u._id)
+            };
+
+            // Should succeed - exactly 5 assignees
+            const task = await Task.create(taskData);
+            expect(task.assignee).toHaveLength(5);
+        });
+
+        it('should allow empty assignee array (owner field handles min requirement)', async () => {
+            const taskData = {
+                title: 'Task with No Assignees',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: []
+            };
+
+            // Model allows empty assignee array
+            // Service layer enforces "at least owner must be assigned"
+            const task = await Task.create(taskData);
+            expect(task.assignee).toHaveLength(0);
+            expect(task.owner).toBeDefined();
+        });
+
+        it('should validate assignee field is an array', async () => {
+            const taskData = {
+                title: 'Invalid Assignee Type',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: 'not-an-array'
+            };
+
+            // Should fail - assignee must be array
+            await expect(Task.create(taskData)).rejects.toThrow();
+        });
+
+        it('should allow assignee array with valid ObjectIds', async () => {
+            const user1 = await User.create({
+                username: 'valid1@test.com',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'pass'
+            });
+
+            const user2 = await User.create({
+                username: 'valid2@test.com',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'pass'
+            });
+
+            const taskData = {
+                title: 'Valid Assignees Task',
+                owner: testUser._id,
+                project: testProject._id,
+                assignee: [user1._id, user2._id]
+            };
+
+            const task = await Task.create(taskData);
+            expect(task.assignee).toHaveLength(2);
+            expect(task.assignee[0].toString()).toBe(user1._id.toString());
+            expect(task.assignee[1].toString()).toBe(user2._id.toString());
+        });
+    });
 });

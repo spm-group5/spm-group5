@@ -126,7 +126,7 @@ describe('Report Service Test', () => {
             {
                 title: 'Task 4 - Done',
                 description: 'Fourth task completed',
-                status: 'Done',
+                status: 'Completed',
                 priority: 9, // High priority (was 'High')
                 owner: testUser2._id,
                 assignee: [testUser2._id],
@@ -146,7 +146,7 @@ describe('Report Service Test', () => {
             {
                 title: 'Task 6 - User Task',
                 description: 'Task for user',
-                status: 'Done',
+                status: 'Completed',
                 priority: 7,
                 owner: testUser1._id,
                 assignee: [testUser1._id],
@@ -187,13 +187,13 @@ describe('Report Service Test', () => {
             expect(reportData.aggregates['To Do']).toBe(1);
             expect(reportData.aggregates['In Progress']).toBe(1);
             expect(reportData.aggregates['Blocked']).toBe(1);
-            expect(reportData.aggregates['Done']).toBe(2);
+            expect(reportData.aggregates['Completed']).toBe(2);
 
             // Check data structure
             expect(reportData.data['To Do']).toHaveLength(1);
             expect(reportData.data['In Progress']).toHaveLength(1);
             expect(reportData.data['Blocked']).toHaveLength(1);
-            expect(reportData.data['Done']).toHaveLength(2);
+            expect(reportData.data['Completed']).toHaveLength(2);
 
             // Verify task data format
             const todoTask = reportData.data['To Do'][0];
@@ -235,7 +235,7 @@ describe('Report Service Test', () => {
             expect(reportData.data['To Do']).toHaveLength(0);
             expect(reportData.data['In Progress']).toHaveLength(0);
             expect(reportData.data['Blocked']).toHaveLength(0);
-            expect(reportData.data['Done']).toHaveLength(0);
+            expect(reportData.data['Completed']).toHaveLength(0);
         });
 
         it('should filter tasks correctly by date range', async () => {
@@ -292,7 +292,7 @@ describe('Report Service Test', () => {
                 ...reportData.data['To Do'],
                 ...reportData.data['In Progress'],
                 ...reportData.data['Blocked'],
-                ...reportData.data['Done']
+                ...reportData.data['Completed']
             ];
 
             const taskTitles = allTasks.map(task => task.title);
@@ -417,13 +417,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -470,13 +470,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -513,8 +513,8 @@ describe('Report Service Test', () => {
             puppeteer.launch.mockResolvedValueOnce(mockBrowser);
 
             const mockReportData = {
-                data: { 'To Do': [], 'In Progress': [], 'Blocked': [], 'Done': [] },
-                aggregates: { 'To Do': 0, 'In Progress': 0, 'Blocked': 0, 'Done': 0, total: 0 },
+                data: { 'To Do': [], 'In Progress': [], 'Blocked': [], 'Completed': [] },
+                aggregates: { 'To Do': 0, 'In Progress': 0, 'Blocked': 0, 'Completed': 0, total: 0 },
                 metadata: { type: 'project', generatedAt: '15-01-2024', dateRange: {} }
             };
 
@@ -541,13 +541,13 @@ describe('Report Service Test', () => {
                     }],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': []
+                    'Completed': []
                 },
                 aggregates: {
                     'To Do': 1,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 0,
+                    'Completed': 0,
                     total: 1
                 },
                 metadata: {
@@ -578,7 +578,7 @@ describe('Report Service Test', () => {
                     'To Do': [],
                     'In Progress': [],
                     'Blocked': [],
-                    'Done': [{
+                    'Completed': [{
                         id: '456',
                         title: 'Done Task',
                         deadline: 'No deadline',
@@ -595,7 +595,7 @@ describe('Report Service Test', () => {
                     'To Do': 0,
                     'In Progress': 0,
                     'Blocked': 0,
-                    'Done': 1,
+                    'Completed': 1,
                     total: 1
                 },
                 metadata: {

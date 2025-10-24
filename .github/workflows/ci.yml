@@ -27,7 +27,7 @@ jobs:
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
-      - run: npm ci --prefer-offline
+      - run: npm install --legacy-peer-deps
         working-directory: frontend
       - run: npm run lint
         working-directory: frontend
@@ -39,7 +39,7 @@ jobs:
         with:
           path: backend/node_modules
           key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}
-      - run: npm ci --prefer-offline
+      - run: npm install --legacy-peer-deps
         working-directory: backend
       - run: npm run lint
         working-directory: backend
@@ -73,9 +73,9 @@ jobs:
             ${{ runner.os }}-backend-node${{ matrix.node-version }}-
             ${{ runner.os }}-backend-
       - run: mkdir -p backend/environments
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
         working-directory: backend
       - run: npm run build --if-present
         working-directory: backend
-      - run: npm test 
+      - run: npm test
         working-directory: backend

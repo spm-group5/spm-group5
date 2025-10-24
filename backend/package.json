@@ -11,6 +11,9 @@
     "test:watch": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:api": "vitest run --run --reporter=verbose src/routes/__tests__",
+    "test:unit": "vitest run --run --reporter=verbose src/services/__tests__",
+    "test:assign": "vitest run --run --reporter=verbose src/**/*assign*",
     "build": "echo 'No build step required'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

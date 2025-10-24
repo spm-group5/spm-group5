@@ -306,7 +306,7 @@ const createTask = async (req, res) => {
     const updateReq = {
       params: { taskId: 'task123' },
       body: {
-        status: "Done" // Status changed to Done
+        status: "Completed" // Status changed to Done
       },
       user: {
         _id: "manager456",
@@ -335,7 +335,7 @@ const createTask = async (req, res) => {
       _id: "task123",
       title: "Status Change Test Task",
       assignee: [{_id: "user123"}],
-      status: "Done", // New status
+      status: "Completed", // New status
       deadline: new Date("2025-10-30")
     });
     
@@ -345,8 +345,8 @@ const createTask = async (req, res) => {
     // Verify socket notification for status change
     expect(mockIo.to).toHaveBeenCalledWith("socket-id-123");
     expect(mockIo.emit).toHaveBeenCalledWith("task-updated", expect.objectContaining({
-      message: expect.stringContaining("status changed to Done"),
-      task: expect.objectContaining({ status: "Done" }),
+      message: expect.stringContaining("status changed to Completed"),
+      task: expect.objectContaining({ status: "Completed" }),
       timestamp: expect.any(Date)
     }));
     

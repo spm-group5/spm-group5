@@ -95,8 +95,8 @@ class TaskController {
             const updatedTask = await taskService.updateTask(taskId, req.body, userId);
             const newAssignees = updatedTask.assignee.map(a => a._id ? a._id.toString() : a.toString());
 
-            // Check if task was just marked as Done and is recurring
-            if (originalStatus !== 'Done' && updatedTask.status === 'Done' && updatedTask.isRecurring) {
+            // Check if task was just marked as Completed and is recurring
+            if (originalStatus !== 'Completed' && updatedTask.status === 'Completed' && updatedTask.isRecurring) {
                 console.log('Creating recurring task instance...');
                 const newRecurringTask = await taskService.createRecurringTask(updatedTask);
                 if (newRecurringTask) {
@@ -604,6 +604,201 @@ class TaskController {
             if (error.message === 'Project not found') {
                 statusCode = 404;
             } else if (error.message.includes('Access denied') || error.message.includes('not have permission')) {
+                statusCode = 403;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // ASSIGNEE-SCOPE: Post-creation assignment controller
+    async assignOwner(req, res) {
+        try {
+            const { id: taskId } = req.params;
+            const { assignee: assigneeInput } = req.body;
+            const actingUser = req.user;
+
+            // Debug logging
+            console.log('🔍 Assignment request received:');
+            console.log('  - taskId:', taskId);
+            console.log('  - req.body:', req.body);
+            console.log('  - assigneeInput:', assigneeInput);
+            console.log('  - assigneeInput type:', typeof assigneeInput);
+            console.log('  - assigneeInput truthiness:', !!assigneeInput);
+
+            // Guard: check if assignee provided
+            if (!assigneeInput) {
+                console.log('❌ Assignment rejected: assigneeInput is falsy');
+                return res.status(422).json({
+                    success: false,
+                    message: 'Every task or subtask must have an owner.'
+                });
+            }
+
+            // Call service
+            const task = await taskService.assignOwner({
+                taskId,
+                assigneeInput,
+                actingUser
+            });
+
+            // Return 200 with populated task
+            res.status(200).json({
+                success: true,
+                data: task
+            });
+        } catch (error) {
+            console.error('❌ Error assigning owner:', error);
+
+            // Map error messages to status codes
+            let statusCode = 400;
+
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            } else if (error.message.includes('Every task or subtask must have an owner')) {
+                statusCode = 422;
+            } else if (error.message.includes('access to this project')) {
+                statusCode = 403;
+            } else if (error.message.includes('Maximum of 5 assignees allowed')) {
+                statusCode = 400;
+            } else if (error.message === 'This task is no longer active') {
+                statusCode = 400;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // ASSIGNEE-SCOPE: List eligible assignees controller
+    async listEligibleAssignees(req, res) {
+        try {
+            const { id: taskId } = req.params;
+
+            const assignees = await taskService.getEligibleAssignees(taskId);
+
+            res.status(200).json({
+                success: true,
+                data: assignees
+            });
+        } catch (error) {
+            console.error('❌ Error listing eligible assignees:', error);
+
+            let statusCode = 400;
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // ASSIGNEE-SCOPE: Add assignee to task
+    async addAssignee(req, res) {
+        try {
+            const { id: taskId } = req.params;
+            const { assignee: newAssigneeInput } = req.body;
+            const actingUser = req.user;
+
+            // Guard: check if assignee provided
+            if (!newAssigneeInput) {
+                return res.status(422).json({
+                    success: false,
+                    message: 'Assignee email is required'
+                });
+            }
+
+            // Call service
+            const task = await taskService.addAssignee({
+                taskId,
+                newAssigneeInput,
+                actingUser
+            });
+
+            // Return 200 with populated task
+            res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Assignee added successfully'
+            });
+        } catch (error) {
+            console.error('❌ Error adding assignee:', error);
+
+            // Map error messages to status codes
+            let statusCode = 400;
+
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            } else if (error.message === 'User not found') {
+                statusCode = 404;
+            } else if (error.message.includes('already assigned')) {
+                statusCode = 409;
+            } else if (error.message.includes('Maximum of 5 assignees')) {
+                statusCode = 422;
+            } else if (error.message.includes('permission')) {
+                statusCode = 403;
+            } else if (error.message.includes('project member')) {
+                statusCode = 422;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // ASSIGNEE-SCOPE: Remove assignee from task
+    async removeAssignee(req, res) {
+        try {
+            const { id: taskId } = req.params;
+            const { assignee: assigneeToRemoveInput } = req.body;
+            const actingUser = req.user;
+
+            // Guard: check if assignee provided
+            if (!assigneeToRemoveInput) {
+                return res.status(422).json({
+                    success: false,
+                    message: 'Assignee email is required'
+                });
+            }
+
+            // Call service
+            const task = await taskService.removeAssignee({
+                taskId,
+                assigneeToRemoveInput,
+                actingUser
+            });
+
+            // Return 200 with populated task
+            res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Assignee removed successfully'
+            });
+        } catch (error) {
+            console.error('❌ Error removing assignee:', error);
+
+            // Map error messages to status codes
+            let statusCode = 400;
+
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            } else if (error.message === 'User not found') {
+                statusCode = 404;
+            } else if (error.message.includes('not assigned')) {
+                statusCode = 404;
+            } else if (error.message.includes('at least one assignee')) {
+                statusCode = 422;
+            } else if (error.message.includes('Only Manager, Admin')) {
                 statusCode = 403;
             }
 

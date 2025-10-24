@@ -98,7 +98,7 @@ class ReportService {
             'To Do': [],
             'In Progress': [],
             'Blocked': [],
-            'Done': []
+            'Completed': []
         };
 
         // Process each task
@@ -132,7 +132,7 @@ class ReportService {
             'To Do': groupedTasks['To Do'].length,
             'In Progress': groupedTasks['In Progress'].length,
             'Blocked': groupedTasks['Blocked'].length,
-            'Done': groupedTasks['Done'].length,
+            'Completed': groupedTasks['Completed'].length,
             total: tasks.length
         };
 
@@ -163,7 +163,7 @@ class ReportService {
         const workbook = xlsx.utils.book_new();
         
         // Create worksheets for each status
-        const statuses = ['To Do', 'In Progress', 'Blocked', 'Done'];
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
         
         statuses.forEach(status => {
             const tasks = reportData.data[status];
@@ -233,7 +233,7 @@ class ReportService {
         summaryData.push(['To Do', reportData.aggregates['To Do']]);
         summaryData.push(['In Progress', reportData.aggregates['In Progress']]);
         summaryData.push(['Blocked', reportData.aggregates['Blocked']]);
-        summaryData.push(['Done', reportData.aggregates['Done']]);
+        summaryData.push(['Completed', reportData.aggregates['Completed']]);
         summaryData.push(['Total Tasks', reportData.aggregates.total]);
         
         const summaryWorksheet = xlsx.utils.aoa_to_sheet(summaryData);
@@ -284,7 +284,7 @@ class ReportService {
      * @returns {string} HTML string
      */
     generateReportHTML(reportData) {
-        const statuses = ['To Do', 'In Progress', 'Blocked', 'Done'];
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
         const reportTitle = reportData.metadata.type === 'project' 
             ? `Task Completion Report - Project: ${reportData.metadata.projectName}`
             : `Task Completion Report - User: ${reportData.metadata.username}`;
@@ -412,8 +412,8 @@ class ReportService {
             <p>${reportData.aggregates['Blocked']}</p>
         </div>
         <div class="summary-item">
-            <h3>Done</h3>
-            <p>${reportData.aggregates['Done']}</p>
+            <h3>Completed</h3>
+            <p>${reportData.aggregates['Completed']}</p>
         </div>
     </div>`;
         
@@ -527,7 +527,7 @@ class ReportService {
                 $gte: startDateRange,
                 $lte: endDateRange
             },
-            status: { $in: ['To Do', 'In Progress', 'Done'] } // Exclude Blocked
+            status: { $in: ['To Do', 'In Progress', 'Completed'] } // Exclude Blocked
         };
 
         // Fetch tasks with populated references
@@ -642,7 +642,7 @@ class ReportService {
         const grouped = {
             'To Do': [],
             'In Progress': [],
-            'Done': []
+            'Completed': []
         };
         
         tasks.forEach(task => {
@@ -679,7 +679,7 @@ class ReportService {
             tasksByStatus: {
                 'To Do': tasks.filter(t => t.status === 'To Do').length,
                 'In Progress': tasks.filter(t => t.status === 'In Progress').length,
-                'Done': tasks.filter(t => t.status === 'Done').length
+                'Completed': tasks.filter(t => t.status === 'Completed').length
             },
             teamMemberCount: teamMembers.length,
             tasksByMember: {}
@@ -708,7 +708,7 @@ class ReportService {
         const workbook = xlsx.utils.book_new();
         
         // Create worksheet for each status
-        const statuses = ['To Do', 'In Progress', 'Done'];
+        const statuses = ['To Do', 'In Progress', 'Completed'];
         
         statuses.forEach(status => {
             const tasks = reportData.tasksByStatus[status];
@@ -760,7 +760,7 @@ class ReportService {
             ['Total Tasks:', reportData.summaryStats.totalTasks],
             ['To Do:', reportData.summaryStats.tasksByStatus['To Do']],
             ['In Progress:', reportData.summaryStats.tasksByStatus['In Progress']],
-            ['Done:', reportData.summaryStats.tasksByStatus['Done']],
+            ['Completed:', reportData.summaryStats.tasksByStatus['Completed']],
             [],
             ['Team Members (' + reportData.summaryStats.teamMemberCount + ')'],
             ['Username', 'Department', 'Role', 'Task Count']
@@ -944,8 +944,8 @@ class ReportService {
             <span>${reportData.summaryStats.tasksByStatus['In Progress']}</span>
         </div>
         <div class="summary-row">
-            <span class="summary-label">Done:</span>
-            <span>${reportData.summaryStats.tasksByStatus['Done']}</span>
+            <span class="summary-label">Completed:</span>
+            <span>${reportData.summaryStats.tasksByStatus['Completed']}</span>
         </div>
         <div class="summary-row">
             <span class="summary-label">Team Members:</span>
@@ -982,7 +982,7 @@ class ReportService {
     <div class="page-break"></div>`;
 
         // Add tasks by status
-        const statuses = ['To Do', 'In Progress', 'Done'];
+        const statuses = ['To Do', 'In Progress', 'Completed'];
         statuses.forEach(status => {
             const tasks = reportData.tasksByStatus[status];
             html += `

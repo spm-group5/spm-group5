@@ -11,10 +11,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const { projects } = useProjects();
   const { user } = useAuth();
   const isEditing = !!task;
-  const isManager = user?.roles?.includes('manager');
 
   const [projectMembers, setProjectMembers] = useState([]);
-  const [currentAssignees, setCurrentAssignees] = useState([]);
 
   const {
     register,
@@ -53,13 +51,6 @@ function TaskForm({ task, onSubmit, onCancel }) {
       setProjectMembers([]);
     }
   }, [watchedProject, projects]);
-
-  // Track current assignees in edit mode
-  useEffect(() => {
-    if (isEditing && task?.assignee) {
-      setCurrentAssignees(task.assignee.map(a => a._id || a));
-    }
-  }, [isEditing, task]);
 
   // In create mode, ensure creator is always included
   useEffect(() => {
@@ -152,7 +143,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
               >
                 <option value="To Do">To Do</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
               </select>
               {errors.status && (
                 <div className={styles.errorMessage}>{errors.status.message}</div>
@@ -214,72 +206,85 @@ function TaskForm({ task, onSubmit, onCancel }) {
               <label className={styles.selectLabel} htmlFor="assignee-select">
                 Assign To <span className={styles.required}>*</span>
               </label>
-              <select
-                id="assignee-select"
-                className={styles.select}
-                multiple // Enable multiple selection
-                size="5" // Show 5 options at once
-                {...register('assignee', {
-                  validate: {
-                    maxAssignees: (value) => {
-                      if (Array.isArray(value) && value.length > 5) {
-                        return 'Maximum 5 assignees allowed';
-                      }
-                      return true;
-                    },
-                    minAssignees: (value) => {
-                      // In create mode, creator is auto-assigned, so no error
-                      if (!isEditing) {
-                        return true;
-                      }
-                      // In edit mode, check if there's at least one assignee
-                      const arr = Array.isArray(value) ? value : value ? [value] : [];
-                      if (arr.length === 0) {
-                        return 'At least one assignee is required';
-                      }
-                      return true;
-                    },
-                    cannotRemove: (value) => {
-                      if (isEditing && !isManager) {
-                        const newAssignees = Array.isArray(value) ? value : [];
-                        const removedAssignees = currentAssignees.filter(
-                          id => !newAssignees.includes(id)
-                        );
-                        if (removedAssignees.length > 0) {
-                          return 'Only managers can remove assignees';
+              {isEditing ? (
+                // In edit mode: Show read-only list of current assignees
+                <>
+                  <div
+                    className={styles.select}
+                    style={{
+                      padding: '8px',
+                      backgroundColor: '#f5f5f5',
+                      minHeight: '100px',
+                      cursor: 'not-allowed'
+                    }}
+                  >
+                    {task?.assignee && task.assignee.length > 0 ? (
+                      task.assignee.map((assignee) => (
+                        <div
+                          key={assignee._id || assignee}
+                          style={{
+                            padding: '4px 0',
+                            color: '#333'
+                          }}
+                        >
+                          {assignee.username || assignee.name || assignee}
+                          {task.owner?._id === (assignee._id || assignee) && (
+                            <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                              (Owner)
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ color: '#999' }}>No assignees</div>
+                    )}
+                  </div>
+                  <small className={styles.helpText} style={{ color: '#2563eb' }}>
+                    To add or remove assignees, use the "Manage Assignees" button on the task card
+                  </small>
+                </>
+              ) : (
+                // In create mode: Allow selecting assignees
+                <>
+                  <select
+                    id="assignee-select"
+                    className={styles.select}
+                    multiple
+                    size="5"
+                    {...register('assignee', {
+                      validate: {
+                        maxAssignees: (value) => {
+                          if (Array.isArray(value) && value.length > 5) {
+                            return 'Maximum 5 assignees allowed';
+                          }
+                          return true;
                         }
                       }
-                      return true;
-                    }
-                  }
-                })}
-              >
-                {projectMembers?.map((member) => {
-                  const isCreator = !isEditing && member._id === user?._id;
-                  const label = isCreator ? `${member.username} (You - Creator)` : member.username;
+                    })}
+                  >
+                    {projectMembers?.map((member) => {
+                      const isCreator = member._id === user?._id;
+                      const label = isCreator ? `${member.username} (You - Creator)` : member.username;
 
-                  return (
-                    <option
-                      key={member._id}
-                      value={member._id}
-                      disabled={isCreator}
-                    >
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-              {errors.assignee && (
-                <div className={styles.errorMessage}>{errors.assignee.message}</div>
+                      return (
+                        <option
+                          key={member._id}
+                          value={member._id}
+                          disabled={isCreator}
+                        >
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {errors.assignee && (
+                    <div className={styles.errorMessage}>{errors.assignee.message}</div>
+                  )}
+                  <small className={styles.helpText}>
+                    You (creator) will be automatically assigned. Select up to 4 more members (max 5 total).
+                  </small>
+                </>
               )}
-              <small className={styles.helpText}>
-                {!isEditing
-                  ? 'You (creator) will be automatically assigned. Select up to 4 more members (max 5 total).'
-                  : isManager
-                  ? 'Hold Ctrl/Cmd to select multiple. Max 5 assignees. You can add or remove assignees.'
-                  : 'Hold Ctrl/Cmd to select multiple. Max 5 assignees. You can only add new assignees.'
-                }
-              </small>
             </div>
           </div>
 

@@ -23,13 +23,13 @@ describe('Report Controller Test', () => {
             }],
             'In Progress': [],
             'Blocked': [],
-            'Done': []
+            'Completed': []
         },
         aggregates: {
             'To Do': 1,
             'In Progress': 0,
             'Blocked': 0,
-            'Done': 0,
+            'Completed': 0,
             total: 1
         },
         metadata: {
