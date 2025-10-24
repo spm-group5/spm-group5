@@ -187,13 +187,13 @@ describe('Report Service Test', () => {
             expect(reportData.aggregates['To Do']).toBe(1);
             expect(reportData.aggregates['In Progress']).toBe(1);
             expect(reportData.aggregates['Blocked']).toBe(1);
-            expect(reportData.aggregates['Done']).toBe(2);
+            expect(reportData.aggregates['Completed']).toBe(2);
 
             // Check data structure
             expect(reportData.data['To Do']).toHaveLength(1);
             expect(reportData.data['In Progress']).toHaveLength(1);
             expect(reportData.data['Blocked']).toHaveLength(1);
-            expect(reportData.data['Done']).toHaveLength(2);
+            expect(reportData.data['Completed']).toHaveLength(2);
 
             // Verify task data format
             const todoTask = reportData.data['To Do'][0];
@@ -235,7 +235,7 @@ describe('Report Service Test', () => {
             expect(reportData.data['To Do']).toHaveLength(0);
             expect(reportData.data['In Progress']).toHaveLength(0);
             expect(reportData.data['Blocked']).toHaveLength(0);
-            expect(reportData.data['Done']).toHaveLength(0);
+            expect(reportData.data['Completed']).toHaveLength(0);
         });
 
         it('should filter tasks correctly by date range', async () => {
@@ -292,7 +292,7 @@ describe('Report Service Test', () => {
                 ...reportData.data['To Do'],
                 ...reportData.data['In Progress'],
                 ...reportData.data['Blocked'],
-                ...reportData.data['Done']
+                ...reportData.data['Completed']
             ];
 
             const taskTitles = allTasks.map(task => task.title);

@@ -345,7 +345,7 @@ const createTask = async (req, res) => {
     // Verify socket notification for status change
     expect(mockIo.to).toHaveBeenCalledWith("socket-id-123");
     expect(mockIo.emit).toHaveBeenCalledWith("task-updated", expect.objectContaining({
-      message: expect.stringContaining("status changed to Done"),
+      message: expect.stringContaining("status changed to Completed"),
       task: expect.objectContaining({ status: "Completed" }),
       timestamp: expect.any(Date)
     }));
