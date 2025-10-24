@@ -762,14 +762,24 @@ describe('Task Controller Test', () => {
 				};
 				req.user = { _id: 'managerId' };
 
+				const mockOriginalTask = {
+					_id: 'task123',
+					title: 'T-612: API documentation',
+					owner: 'staff1Id',
+					assignee: [{ _id: 'staff1Id' }],
+					status: 'To Do',
+					project: 'project123'
+				};
+
 				const mockUpdatedTask = {
 					_id: 'task123',
 					title: 'T-612: API documentation',
 					owner: 'staff2Id',
-					assignee: ['staff2Id', 'managerId'],
+					assignee: [{ _id: 'staff2Id' }, { _id: 'managerId' }],
 					project: 'project123'
 				};
 
+				taskService.getTaskById.mockResolvedValue(mockOriginalTask);
 				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
 
 				// Act
@@ -784,6 +794,7 @@ describe('Task Controller Test', () => {
 				expect(res.status).toHaveBeenCalledWith(200);
 				expect(res.json).toHaveBeenCalledWith({
 					success: true,
+					message: 'Task updated successfully',
 					data: mockUpdatedTask
 				});
 			});
@@ -797,6 +808,13 @@ describe('Task Controller Test', () => {
 				};
 				req.user = { _id: 'managerId' };
 
+				const mockOriginalTask = {
+					_id: 'task123',
+					assignee: [{ _id: 'staff1Id' }],
+					status: 'To Do'
+				};
+
+				taskService.getTaskById.mockResolvedValue(mockOriginalTask);
 				taskService.updateTask.mockRejectedValue(
 					new Error('Every task or subtask must have an owner.')
 				);
@@ -820,6 +838,13 @@ describe('Task Controller Test', () => {
 				};
 				req.user = { _id: 'managerId' };
 
+				const mockOriginalTask = {
+					_id: 'task123',
+					assignee: [{ _id: 'staff1Id' }],
+					status: 'To Do'
+				};
+
+				taskService.getTaskById.mockResolvedValue(mockOriginalTask);
 				taskService.updateTask.mockRejectedValue(
 					new Error('At least one assignee is required')
 				);
@@ -850,16 +875,18 @@ describe('Task Controller Test', () => {
 					_id: 'task614',
 					title: 'T-614: Implement notifications',
 					owner: 'managerId',
-					assignee: ['managerId']
+					assignee: [{ _id: 'managerId' }],
+					status: 'To Do'
 				};
 
 				const mockUpdatedTask = {
 					_id: 'task614',
 					title: 'T-614: Implement notifications',
 					owner: 'staff3Id',
-					assignee: ['staff3Id', 'managerId']
+					assignee: [{ _id: 'staff3Id' }, { _id: 'managerId' }]
 				};
 
+				taskService.getTaskById.mockResolvedValue(mockTask);
 				taskModel.findById.mockResolvedValue(mockTask);
 				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
 				notificationModel.create.mockResolvedValue({
@@ -887,13 +914,22 @@ describe('Task Controller Test', () => {
 				};
 				req.user = { _id: 'managerId' };
 
+				const mockOriginalTask = {
+					_id: 'task614',
+					title: 'T-614: Implement notifications',
+					owner: 'managerId',
+					assignee: [{ _id: 'managerId' }],
+					status: 'To Do'
+				};
+
 				const mockUpdatedTask = {
 					_id: 'task614',
 					title: 'T-614: Implement notifications',
 					owner: 'staff3Id',
-					assignee: ['staff3Id']
+					assignee: [{ _id: 'staff3Id' }]
 				};
 
+				taskService.getTaskById.mockResolvedValue(mockOriginalTask);
 				taskService.updateTask.mockResolvedValue(mockUpdatedTask);
 
 				// Act
@@ -938,6 +974,7 @@ describe('Task Controller Test', () => {
 				expect(res.status).toHaveBeenCalledWith(201);
 				expect(res.json).toHaveBeenCalledWith({
 					success: true,
+					message: 'Task created successfully and notifications sent',
 					data: mockTask
 				});
 			});
