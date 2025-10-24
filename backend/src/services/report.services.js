@@ -1,4 +1,5 @@
 import Task from '../models/task.model.js';
+import Subtask from '../models/subtask.model.js';
 import Project from '../models/project.model.js';
 import User from '../models/user.model.js';
 import xlsx from 'xlsx';
@@ -35,7 +36,39 @@ class ReportService {
             .populate('project', 'name')
             .sort({ dueDate: 1, createdAt: 1 }); // Sort by deadline, then creation date
 
-        return this.processTasksForReport(tasks, 'project', { 
+        // Fetch subtasks with the same date range criteria (using projectId field)
+        const subtaskQuery = {
+            projectId: projectId,
+            createdAt: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        };
+
+        const subtasks = await Subtask.find(subtaskQuery)
+            .populate('ownerId', 'username')
+            .populate('assigneeId', 'username')
+            .sort({ createdAt: 1 });
+
+        // Map subtasks to task-like structure for consistent processing
+        const mappedSubtasks = subtasks.map(subtask => ({
+            _id: subtask._id,
+            title: subtask.title,
+            dueDate: subtask.dueDate,
+            priority: subtask.priority,
+            tags: subtask.tags,
+            description: subtask.description,
+            owner: subtask.ownerId, // Map ownerId to owner
+            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            project: project, // Use the already fetched project
+            createdAt: subtask.createdAt,
+            status: subtask.status
+        }));
+
+        // Combine tasks and subtasks
+        const combinedItems = [...tasks, ...mappedSubtasks];
+
+        return this.processTasksForReport(combinedItems, 'project', { 
             projectId, 
             projectName: project.name,
             projectOwner: project.owner.username,
@@ -77,7 +110,52 @@ class ReportService {
             .populate('project', 'name')
             .sort({ dueDate: 1, createdAt: 1 }); // Sort by deadline, then creation date
 
-        return this.processTasksForReport(tasks, 'user', { 
+        // Fetch subtasks where user is either owner (ownerId) or assignee (assigneeId)
+        const subtaskQuery = {
+            $or: [
+                { ownerId: userId },
+                { assigneeId: userId }
+            ],
+            createdAt: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        };
+
+        const subtasks = await Subtask.find(subtaskQuery)
+            .populate('ownerId', 'username')
+            .populate('assigneeId', 'username')
+            .sort({ createdAt: 1 });
+
+        // For each subtask, manually fetch and attach the project if needed
+        // This avoids the "Schema not registered" issue in test environments
+        const populatedSubtasks = await Promise.all(subtasks.map(async (subtask) => {
+            if (subtask.projectId) {
+                const project = await Project.findById(subtask.projectId).select('name');
+                subtask.projectId = project;
+            }
+            return subtask;
+        }));
+
+        // Map subtasks to task-like structure for consistent processing
+        const mappedSubtasks = populatedSubtasks.map(subtask => ({
+            _id: subtask._id,
+            title: subtask.title,
+            dueDate: subtask.dueDate,
+            priority: subtask.priority,
+            tags: subtask.tags,
+            description: subtask.description,
+            owner: subtask.ownerId, // Map ownerId to owner
+            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            project: subtask.projectId, // Map projectId to project
+            createdAt: subtask.createdAt,
+            status: subtask.status
+        }));
+
+        // Combine tasks and subtasks
+        const combinedItems = [...tasks, ...mappedSubtasks];
+
+        return this.processTasksForReport(combinedItems, 'user', { 
             userId, 
             username: user.username,
             startDate, 
@@ -106,7 +184,11 @@ class ReportService {
             // Format assignees - handle array of assignees
             let assigneeStr = 'Unassigned';
             if (task.assignee && task.assignee.length > 0) {
-                assigneeStr = task.assignee.map(a => a.username).join(', ');
+                // Filter out null/undefined assignees and get usernames
+                const validAssignees = task.assignee.filter(a => a && a.username);
+                if (validAssignees.length > 0) {
+                    assigneeStr = validAssignees.map(a => a.username).join(', ');
+                }
             }
 
             const formattedTask = {
@@ -537,14 +619,48 @@ class ReportService {
             .populate('project', 'name')
             .sort({ status: 1, createdAt: 1 });
 
+        // Fetch subtasks within same date range and project
+        // Exclude Blocked status subtasks as per requirements
+        const subtaskQuery = {
+            projectId: projectId,
+            createdAt: {
+                $gte: startDateRange,
+                $lte: endDateRange
+            },
+            status: { $in: ['To Do', 'In Progress', 'Completed'] } // Exclude Blocked
+        };
+
+        const subtasks = await Subtask.find(subtaskQuery)
+            .populate('ownerId', 'username department roles')
+            .populate('assigneeId', 'username department roles')
+            .sort({ status: 1, createdAt: 1 });
+
+        // Map subtasks to task-like structure for consistent processing
+        const mappedSubtasks = subtasks.map(subtask => ({
+            _id: subtask._id,
+            title: subtask.title,
+            dueDate: subtask.dueDate,
+            priority: subtask.priority,
+            tags: subtask.tags,
+            description: subtask.description,
+            owner: subtask.ownerId, // Map ownerId to owner
+            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            project: project, // Use the already fetched project
+            createdAt: subtask.createdAt,
+            status: subtask.status
+        }));
+
+        // Combine tasks and subtasks
+        const combinedItems = [...tasks, ...mappedSubtasks];
+
         // Identify team members (unique users who are owners or assignees)
-        const teamMembers = this.identifyTeamMembers(tasks);
+        const teamMembers = this.identifyTeamMembers(combinedItems);
 
         // Group tasks by status
-        const tasksByStatus = this.groupTasksByStatus(tasks);
+        const tasksByStatus = this.groupTasksByStatus(combinedItems);
 
         // Calculate summary statistics
-        const summaryStats = this.calculateSummaryStatistics(tasks, teamMembers);
+        const summaryStats = this.calculateSummaryStatistics(combinedItems, teamMembers);
 
         return {
             metadata: {
@@ -560,7 +676,7 @@ class ReportService {
             teamMembers,
             tasksByStatus,
             summaryStats,
-            tasks // Keep full task list for reference
+            tasks: combinedItems // Keep full task list for reference (now includes subtasks)
         };
     }
 

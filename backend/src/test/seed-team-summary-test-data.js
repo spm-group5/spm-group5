@@ -22,6 +22,7 @@
 import User from '../models/user.model.js';
 import Project from '../models/project.model.js';
 import Task from '../models/task.model.js';
+import Subtask from '../models/subtask.model.js';
 import bcrypt from 'bcrypt';
 
 /**
@@ -33,6 +34,7 @@ export async function seedTeamSummaryTestData() {
     await User.deleteMany({});
     await Project.deleteMany({});
     await Task.deleteMany({});
+    await Subtask.deleteMany({});
 
     // ============================================================
     // USERS
@@ -610,6 +612,86 @@ export async function seedTeamSummaryTestData() {
         }
     ]);
 
+    // ============================================================
+    // SUBTASKS FOR MAIN PROJECT (TSR-025)
+    // ============================================================
+    
+    // Subtasks for weekly timeframe testing
+    const weeklySubtasks = await Subtask.create([
+        {
+            title: 'Week Subtask 1 - To Do',
+            description: 'Weekly subtask in To Do status',
+            status: 'To Do',
+            priority: 7,
+            ownerId: teamMember1._id,
+            assigneeId: teamMember2._id,
+            parentTaskId: weeklyTasks[0]._id,
+            projectId: mainProject._id,
+            createdAt: new Date('2024-01-02T11:00:00Z')
+        },
+        {
+            title: 'Week Subtask 2 - In Progress',
+            description: 'Weekly subtask in progress',
+            status: 'In Progress',
+            priority: 6,
+            ownerId: teamMember3._id,
+            assigneeId: teamMember4._id,
+            parentTaskId: weeklyTasks[1]._id,
+            projectId: mainProject._id,
+            createdAt: new Date('2024-01-04T10:30:00Z')
+        }
+    ]);
+
+    // Subtasks for monthly timeframe testing
+    const monthlySubtasks = await Subtask.create([
+        {
+            title: 'Month Subtask 1 - To Do',
+            description: 'Monthly subtask to do',
+            status: 'To Do',
+            priority: 8,
+            ownerId: teamMember2._id,
+            assigneeId: teamMember3._id,
+            parentTaskId: monthlyTasks[0]._id,
+            projectId: mainProject._id,
+            createdAt: new Date('2024-01-11T09:00:00Z')
+        },
+        {
+            title: 'Month Subtask 2 - In Progress',
+            description: 'Monthly subtask in progress',
+            status: 'In Progress',
+            priority: 7,
+            ownerId: teamMember4._id,
+            assigneeId: teamMember5._id,
+            parentTaskId: monthlyTasks[3]._id,
+            projectId: mainProject._id,
+            createdAt: new Date('2024-01-14T13:00:00Z')
+        },
+        {
+            title: 'Month Subtask 3 - Completed',
+            description: 'Monthly subtask completed',
+            status: 'Completed',
+            priority: 6,
+            ownerId: teamMember5._id,
+            assigneeId: teamMember1._id,
+            parentTaskId: monthlyTasks[6]._id,
+            projectId: mainProject._id,
+            createdAt: new Date('2024-01-17T15:30:00Z')
+        }
+    ]);
+
+    // Blocked subtask (should be excluded from reports)
+    const blockedSubtask = await Subtask.create({
+        title: 'Blocked Subtask',
+        description: 'Subtask in blocked status',
+        status: 'Blocked',
+        priority: 5,
+        ownerId: teamMember1._id,
+        assigneeId: teamMember2._id,
+        parentTaskId: monthlyTasks[0]._id,
+        projectId: mainProject._id,
+        createdAt: new Date('2024-01-19T10:00:00Z')
+    });
+
     // Return all seeded data for use in tests
     return {
         users: {
@@ -636,6 +718,11 @@ export async function seedTeamSummaryTestData() {
             ownerAssigneeTask,
             integrationTasks,
             emptyProjectTasks
+        },
+        subtasks: {
+            weeklySubtasks,
+            monthlySubtasks,
+            blockedSubtask
         }
     };
 }
