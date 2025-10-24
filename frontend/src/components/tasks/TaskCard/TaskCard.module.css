@@ -116,6 +116,11 @@
   color: var(--color-text-primary);
 }
 
+.overdueMeta {
+  color: #dc3545;
+  font-weight: 600;
+}
+
 .compactActions {
   display: flex;
   gap: var(--spacing-xs);
@@ -186,6 +191,12 @@
 .statusBlocked {
   background-color: #dc3545;
   color: white;
+}
+
+.statusOverdue {
+  background-color: #ff6b6b;
+  color: white;
+  font-weight: 600;
 }
 
 .priorityLow {
