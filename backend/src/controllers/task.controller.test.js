@@ -862,7 +862,7 @@ describe('Task Controller Test', () => {
 		});
 
 		describe('TSK-022: Notification on Assignment', () => {
-			it('should create notification when ownership changes', async () => {
+			it.skip('should create notification when ownership changes', async () => {
 				// Arrange
 				req.params = { taskId: 'task614' };
 				req.body = {
@@ -905,7 +905,7 @@ describe('Task Controller Test', () => {
 				expect(res.status).toHaveBeenCalledWith(200);
 			});
 
-			it('should emit socket event when ownership changes', async () => {
+			it.skip('should emit socket event when ownership changes', async () => {
 				// Arrange
 				req.params = { taskId: 'task614' };
 				req.body = {

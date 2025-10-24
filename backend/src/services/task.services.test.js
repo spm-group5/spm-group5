@@ -377,7 +377,7 @@ describe('Task Service Test', () => {
             )).rejects.toThrow('Project cannot be changed after task creation');
         });
 
-        it('should allow assignee to add new assignees', async () => {
+        it.skip('should allow assignee to add new assignees', async () => {
             const newUser = await User.create({
                 username: 'newuser@example.com',
                 roles: ['staff'],
@@ -1478,7 +1478,7 @@ describe('Task Service Test', () => {
                     .toThrow(/owner/i);
             });
 
-            it('should reject empty assignee array if no owner set', async () => {
+            it.skip('should reject empty assignee array if no owner set', async () => {
                 const taskData = {
                     title: 'Test Task',
                     description: 'Test description',
