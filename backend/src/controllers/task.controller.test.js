@@ -859,6 +859,143 @@ describe('Task Controller Test', () => {
 					message: 'At least one assignee is required'
 				});
 			});
+
+			it('should handle assignOwner successfully via dedicated endpoint', async () => {
+				// Arrange
+				req.params = { id: 'task123' };
+				req.body = { assignee: 'staff2@example.com' };
+				req.user = {
+					_id: 'managerId',
+					username: 'manager1',
+					roles: ['manager']
+				};
+
+				const mockUpdatedTask = {
+					_id: 'task123',
+					title: 'Test Task',
+					owner: { _id: 'staff2Id', username: 'staff2' },
+					assignee: [
+						{ _id: 'staff2Id', username: 'staff2' },
+						{ _id: 'staff1Id', username: 'staff1' }
+					]
+				};
+
+				taskService.assignOwner.mockResolvedValue(mockUpdatedTask);
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(taskService.assignOwner).toHaveBeenCalledWith({
+					taskId: 'task123',
+					assigneeInput: 'staff2@example.com',
+					actingUser: req.user
+				});
+				expect(res.status).toHaveBeenCalledWith(200);
+				expect(res.json).toHaveBeenCalledWith({
+					success: true,
+					data: mockUpdatedTask
+				});
+			});
+
+			it('should return 422 when assignOwner called without assignee', async () => {
+				// Arrange
+				req.params = { id: 'task123' };
+				req.body = { assignee: null };
+				req.user = { _id: 'managerId', username: 'manager1' };
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(422);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'Every task or subtask must have an owner.'
+				});
+			});
+
+			it('should return 404 when task not found during ownership transfer', async () => {
+				// Arrange
+				req.params = { id: 'nonexistent' };
+				req.body = { assignee: 'staff2@example.com' };
+				req.user = { _id: 'managerId', username: 'manager1' };
+
+				taskService.assignOwner.mockRejectedValue(new Error('Task not found'));
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(404);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'Task not found'
+				});
+			});
+
+			it('should return 403 when assignee lacks project access', async () => {
+				// Arrange
+				req.params = { id: 'task123' };
+				req.body = { assignee: 'outsider@example.com' };
+				req.user = { _id: 'managerId', username: 'manager1' };
+
+				taskService.assignOwner.mockRejectedValue(
+					new Error('Assignee must have access to this project')
+				);
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(403);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'Assignee must have access to this project'
+				});
+			});
+
+			it('should return 400 when transferring ownership of archived task', async () => {
+				// Arrange
+				req.params = { id: 'task123' };
+				req.body = { assignee: 'staff2@example.com' };
+				req.user = { _id: 'managerId', username: 'manager1' };
+
+				taskService.assignOwner.mockRejectedValue(
+					new Error('This task is no longer active')
+				);
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(400);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'This task is no longer active'
+				});
+			});
+
+			it('should return 400 when exceeding max assignees limit', async () => {
+				// Arrange
+				req.params = { id: 'task123' };
+				req.body = { assignee: 'staff6@example.com' };
+				req.user = { _id: 'managerId', username: 'manager1' };
+
+				taskService.assignOwner.mockRejectedValue(
+					new Error('Maximum of 5 assignees allowed')
+				);
+
+				// Act
+				await taskController.assignOwner(req, res);
+
+				// Assert
+				expect(res.status).toHaveBeenCalledWith(400);
+				expect(res.json).toHaveBeenCalledWith({
+					success: false,
+					message: 'Maximum of 5 assignees allowed'
+				});
+			});
 		});
 
 		describe('TSK-022: Notification on Assignment', () => {

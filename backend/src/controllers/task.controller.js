@@ -664,6 +664,8 @@ class TaskController {
                 statusCode = 403;
             } else if (error.message.includes('Maximum of 5 assignees allowed')) {
                 statusCode = 400;
+            } else if (error.message === 'This task is no longer active') {
+                statusCode = 400;
             }
 
             res.status(statusCode).json({

@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import taskController from '../controllers/task.controller.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
+import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
 
 router.post('/tasks', requireAuth, taskController.createTask);
 router.put('/tasks/:taskId', requireAuth, taskController.updateTask);
@@ -12,7 +12,8 @@ router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTa
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
 
 // ASSIGNEE-SCOPE: Post-creation assignment endpoint (legacy - reassigns owner)
-router.post('/tasks/:id/assign', requireAuth, taskController.assignOwner);
+// OWNERSHIP-TRANSFER: Only managers and admins can transfer task ownership
+router.post('/tasks/:id/assign', requireAuth, requireRole(['manager', 'admin']), taskController.assignOwner);
 
 // ASSIGNEE-SCOPE: List eligible assignees for a task (based on project access)
 router.get('/tasks/:id/assignees', requireAuth, taskController.listEligibleAssignees);

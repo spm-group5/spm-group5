@@ -1458,6 +1458,31 @@ describe('Task Service Test', () => {
                 expect(managerTasks).toHaveLength(1);
                 expect(managerTasks[0]._id.toString()).toBe(task._id.toString());
             });
+
+            it('should prevent ownership transfer on archived task', async () => {
+                // Create and archive a task
+                const task = await Task.create({
+                    title: 'Archived Task',
+                    description: 'This task is archived',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: testProject._id,
+                    archived: true,
+                    archivedAt: new Date(),
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Attempt to transfer ownership should fail
+                await expect(
+                    taskService.assignOwner({
+                        taskId: task._id,
+                        assigneeInput: staff1._id,
+                        actingUser: manager
+                    })
+                ).rejects.toThrow('This task is no longer active');
+            });
         });
 
         describe('TSK-021: Validation - Must Always Have Owner', () => {

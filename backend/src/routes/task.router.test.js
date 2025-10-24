@@ -23,6 +23,24 @@ vi.mock('../middleware/auth.middleware.js', () => ({
 			req.user = currentUser;
 		}
 		next();
+	},
+	requireRole: (allowedRoles) => {
+		return (req, res, next) => {
+			if (!currentUser) {
+				return res.status(401).json({ error: 'Unauthorized' });
+			}
+			const userRoles = currentUser.roles || [];
+			const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+			const hasRequiredRole = rolesArray.some(role => userRoles.includes(role));
+			if (hasRequiredRole) {
+				next();
+			} else {
+				res.status(403).json({
+					error: 'Forbidden',
+					message: 'Insufficient permissions to access this resource'
+				});
+			}
+		};
 	}
 }));
 
@@ -1190,6 +1208,7 @@ describe('Task Router Test', () => {
             assignmentProject = await Project.create({
                 name: 'Assignment Test Project',
                 owner: manager._id,
+                members: [staff1._id, staff2._id, staff3._id],
                 status: 'In Progress'
             });
         });
@@ -1298,6 +1317,128 @@ describe('Task Router Test', () => {
                     ? response.body.data.owner
                     : response.body.data.owner._id;
                 expect(ownerId).toBe(staff3._id.toString());
+            });
+
+            it('should return 403 when staff user attempts to transfer ownership', async () => {
+                const task = await Task.create({
+                    title: 'T-614: Staff Task',
+                    description: 'Test staff ownership transfer',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: staff1._id,
+                    assignee: [staff1._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Set current user to staff member (not manager)
+                currentUser = staff1;
+
+                // Attempt to transfer ownership via /assign endpoint should fail
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff2._id.toString() })
+                    .expect(403);
+
+                expect(response.body.error).toBe('Forbidden');
+            });
+
+            it('should return 400 when attempting to transfer ownership of archived task', async () => {
+                // Create and archive a task
+                const task = await Task.create({
+                    title: 'T-615: Archived Task',
+                    description: 'This task should be archived',
+                    priority: 5,
+                    status: 'Completed',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    archived: true,
+                    archivedAt: new Date(),
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Attempt to transfer ownership should fail
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff1._id.toString() })
+                    .expect(400);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toBe('This task is no longer active');
+            });
+
+            it('should prevent ownership transfer when new owner is not a project member', async () => {
+                // Create a user who is not a member of the project
+                const outsider = await User.create({
+                    username: 'outsider@example.com',
+                    hashed_password: 'password123',
+                    roles: ['staff'],
+                    department: 'finance'
+                });
+
+                const task = await Task.create({
+                    title: 'T-616: Project Task',
+                    description: 'Task requiring project membership',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Attempt to transfer ownership to non-member should fail
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: outsider._id.toString() })
+                    .expect(403);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toMatch(/access to this project/i);
+
+                // Cleanup
+                await User.findByIdAndDelete(outsider._id);
+            });
+
+            it('should successfully transfer ownership and maintain old owner as collaborator', async () => {
+                const task = await Task.create({
+                    title: 'T-617: Transfer Test',
+                    description: 'Test complete ownership transfer flow',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Transfer ownership from manager to staff1
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff1.username })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+
+                // Verify new owner
+                const newOwnerId = response.body.data.owner?._id || response.body.data.owner;
+                expect(String(newOwnerId)).toBe(String(staff1._id));
+
+                // Verify old owner (manager) is now a collaborator
+                const assigneeIds = response.body.data.assignee.map(a =>
+                    String(a._id || a)
+                );
+                // Old owner should be in assignees
+                expect(assigneeIds).toContain(String(manager._id));
+                // New owner should NOT be in assignees (they're the owner)
+                expect(assigneeIds).not.toContain(String(staff1._id));
             });
         });
 

@@ -486,10 +486,13 @@ class TaskService {
             throw new Error('Every task or subtask must have an owner.');
         }
 
-        // 2) Resolve user by email or _id (lowercase emails)
+        // 2) Resolve user by email or _id (case-insensitive username lookup)
+        // Escape special regex characters in the input (e.g., ^ in SkibidiSigma^3)
+        const escapedInput = String(assigneeInput).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         const assignee = await User.findOne({
             $or: [
-                { username: String(assigneeInput).toLowerCase() },
+                { username: { $regex: new RegExp(`^${escapedInput}$`, 'i') } },
                 { _id: mongoose.Types.ObjectId.isValid(assigneeInput) ? assigneeInput : null }
             ]
         });
@@ -506,6 +509,11 @@ class TaskService {
 
         if (!task) {
             throw new Error('Task not found');
+        }
+
+        // OWNERSHIP-TRANSFER: Prevent ownership transfer on archived tasks
+        if (task.archived === true) {
+            throw new Error('This task is no longer active');
         }
 
         // 4) ACCESS-SCOPE: ensure assignee has project access

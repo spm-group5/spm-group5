@@ -275,4 +275,107 @@ describe('TaskCard - Assignment Button Visibility', () => {
             expect(staffHasAssign).toBe(false);
         });
     });
+
+    describe('OWNERSHIP-TRANSFER: Change Owner Button Visibility', () => {
+        it('should show Change Owner button for managers', () => {
+            const task = testTasks['T-610'];
+
+            renderAsManager(
+                <TaskCard
+                    task={task}
+                    onEdit={vi.fn()}
+                    onArchive={vi.fn()}
+                    onUnarchive={vi.fn()}
+                    isArchived={false}
+                    onRefresh={vi.fn()}
+                />
+            );
+
+            // Manager should see the Change Owner button
+            const changeOwnerButton = screen.queryByRole('button', { name: /change owner/i });
+            expect(changeOwnerButton).toBeInTheDocument();
+        });
+
+        it('should NOT show Change Owner button for staff', () => {
+            const task = testTasks['T-610'];
+
+            renderAsStaff(
+                <TaskCard
+                    task={task}
+                    onEdit={vi.fn()}
+                    onArchive={vi.fn()}
+                    onUnarchive={vi.fn()}
+                    isArchived={false}
+                    onRefresh={vi.fn()}
+                />
+            );
+
+            // Staff should NOT see the Change Owner button
+            const changeOwnerButton = screen.queryByRole('button', { name: /change owner/i });
+            expect(changeOwnerButton).not.toBeInTheDocument();
+        });
+
+        it('should NOT show Change Owner button for archived tasks', () => {
+            const task = {
+                ...testTasks['T-610'],
+                archived: true,
+                archivedAt: new Date()
+            };
+
+            renderAsManager(
+                <TaskCard
+                    task={task}
+                    onEdit={vi.fn()}
+                    onArchive={vi.fn()}
+                    onUnarchive={vi.fn()}
+                    isArchived={true}
+                    onRefresh={vi.fn()}
+                />
+            );
+
+            // Change Owner button should be hidden for archived tasks
+            const changeOwnerButton = screen.queryByRole('button', { name: /change owner/i });
+            expect(changeOwnerButton).not.toBeInTheDocument();
+        });
+
+        it('should make Change Owner button accessible to screen readers', () => {
+            const task = testTasks['T-610'];
+
+            renderAsManager(
+                <TaskCard
+                    task={task}
+                    onEdit={vi.fn()}
+                    onArchive={vi.fn()}
+                    onUnarchive={vi.fn()}
+                    isArchived={false}
+                    onRefresh={vi.fn()}
+                />
+            );
+
+            const changeOwnerButton = screen.getByRole('button', { name: /change owner/i });
+            expect(changeOwnerButton).toHaveAttribute('aria-label', 'Change Owner');
+        });
+
+        it('should display both Manage Assignees and Change Owner buttons for managers', () => {
+            const task = testTasks['T-610'];
+
+            renderAsManager(
+                <TaskCard
+                    task={task}
+                    onEdit={vi.fn()}
+                    onArchive={vi.fn()}
+                    onUnarchive={vi.fn()}
+                    isArchived={false}
+                    onRefresh={vi.fn()}
+                />
+            );
+
+            // Manager should see both buttons
+            const manageAssigneesButton = screen.queryByRole('button', { name: /manage assignees/i });
+            const changeOwnerButton = screen.queryByRole('button', { name: /change owner/i });
+
+            expect(manageAssigneesButton).toBeInTheDocument();
+            expect(changeOwnerButton).toBeInTheDocument();
+        });
+    });
 });
