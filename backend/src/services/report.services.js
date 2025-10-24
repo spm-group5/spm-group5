@@ -132,7 +132,7 @@ class ReportService {
             'To Do': groupedTasks['To Do'].length,
             'In Progress': groupedTasks['In Progress'].length,
             'Blocked': groupedTasks['Blocked'].length,
-            'Completed': groupedTasks['Done'].length,
+            'Completed': groupedTasks['Completed'].length,
             total: tasks.length
         };
 
@@ -233,7 +233,7 @@ class ReportService {
         summaryData.push(['To Do', reportData.aggregates['To Do']]);
         summaryData.push(['In Progress', reportData.aggregates['In Progress']]);
         summaryData.push(['Blocked', reportData.aggregates['Blocked']]);
-        summaryData.push(['Done', reportData.aggregates['Done']]);
+        summaryData.push(['Completed', reportData.aggregates['Completed']]);
         summaryData.push(['Total Tasks', reportData.aggregates.total]);
         
         const summaryWorksheet = xlsx.utils.aoa_to_sheet(summaryData);
@@ -412,8 +412,8 @@ class ReportService {
             <p>${reportData.aggregates['Blocked']}</p>
         </div>
         <div class="summary-item">
-            <h3>Done</h3>
-            <p>${reportData.aggregates['Done']}</p>
+            <h3>Completed</h3>
+            <p>${reportData.aggregates['Completed']}</p>
         </div>
     </div>`;
         
@@ -760,7 +760,7 @@ class ReportService {
             ['Total Tasks:', reportData.summaryStats.totalTasks],
             ['To Do:', reportData.summaryStats.tasksByStatus['To Do']],
             ['In Progress:', reportData.summaryStats.tasksByStatus['In Progress']],
-            ['Done:', reportData.summaryStats.tasksByStatus['Done']],
+            ['Completed:', reportData.summaryStats.tasksByStatus['Completed']],
             [],
             ['Team Members (' + reportData.summaryStats.teamMemberCount + ')'],
             ['Username', 'Department', 'Role', 'Task Count']
@@ -944,8 +944,8 @@ class ReportService {
             <span>${reportData.summaryStats.tasksByStatus['In Progress']}</span>
         </div>
         <div class="summary-row">
-            <span class="summary-label">Done:</span>
-            <span>${reportData.summaryStats.tasksByStatus['Done']}</span>
+            <span class="summary-label">Completed:</span>
+            <span>${reportData.summaryStats.tasksByStatus['Completed']}</span>
         </div>
         <div class="summary-row">
             <span class="summary-label">Team Members:</span>
