@@ -200,20 +200,34 @@ class TaskController {
 
     async getTasks(req, res) {
         try {
+            const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0];
             const filters = {};
 
-            if (req.query.owner === 'me') {
-                filters.owner = req.user._id;
-            } else if (req.query.owner) {
-                filters.owner = req.query.owner;
+            // CRITICAL: Non-admin users can ONLY see tasks where they are assigned (owner OR assignee)
+            // Admin users can see all tasks OR query specific users' tasks
+            const isAdmin = userRole === 'admin';
+
+            if (!isAdmin) {
+                // For non-admin users, ALWAYS restrict to their assigned tasks
+                // They must be either owner OR in the assignee array
+                filters.userId = userId;
+            } else {
+                // Admin can optionally filter by owner or assignee
+                if (req.query.owner === 'me') {
+                    filters.owner = userId;
+                } else if (req.query.owner) {
+                    filters.owner = req.query.owner;
+                }
+
+                if (req.query.assignee === 'me') {
+                    filters.assignee = userId;
+                } else if (req.query.assignee) {
+                    filters.assignee = req.query.assignee;
+                }
             }
 
-            if (req.query.assignee === 'me') {
-                filters.assignee = req.user._id;
-            } else if (req.query.assignee) {
-                filters.assignee = req.query.assignee;
-            }
-
+            // Apply additional filters (project, status) - these work with the userId filter
             if (req.query.project) {
                 filters.project = req.query.project;
             }
@@ -222,7 +236,7 @@ class TaskController {
                 filters.status = req.query.status;
             }
 
-            const tasks = await taskService.getTasks(filters);
+            const tasks = await taskService.getTasks(filters, userId);
 
             res.status(200).json({
                 success: true,
@@ -239,7 +253,27 @@ class TaskController {
     async getTaskById(req, res) {
         try {
             const { taskId } = req.params;
+            const userId = req.user._id;
+            const userRole = req.user.roles && req.user.roles[0];
+
             const task = await taskService.getTaskById(taskId);
+
+            // Check if user has permission to view this task
+            // Admin can view all tasks
+            // Regular users can only view tasks they're assigned to (owner or assignee)
+            if (userRole !== 'admin') {
+                const isOwner = task.owner._id.toString() === userId.toString();
+                const isAssignee = task.assignee && task.assignee.some(
+                    assignee => (assignee._id || assignee).toString() === userId.toString()
+                );
+
+                if (!isOwner && !isAssignee) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'You do not have permission to view this task'
+                    });
+                }
+            }
 
             res.status(200).json({
                 success: true,
@@ -679,8 +713,9 @@ class TaskController {
     async listEligibleAssignees(req, res) {
         try {
             const { id: taskId } = req.params;
+            const actingUser = req.user;
 
-            const assignees = await taskService.getEligibleAssignees(taskId);
+            const assignees = await taskService.getEligibleAssignees(taskId, actingUser);
 
             res.status(200).json({
                 success: true,

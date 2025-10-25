@@ -41,7 +41,15 @@ class TaskService {
         let assigneeList = [userId];
 
         // Add additional assignees if provided
+        // Only Manager or Admin can assign additional users during task creation
         if (assignee && assignee.length > 0) {
+            const user = await User.findById(userId);
+            const isManagerOrAdmin = user && user.roles && (user.roles.includes('manager') || user.roles.includes('admin'));
+
+            if (!isManagerOrAdmin) {
+                throw new Error('Only Manager or Admin can assign additional users to tasks');
+            }
+
             const additionalAssignees = assignee.filter(id => id.toString() !== userId.toString());
             assigneeList = [...assigneeList, ...additionalAssignees];
         }
@@ -91,7 +99,31 @@ class TaskService {
         }
 
         const task = new Task(newTaskData);
-        return await task.save();
+        const savedTask = await task.save();
+
+        // Automatically add all assignees to the project members array if not already members
+        const projectDoc = await Project.findById(project);
+        if (projectDoc) {
+            let membersUpdated = false;
+            const currentMembers = projectDoc.members.map(m => m.toString());
+            const projectOwner = projectDoc.owner.toString();
+
+            for (const assigneeId of assigneeList) {
+                const assigneeIdStr = assigneeId.toString();
+                // Add to members if not already a member and not the project owner
+                if (!currentMembers.includes(assigneeIdStr) && assigneeIdStr !== projectOwner) {
+                    projectDoc.members.push(assigneeId);
+                    membersUpdated = true;
+                }
+            }
+
+            if (membersUpdated) {
+                projectDoc.updatedAt = new Date();
+                await projectDoc.save();
+            }
+        }
+
+        return savedTask;
     }
 
     async updateTask(taskId, updateData, userId) {
@@ -192,27 +224,9 @@ class TaskService {
                 throw new Error('Maximum of 5 assignees allowed');
             }
 
-            const currentAssignees = task.assignee.map(a => a.toString());
-            const newAssignees = updateData.assignee.map(a => a.toString());
-
-            // Check if assignees are being removed
-            const removedAssignees = currentAssignees.filter(a => !newAssignees.includes(a));
-
-            if (removedAssignees.length > 0) {
-                // ASSIGNEE-SCOPE: Only managers can remove assignees
-                if (!isManager) {
-                    throw new Error('Only managers can remove assignees');
-                }
-            }
-
-            // Assignees can only add new members (not remove)
-            const addedAssignees = newAssignees.filter(a => !currentAssignees.includes(a));
-            if (addedAssignees.length > 0) {
-                // All assignees can add new members
-                // Just validate the new list doesn't exceed maximum
-                if (newAssignees.length > 5) {
-                    throw new Error('Maximum of 5 assignees allowed');
-                }
+            // ASSIGNEE-SCOPE: Only Manager or Admin can modify assignees
+            if (!isManager && !isAdmin) {
+                throw new Error('Only Manager or Admin can modify task assignees');
             }
 
             task.assignee = updateData.assignee;
@@ -265,6 +279,31 @@ class TaskService {
         task.updatedAt = new Date();
         await task.save();
 
+        // If assignees were updated, automatically add new assignees to project members
+        if (updateData.assignee !== undefined) {
+            const projectDoc = await Project.findById(task.project);
+            if (projectDoc) {
+                let membersUpdated = false;
+                const currentMembers = projectDoc.members.map(m => m.toString());
+                const projectOwner = projectDoc.owner.toString();
+
+                for (const assigneeId of task.assignee) {
+                    const assigneeIdStr = assigneeId.toString();
+                    // Add to members if not already a member and not the project owner
+                    if (!currentMembers.includes(assigneeIdStr) && assigneeIdStr !== projectOwner) {
+                        projectDoc.members.push(assigneeId);
+                        currentMembers.push(assigneeIdStr); // Update local array to avoid duplicates
+                        membersUpdated = true;
+                    }
+                }
+
+                if (membersUpdated) {
+                    projectDoc.updatedAt = new Date();
+                    await projectDoc.save();
+                }
+            }
+        }
+
         // Re-populate the fields before returning
         return await Task.findById(task._id)
             .populate('owner', 'username')
@@ -300,15 +339,25 @@ class TaskService {
         return await newTask.save();
     }
 
-    async getTasks(filters = {}) {
+    async getTasks(filters = {}, userId = null) {
         const query = {};
 
-        if (filters.owner) {
-            query.owner = filters.owner;
-        }
+        // If userId is provided in filters, user wants to see only their assigned tasks
+        if (filters.userId) {
+            // Find tasks where user is either owner OR in assignee array
+            query.$or = [
+                { owner: filters.userId },
+                { assignee: { $in: [filters.userId] } }
+            ];
+        } else {
+            // Apply specific filters
+            if (filters.owner) {
+                query.owner = filters.owner;
+            }
 
-        if (filters.assignee) {
-            query.assignee = { $in: [filters.assignee] };
+            if (filters.assignee) {
+                query.assignee = { $in: [filters.assignee] };
+            }
         }
 
         if (filters.project) {
@@ -418,11 +467,12 @@ class TaskService {
      * Get tasks for a specific project with authorization
      * Authorization rules:
      * - Admin: can view all tasks
-     * - Staff: can view tasks if they or a department colleague is assigned
+     * - Project Owner: can view all tasks in their project
+     * - Project Member: can view all tasks in projects they are a member of
      */
     async getTasksByProject(projectId, userId, userRole, userDepartment) {
-        // Validate project exists
-        const project = await Project.findById(projectId);
+        // Validate project exists and populate members
+        const project = await Project.findById(projectId).populate('members', '_id');
         if (!project) {
             throw new Error('Project not found');
         }
@@ -435,48 +485,27 @@ class TaskService {
         }
 
         // Project owner can always view tasks in their own project
-        if (project.owner?._id?.toString() === userId?.toString()) {
+        const projectOwnerId = project.owner?._id?.toString() || project.owner?.toString();
+        if (projectOwnerId === userId?.toString()) {
             return await Task.find({ project: projectId })
                 .populate('owner', 'username department')
                 .populate('assignee', 'username department');
         }
 
-        // Staff and Manager authorization logic
-        // Both roles require department-based access
-        // Staff/Manager with null/undefined department cannot access
-        if (!userDepartment) {
-            throw new Error('Access denied to view tasks in this project');
+        // Check if user is a project member
+        const isMember = project.members.some(
+            member => (member._id?.toString() || member.toString()) === userId.toString()
+        );
+
+        if (isMember) {
+            // Project members can view all tasks in the project
+            return await Task.find({ project: projectId })
+                .populate('owner', 'username department')
+                .populate('assignee', 'username department');
         }
 
-        // Get all tasks for this project
-        const tasks = await Task.find({ project: projectId })
-            .populate('owner', 'username department')
-            .populate('assignee', 'username department');
-
-        // If no tasks exist, return empty array (permissive approach - PTV-015)
-        if (tasks.length === 0) {
-            return [];
-        }
-
-        // Filter tasks to only include tasks that the user has access to
-        const departmentFilteredTasks = tasks.filter(task => {
-            return task.assignee.some(assignee => {
-                if (assignee._id.toString() === userId.toString()) {
-                    return true;
-                }
-                if (assignee.department && assignee.department === userDepartment) {
-                    return true;
-                }
-                return false;
-            });
-        });
-
-        if (departmentFilteredTasks.length === 0) {
-            throw new Error('Access denied to view tasks in this project');
-        }
-
-        // Return tasks that the user has access to
-        return departmentFilteredTasks;
+        // User is not admin, not owner, and not a member
+        throw new Error('Access denied to view tasks in this project');
     }
 
     // ASSIGNEE-SCOPE: Post-creation assignment entry point
@@ -516,10 +545,16 @@ class TaskService {
             throw new Error('This task is no longer active');
         }
 
-        // 4) ACCESS-SCOPE: ensure assignee has project access
-        const canAccess = await this.userHasAccessToTaskProject(assignee._id, task.project);
-        if (!canAccess) {
-            throw new Error('Assignee must have access to this project');
+        // 4) ACCESS-SCOPE: For Manager/Admin, skip project access check
+        // For other users, ensure assignee has project access
+        const isManagerOrAdmin = actingUser && actingUser.roles &&
+            (actingUser.roles.includes('manager') || actingUser.roles.includes('admin'));
+
+        if (!isManagerOrAdmin) {
+            const canAccess = await this.userHasAccessToTaskProject(assignee._id, task.project);
+            if (!canAccess) {
+                throw new Error('Assignee must have access to this project');
+            }
         }
 
         // 5) Build next assignees set: prior owner stays visible, not owner
@@ -549,6 +584,21 @@ class TaskService {
         task.owner = assignee._id;
         task.assignee = Array.from(next);
         await task.save();
+
+        // Automatically add the new owner to the project members array if not already a member
+        const projectDoc = await Project.findById(task.project);
+        if (projectDoc) {
+            const isAlreadyMember = projectDoc.members.some(
+                memberId => memberId.toString() === assignee._id.toString()
+            );
+            const isProjectOwner = projectDoc.owner.toString() === assignee._id.toString();
+
+            if (!isAlreadyMember && !isProjectOwner) {
+                projectDoc.members.push(assignee._id);
+                projectDoc.updatedAt = new Date();
+                await projectDoc.save();
+            }
+        }
 
         // Re-populate
         await task.populate('owner', 'username');
@@ -606,7 +656,7 @@ class TaskService {
     }
 
     // ASSIGNEE-SCOPE: Get eligible assignees for a task (based on project access)
-    async getEligibleAssignees(taskId) {
+    async getEligibleAssignees(taskId, actingUser = null) {
         const task = await Task.findById(taskId).populate('project');
         if (!task) {
             throw new Error('Task not found');
@@ -617,6 +667,26 @@ class TaskService {
             return [];
         }
 
+        // Check if acting user is Manager or Admin
+        const isManagerOrAdmin = actingUser && actingUser.roles &&
+            (actingUser.roles.includes('manager') || actingUser.roles.includes('admin'));
+
+        // If Manager or Admin, return ALL users in the organization
+        if (isManagerOrAdmin) {
+            const users = await User.find({})
+                .select('_id username roles department')
+                .lean();
+
+            return users.map(u => ({
+                _id: u._id,
+                email: u.username, // username is email in this system
+                name: u.username,
+                role: u.roles && u.roles.length > 0 ? u.roles[0] : 'staff',
+                department: u.department
+            }));
+        }
+
+        // For non-Manager/Admin users, return only project owner + members
         // Populate project members and owner
         const fullProject = await Project.findById(project._id).populate(['owner', 'members']);
 
@@ -638,14 +708,15 @@ class TaskService {
 
         // Fetch user details
         const users = await User.find({ _id: { $in: Array.from(eligibleUserIds) } })
-            .select('_id username roles')
+            .select('_id username roles department')
             .lean();
 
         return users.map(u => ({
             _id: u._id,
             email: u.username, // username is email in this system
             name: u.username,
-            role: u.roles && u.roles.length > 0 ? u.roles[0] : 'staff'
+            role: u.roles && u.roles.length > 0 ? u.roles[0] : 'staff',
+            department: u.department
         }));
     }
 
@@ -679,32 +750,32 @@ class TaskService {
         }
 
         // Verify acting user has permission to add assignees
-        // Permission: Current assignees, Manager, Admin, or Task Owner
-        const isAssignee = task.assignee.some(
-            assignee => (assignee._id || assignee).toString() === actingUser._id.toString()
-        );
-        const isOwner = task.owner._id.toString() === actingUser._id.toString();
+        // Permission: ONLY Manager or Admin can add assignees
         const isManagerOrAdmin = actingUser.roles?.includes('manager') || actingUser.roles?.includes('admin');
 
-        if (!isAssignee && !isOwner && !isManagerOrAdmin) {
-            throw new Error('You do not have permission to add assignees to this task');
+        if (!isManagerOrAdmin) {
+            throw new Error('Only Manager or Admin can add assignees to tasks');
         }
 
-        // Verify new assignee is a project member
-        const project = task.project;
-        const isMember = project.members.some(
+        // Manager/Admin can assign ANY user in the organization (no restrictions)
+
+        // Add assignee to task
+        task.assignee.push(newAssigneeId);
+        task.updatedAt = new Date();
+        await task.save();
+
+        // Automatically add the assignee to the project members array if not already a member
+        const project = await Project.findById(task.project);
+        const isAlreadyMember = project.members.some(
             memberId => memberId.toString() === newAssigneeId.toString()
         );
         const isProjectOwner = project.owner.toString() === newAssigneeId.toString();
 
-        if (!isMember && !isProjectOwner) {
-            throw new Error('User must be a project member to be assigned to this task');
+        if (!isAlreadyMember && !isProjectOwner) {
+            project.members.push(newAssigneeId);
+            project.updatedAt = new Date();
+            await project.save();
         }
-
-        // Add assignee
-        task.assignee.push(newAssigneeId);
-        task.updatedAt = new Date();
-        await task.save();
 
         // Return populated task
         const populatedTask = await Task.findById(taskId)
