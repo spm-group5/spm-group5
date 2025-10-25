@@ -156,10 +156,14 @@ describe('Task Router Test', () => {
         });
 
         it('should include creator when additional assignees provided', async () => {
+            // Change current user to manager so they can assign additional users
+            const originalUser = currentUser;
+            currentUser = managerUser;
+
             const taskData = {
                 title: 'Task',
                 project: testProject._id,
-                assignee: [managerUser._id]
+                assignee: [testUser._id]
             };
 
             const response = await request(app)
@@ -168,8 +172,11 @@ describe('Task Router Test', () => {
                 .expect(201);
 
             expect(response.body.data.assignee).toHaveLength(2);
-            expect(response.body.data.assignee).toContain(testUser._id.toString());
             expect(response.body.data.assignee).toContain(managerUser._id.toString());
+            expect(response.body.data.assignee).toContain(testUser._id.toString());
+
+            // Restore original user
+            currentUser = originalUser;
         });
 
         it('should return 400 for missing title', async () => {
@@ -1392,14 +1399,17 @@ describe('Task Router Test', () => {
 
                 currentUser = manager;
 
-                // Attempt to transfer ownership to non-member should fail
+                // Managers can now assign anyone in the organization (ACCESS-SCOPE change)
+                // This should succeed and automatically add the outsider to project members
                 const response = await request(app)
                     .post(`/api/tasks/${task._id}/assign`)
                     .send({ assignee: outsider._id.toString() })
-                    .expect(403);
+                    .expect(200);
 
-                expect(response.body.success).toBe(false);
-                expect(response.body.message).toMatch(/access to this project/i);
+                expect(response.body.success).toBe(true);
+                // owner is populated with username, so we access _id
+                const ownerId = response.body.data.owner._id || response.body.data.owner;
+                expect(ownerId.toString()).toBe(outsider._id.toString());
 
                 // Cleanup
                 await User.findByIdAndDelete(outsider._id);
