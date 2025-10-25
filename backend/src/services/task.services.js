@@ -657,7 +657,7 @@ class TaskService {
 
     // ASSIGNEE-SCOPE: Get eligible assignees for a task (based on project access)
     async getEligibleAssignees(taskId, actingUser = null) {
-        const task = await Task.findById(taskId).populate('project');
+        const task = await Task.findById(taskId).populate('project assignee owner');
         if (!task) {
             throw new Error('Task not found');
         }
@@ -667,12 +667,19 @@ class TaskService {
             return [];
         }
 
-        // Check if acting user is Manager or Admin
+        // Check if acting user is Manager, Admin, task owner, or current assignee
         const isManagerOrAdmin = actingUser && actingUser.roles &&
             (actingUser.roles.includes('manager') || actingUser.roles.includes('admin'));
 
-        // If Manager or Admin, return ALL users in the organization
-        if (isManagerOrAdmin) {
+        const isTaskOwner = actingUser && task.owner &&
+            (task.owner._id || task.owner).toString() === actingUser._id.toString();
+
+        const isCurrentAssignee = actingUser && task.assignee && task.assignee.some(
+            assignee => (assignee._id || assignee).toString() === actingUser._id.toString()
+        );
+
+        // If Manager, Admin, task owner, or current assignee, return ALL users in the organization
+        if (isManagerOrAdmin || isTaskOwner || isCurrentAssignee) {
             const users = await User.find({})
                 .select('_id username roles department')
                 .lean();
@@ -686,7 +693,7 @@ class TaskService {
             }));
         }
 
-        // For non-Manager/Admin users, return only project owner + members
+        // For other users (not assignee, owner, manager, or admin), return only project owner + members
         // Populate project members and owner
         const fullProject = await Project.findById(project._id).populate(['owner', 'members']);
 
@@ -750,14 +757,18 @@ class TaskService {
         }
 
         // Verify acting user has permission to add assignees
-        // Permission: ONLY Manager or Admin can add assignees
+        // Permission: Current assignees, task owner, Manager, or Admin can add assignees
+        const isAssignee = task.assignee.some(
+            assignee => (assignee._id || assignee).toString() === actingUser._id.toString()
+        );
+        const isOwner = task.owner._id.toString() === actingUser._id.toString();
         const isManagerOrAdmin = actingUser.roles?.includes('manager') || actingUser.roles?.includes('admin');
 
-        if (!isManagerOrAdmin) {
-            throw new Error('Only Manager or Admin can add assignees to tasks');
+        if (!isAssignee && !isOwner && !isManagerOrAdmin) {
+            throw new Error('You do not have permission to add assignees to this task');
         }
 
-        // Manager/Admin can assign ANY user in the organization (no restrictions)
+        // Assignees can assign ANY user in the organization (no restrictions)
 
         // Add assignee to task
         task.assignee.push(newAssigneeId);
