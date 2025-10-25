@@ -20,11 +20,11 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "connect-mongo": "^5.1.0",
+    "connect-mongo": "5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "express-session": "^1.18.2",
+    "express-session": "1.18.2",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
     "nodemailer": "^7.0.6",
