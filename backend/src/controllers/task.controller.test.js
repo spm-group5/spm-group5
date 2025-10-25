@@ -149,7 +149,7 @@ describe('Task Controller Test', () => {
 
 			await taskController.getTasks(req, res);
 
-			expect(taskService.getTasks).toHaveBeenCalledWith({});
+			expect(taskService.getTasks).toHaveBeenCalledWith({ userId: 'userId123' }, 'userId123');
 			expect(res.status).toHaveBeenCalledWith(200);
 			expect(res.json).toHaveBeenCalledWith({
 				success: true,
@@ -159,25 +159,27 @@ describe('Task Controller Test', () => {
 
 		it('should filter tasks by owner', async () => {
 			req.query = { owner: 'me' };
+			req.user.roles = ['admin']; // Set as admin to use owner filter
 			const mockTasks = [{ _id: '507f1f77bcf86cd799439011', title: 'My Task' }];
 
 			taskService.getTasks.mockResolvedValue(mockTasks);
 
 			await taskController.getTasks(req, res);
 
-			expect(taskService.getTasks).toHaveBeenCalledWith({ owner: 'userId123' });
+			expect(taskService.getTasks).toHaveBeenCalledWith({ owner: 'userId123' }, 'userId123');
 			expect(res.status).toHaveBeenCalledWith(200);
 		});
 
 		it('should filter tasks by assignee', async () => {
 			req.query = { assignee: 'me' };
+			req.user.roles = ['admin']; // Set as admin to use assignee filter
 			const mockTasks = [{ _id: '507f1f77bcf86cd799439011', title: 'Assigned Task' }];
 
 			taskService.getTasks.mockResolvedValue(mockTasks);
 
 			await taskController.getTasks(req, res);
 
-			expect(taskService.getTasks).toHaveBeenCalledWith({ assignee: 'userId123' });
+			expect(taskService.getTasks).toHaveBeenCalledWith({ assignee: 'userId123' }, 'userId123');
 		});
 
 		it('should filter tasks by project', async () => {
@@ -188,7 +190,7 @@ describe('Task Controller Test', () => {
 
 			await taskController.getTasks(req, res);
 
-			expect(taskService.getTasks).toHaveBeenCalledWith({ project: 'projectId123' });
+			expect(taskService.getTasks).toHaveBeenCalledWith({ project: 'projectId123', userId: 'userId123' }, 'userId123');
 		});
 
 		it('should filter tasks by status', async () => {
@@ -199,7 +201,7 @@ describe('Task Controller Test', () => {
 
 			await taskController.getTasks(req, res);
 
-			expect(taskService.getTasks).toHaveBeenCalledWith({ status: 'To Do' });
+			expect(taskService.getTasks).toHaveBeenCalledWith({ status: 'To Do', userId: 'userId123' }, 'userId123');
 		});
 
 		it('should handle get tasks error', async () => {
@@ -217,7 +219,12 @@ describe('Task Controller Test', () => {
 
 	describe('getTaskById', () => {
 		it('should get task by ID successfully', async () => {
-			const mockTask = { _id: '507f1f77bcf86cd799439011', title: 'Test Task' };
+			const mockTask = {
+				_id: '507f1f77bcf86cd799439011',
+				title: 'Test Task',
+				owner: { _id: 'userId123' }, // User is the owner
+				assignee: []
+			};
 
 			req.params = { taskId: '507f1f77bcf86cd799439011' };
 			taskService.getTaskById.mockResolvedValue(mockTask);

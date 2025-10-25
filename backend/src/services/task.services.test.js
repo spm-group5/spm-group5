@@ -75,6 +75,14 @@ describe('Task Service Test', () => {
         });
 
         it('should include creator when additional assignees are provided', async () => {
+            // Create a manager user who can assign additional users
+            const managerUser = await User.create({
+                username: 'manager@example.com',
+                roles: ['manager'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
             const otherUser = await User.create({
                 username: 'otheruser@example.com',
                 roles: ['staff'],
@@ -88,14 +96,22 @@ describe('Task Service Test', () => {
                 assignee: [otherUser._id]
             };
 
-            const task = await taskService.createTask(taskData, testUser._id);
+            const task = await taskService.createTask(taskData, managerUser._id);
 
             expect(task.assignee).toHaveLength(2);
-            expect(task.assignee.map(a => a.toString())).toContain(testUser._id.toString());
+            expect(task.assignee.map(a => a.toString())).toContain(managerUser._id.toString());
             expect(task.assignee.map(a => a.toString())).toContain(otherUser._id.toString());
         });
 
         it('should throw error when more than 5 assignees', async () => {
+            // Create a manager user who can assign additional users
+            const managerUser = await User.create({
+                username: 'manager2@example.com',
+                roles: ['manager'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
             const users = await Promise.all([
                 User.create({ username: 'user1@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
                 User.create({ username: 'user2@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
@@ -110,7 +126,8 @@ describe('Task Service Test', () => {
                 assignee: users.map(u => u._id)
             };
 
-            await expect(taskService.createTask(taskData, testUser._id))
+            // Manager creates task with 5 additional assignees + themselves = 6 total (exceeds limit)
+            await expect(taskService.createTask(taskData, managerUser._id))
                 .rejects.toThrow('Maximum of 5 assignees allowed');
         });
 
@@ -418,7 +435,7 @@ describe('Task Service Test', () => {
                 existingTask._id,
                 updateData,
                 testUser._id.toString()
-            )).rejects.toThrow('Only managers can remove assignees');
+            )).rejects.toThrow('Only Manager or Admin can modify task assignees');
         });
 
         it('should allow manager to remove assignees', async () => {
