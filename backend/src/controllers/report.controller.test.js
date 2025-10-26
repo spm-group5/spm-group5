@@ -23,13 +23,13 @@ describe('Report Controller Test', () => {
             }],
             'In Progress': [],
             'Blocked': [],
-            'Done': []
+            'Completed': []
         },
         aggregates: {
             'To Do': 1,
             'In Progress': 0,
             'Blocked': 0,
-            'Done': 0,
+            'Completed': 0,
             total: 1
         },
         metadata: {
@@ -68,6 +68,7 @@ describe('Report Controller Test', () => {
             };
         });
 
+        // Test case ID: RGE-003
         it('should generate project report successfully for PDF format', async () => {
             const mockPdfBuffer = Buffer.from('mock-pdf-data');
             reportService.generateProjectTaskCompletionReportData.mockResolvedValue(mockReportData);
@@ -89,6 +90,7 @@ describe('Report Controller Test', () => {
             expect(res.send).toHaveBeenCalledWith(mockPdfBuffer);
         });
 
+        // Test case ID: RGE-004
         it('should generate project report successfully for Excel format', async () => {
             req.query.format = 'excel';
             const mockExcelBuffer = Buffer.from('mock-excel-data');
@@ -105,6 +107,7 @@ describe('Report Controller Test', () => {
             expect(res.send).toHaveBeenCalledWith(mockExcelBuffer);
         });
 
+        // Test case ID: RGE-006
         it('should return 400 for missing startDate parameter', async () => {
             req.query.startDate = undefined;
 
@@ -117,6 +120,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-006
         it('should return 400 for missing endDate parameter', async () => {
             req.query.endDate = undefined;
 
@@ -129,6 +133,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-006
         it('should return 400 for missing format parameter', async () => {
             req.query.format = undefined;
 
@@ -153,6 +158,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-007
         it('should return 400 for invalid format parameter (json not allowed)', async () => {
             req.query.format = 'json';
 
@@ -165,6 +171,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-007
         it('should return 400 for invalid format parameter (unsupported format)', async () => {
             req.query.format = 'csv';
 
@@ -177,6 +184,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-008
         it('should return 400 for invalid start date format', async () => {
             req.query.startDate = 'invalid-date';
 
@@ -188,6 +196,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-008
         it('should return 400 for invalid end date format', async () => {
             req.query.endDate = 'invalid-date';
 
@@ -199,6 +208,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-009
         it('should return 400 when start date is after end date', async () => {
             req.query.startDate = '2024-02-28';
             req.query.endDate = '2024-01-01';
@@ -211,6 +221,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-010
         it('should return 404 for project not found error', async () => {
             reportService.generateProjectTaskCompletionReportData.mockRejectedValue(
                 new Error('Project not found')
@@ -225,6 +236,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-022
         it('should return 500 for PDF generation error', async () => {
             reportService.generateProjectTaskCompletionReportData.mockResolvedValue(mockReportData);
             reportService.generatePdfReport.mockRejectedValue(new Error('PDF generation failed'));
@@ -238,6 +250,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-023
         it('should return 500 for Excel generation error', async () => {
             req.query.format = 'excel';
             reportService.generateProjectTaskCompletionReportData.mockResolvedValue(mockReportData);
@@ -277,6 +290,7 @@ describe('Report Controller Test', () => {
             };
         });
 
+        // Test case ID: RGE-005
         it('should generate user report successfully for PDF format', async () => {
             const mockPdfBuffer = Buffer.from('mock-pdf-data');
             const userReportData = {
@@ -334,6 +348,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-007
         it('should return 400 for invalid format parameter', async () => {
             req.query.format = 'json';
 
@@ -346,6 +361,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-011
         it('should return 404 for user not found error', async () => {
             reportService.generateUserTaskCompletionReportData.mockRejectedValue(
                 new Error('User not found')
@@ -360,6 +376,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-009
         it('should validate dates correctly for user reports', async () => {
             req.query.startDate = '2024-02-01';
             req.query.endDate = '2024-01-01';
@@ -394,6 +411,7 @@ describe('Report Controller Test', () => {
     });
 
     describe('handleReportFormat', () => {
+        // Test case ID: RGE-021
         it('should handle PDF format correctly', async () => {
             const mockPdfBuffer = Buffer.from('mock-pdf-data');
             reportService.generatePdfReport.mockResolvedValue(mockPdfBuffer);
@@ -406,6 +424,7 @@ describe('Report Controller Test', () => {
             expect(res.send).toHaveBeenCalledWith(mockPdfBuffer);
         });
 
+        // Test case ID: RGE-021
         it('should handle Excel format correctly', async () => {
             const mockExcelBuffer = Buffer.from('mock-excel-data');
             reportService.generateExcelReport.mockResolvedValue(mockExcelBuffer);
@@ -431,6 +450,7 @@ describe('Report Controller Test', () => {
             });
         });
 
+        // Test case ID: RGE-014
         it('should handle case-insensitive format', async () => {
             const mockPdfBuffer = Buffer.from('mock-pdf-data');
             reportService.generatePdfReport.mockResolvedValue(mockPdfBuffer);
@@ -441,6 +461,7 @@ describe('Report Controller Test', () => {
             expect(res.send).toHaveBeenCalledWith(mockPdfBuffer);
         });
 
+        // Test case ID: RGE-021
         it('should generate filename with date for PDF', async () => {
             const mockPdfBuffer = Buffer.from('mock-pdf-data');
             reportService.generatePdfReport.mockResolvedValue(mockPdfBuffer);
@@ -453,6 +474,7 @@ describe('Report Controller Test', () => {
             );
         });
 
+        // Test case ID: RGE-021
         it('should generate filename with date for Excel', async () => {
             const mockExcelBuffer = Buffer.from('mock-excel-data');
             reportService.generateExcelReport.mockResolvedValue(mockExcelBuffer);

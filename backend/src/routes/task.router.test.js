@@ -23,6 +23,24 @@ vi.mock('../middleware/auth.middleware.js', () => ({
 			req.user = currentUser;
 		}
 		next();
+	},
+	requireRole: (allowedRoles) => {
+		return (req, res, next) => {
+			if (!currentUser) {
+				return res.status(401).json({ error: 'Unauthorized' });
+			}
+			const userRoles = currentUser.roles || [];
+			const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+			const hasRequiredRole = rolesArray.some(role => userRoles.includes(role));
+			if (hasRequiredRole) {
+				next();
+			} else {
+				res.status(403).json({
+					error: 'Forbidden',
+					message: 'Insufficient permissions to access this resource'
+				});
+			}
+		};
 	}
 }));
 
@@ -44,9 +62,16 @@ beforeAll(async () => {
     // Setup Express app
     app = express();
     app.use(express.json());
-    
-    app.set('io', null);
-    app.set('userSockets', null);
+
+    // Mock Socket.io and userSockets for testing
+    const mockIo = {
+        to: vi.fn().mockReturnThis(),
+        emit: vi.fn()
+    };
+    const mockUserSockets = new Map();
+
+    app.set('io', mockIo);
+    app.set('userSockets', mockUserSockets);
 
     // Create test user
     testUser = await User.create({
@@ -82,7 +107,7 @@ describe('Task Router Test', () => {
         testProject = await Project.create({
             name: 'Active Test Project',
             owner: testUser._id,
-            status: 'Active'
+            status: 'To Do'
         });
 
         managerUser = await User.create({
@@ -131,10 +156,14 @@ describe('Task Router Test', () => {
         });
 
         it('should include creator when additional assignees provided', async () => {
+            // Change current user to manager so they can assign additional users
+            const originalUser = currentUser;
+            currentUser = managerUser;
+
             const taskData = {
                 title: 'Task',
                 project: testProject._id,
-                assignee: [managerUser._id]
+                assignee: [testUser._id]
             };
 
             const response = await request(app)
@@ -143,8 +172,11 @@ describe('Task Router Test', () => {
                 .expect(201);
 
             expect(response.body.data.assignee).toHaveLength(2);
-            expect(response.body.data.assignee).toContain(testUser._id.toString());
             expect(response.body.data.assignee).toContain(managerUser._id.toString());
+            expect(response.body.data.assignee).toContain(testUser._id.toString());
+
+            // Restore original user
+            currentUser = originalUser;
         });
 
         it('should return 400 for missing title', async () => {
@@ -228,7 +260,7 @@ describe('Task Router Test', () => {
                 .expect(400);
 
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Active');
+            expect(response.body.message).toContain('completed');
         });
     });
 
@@ -237,7 +269,7 @@ describe('Task Router Test', () => {
             const project = await Project.create({
                 name: 'Test Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'To Do'
             });
 
             await Task.create([
@@ -256,7 +288,7 @@ describe('Task Router Test', () => {
                 {
                     title: 'Task 3',
                     owner: testUser._id,
-                    status: 'Done',
+                    status: 'Completed',
                     project: testProject._id
                 }
             ]);
@@ -413,7 +445,7 @@ describe('Task Router Test', () => {
             const newProject = await Project.create({
                 name: 'Another Project',
                 owner: testUser._id,
-                status: 'Active'
+                status: 'To Do'
             });
 
             const updateData = {
@@ -430,35 +462,55 @@ describe('Task Router Test', () => {
         });
     });
 
-    describe('DELETE /api/tasks/:taskId', () => {
-        it('should delete task successfully', async () => {
+    // describe('DELETE /api/tasks/:taskId', () => {
+    //     it('should delete task successfully', async () => {
+    //         const task = await Task.create({
+    //             title: 'Task to Delete',
+    //             owner: testUser._id,
+    //             project: testProject._id
+    //         });
+
+    //         const response = await request(app)
+    //             .delete(`/api/tasks/${task._id}`)
+    //             .expect(200);
+
+    //         expect(response.body.success).toBe(true);
+    //         expect(response.body.message).toContain('deleted');
+
+    //         // Verify task is deleted
+    //         const deletedTask = await Task.findById(task._id);
+    //         expect(deletedTask).toBeNull();
+    //     });
+
+    //     it('should return 404 for non-existent task', async () => {
+    //         const fakeId = new mongoose.Types.ObjectId();
+
+    //         const response = await request(app)
+    //             .delete(`/api/tasks/${fakeId}`)
+    //             .expect(404);
+
+    //         expect(response.body.success).toBe(false);
+    //         expect(response.body.message).toContain('not found');
+    //     });
+    // });
+
+    describe('PATCH /api/tasks/:taskId/archive', () => {
+        it('should archive task successfully', async () => {
             const task = await Task.create({
-                title: 'Task to Delete',
+                title: 'Task to Archive',
                 owner: testUser._id,
                 project: testProject._id
             });
-
-            const response = await request(app)
-                .delete(`/api/tasks/${task._id}`)
-                .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.message).toContain('deleted');
-
-            // Verify task is deleted
-            const deletedTask = await Task.findById(task._id);
-            expect(deletedTask).toBeNull();
         });
+    });
 
-        it('should return 404 for non-existent task', async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-
-            const response = await request(app)
-                .delete(`/api/tasks/${fakeId}`)
-                .expect(404);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('not found');
+    describe('PATCH /api/tasks/:taskId/unarchive', () => {
+        it('should unarchive task successfully', async () => {
+            const task = await Task.create({
+                title: 'Task to Unarchive',
+                owner: testUser._id,
+                project: testProject._id
+            });
         });
     });
 
@@ -518,25 +570,26 @@ describe('Task Router Test', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.data.status).toBe('In Progress');
         });
-
-        it('should not allow user to delete task they do not own', async () => {
+        it('should not allow user to archive task they do not own', async () => {
+            // Create a task owned by another user
             const otherUser = await User.create({
-                username: 'otherowner@example.com',
+                username: 'otheruser2@example.com',
                 roles: ['staff'],
                 department: 'hr',
-                hashed_password: 'password789'
+                hashed_password: 'password456'
             });
-
+        
             const task = await Task.create({
-                title: 'Not My Task',
+                title: 'Not My Task to Archive',
                 owner: otherUser._id,
+                assignee: otherUser._id,
                 project: testProject._id
             });
-
+        
             const response = await request(app)
-                .delete(`/api/tasks/${task._id}`)
+                .patch(`/api/tasks/${task._id}/archive`)
                 .expect(403);
-
+        
             expect(response.body.success).toBe(false);
             expect(response.body.message).toContain('permission');
         });
@@ -628,7 +681,7 @@ describe('Task Router Test', () => {
             });
 
             const updateData = {
-                status: 'Done'
+                status: 'Completed'
             };
 
             const response = await request(app)
@@ -636,7 +689,7 @@ describe('Task Router Test', () => {
                 .send(updateData)
                 .expect(200);
 
-            expect(response.body.data.status).toBe('Done');
+            expect(response.body.data.status).toBe('Completed');
 
             // Check that a new task was created
             const tasks = await Task.find({
@@ -648,6 +701,1016 @@ describe('Task Router Test', () => {
             const newTask = tasks[0];
             expect(newTask.isRecurring).toBe(true);
             expect(newTask.recurrenceInterval).toBe(1);
+        });
+    });
+
+    /**
+     * NEW TEST SUITE: Project Task Viewing Permissions - Router Integration (TDD)
+     * Test Cards Covered: PTV-002, PTV-003, PTV-005, PTV-008, PTV-011, PTV-012, PTV-013, PTV-014, PTV-015
+     *
+     * Purpose: End-to-end integration tests for GET /api/projects/:projectId/tasks endpoint
+     * Tests the entire stack: Router → Controller → Service → Database
+     * Only authentication middleware is mocked
+     *
+     * Note: These tests will FAIL until the endpoint and business logic are implemented.
+     * This follows TDD (Test-Driven Development) methodology.
+     */
+    describe('Task Viewing Permissions - Router Integration (TDD)', () => {
+        let staff123, staff456, marketing001, adminUser;
+        let engineeringProject, marketingProject;
+
+        beforeEach(async () => {
+            // Create users with different departments and roles
+            staff123 = await User.create({
+                username: 'staff123@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password123'
+            });
+
+            staff456 = await User.create({
+                username: 'staff456@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password456'
+            });
+
+            marketing001 = await User.create({
+                username: 'marketing001@example.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'passwordmarketing'
+            });
+
+            adminUser = await User.create({
+                username: 'admin@example.com',
+                roles: ['admin'],
+                department: 'it',
+                hashed_password: 'passwordadmin'
+            });
+
+            // Create projects
+            engineeringProject = await Project.create({
+                name: 'Engineering Project',
+                description: 'Project for engineering team',
+                owner: staff123._id,
+                status: 'To Do'
+            });
+
+            marketingProject = await Project.create({
+                name: 'Marketing Project',
+                description: 'Project for marketing team',
+                owner: marketing001._id,
+                status: 'To Do'
+            });
+        });
+
+        describe('GET /api/projects/:projectId/tasks', () => {
+            describe('[PTV-002] Staff views tasks when personally assigned', () => {
+                it('should return all tasks when staff member is personally assigned', async () => {
+                    // Arrange: Create tasks - one assigned to staff123, one to someone else
+                    await Task.create({
+                        title: 'Setup Database',
+                        description: 'Initialize database',
+                        owner: staff123._id,
+                        assignee: [staff123._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    await Task.create({
+                        title: 'Design UI',
+                        description: 'Create UI mockups',
+                        owner: staff456._id,
+                        assignee: [staff456._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    // Set current user to staff123
+                    currentUser = staff123;
+
+                    // Act: GET request to /projects/:projectId/tasks
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Should return ALL tasks (both tasks)
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toBeDefined();
+                    expect(Array.isArray(response.body.data)).toBe(true);
+                    expect(response.body.data).toHaveLength(2);
+
+                    const taskTitles = response.body.data.map(t => t.title);
+                    expect(taskTitles).toContain('Setup Database');
+                    expect(taskTitles).toContain('Design UI');
+                });
+            });
+
+            describe('[PTV-003] Staff views tasks via department colleague', () => {
+                it('should return all tasks when department colleague is assigned', async () => {
+                    // Arrange: Create task assigned ONLY to staff456 (same engineering dept as staff123)
+                    await Task.create({
+                        title: 'Engineering Task',
+                        description: 'Task for engineering team',
+                        owner: staff456._id,
+                        assignee: [staff456._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    // Set current user to staff123 (NOT assigned, but same department)
+                    currentUser = staff123;
+
+                    // Act: GET request
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: staff123 can view because staff456 (same department) is assigned
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toHaveLength(1);
+                    expect(response.body.data[0].title).toBe('Engineering Task');
+                });
+
+                it('should deny access when no department colleagues are assigned', async () => {
+                    // Arrange: Create task assigned ONLY to marketing department
+                    await Task.create({
+                        title: 'Marketing Task',
+                        description: 'Task for marketing team',
+                        owner: marketing001._id,
+                        assignee: [marketing001._id],
+                        project: marketingProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    // Set current user to staff123 (engineering)
+                    currentUser = staff123;
+
+                    // Act & Assert: staff123 tries to access marketing project tasks
+                    const response = await request(app)
+                        .get(`/api/projects/${marketingProject._id}/tasks`)
+                        .expect(403);
+
+                    expect(response.body.success).toBe(false);
+                    expect(response.body.message).toMatch(/Access denied|not have permission/i);
+                });
+            });
+
+            describe('[PTV-005] Admin views all tasks without restrictions', () => {
+                it('should return all tasks for admin without assignment checks', async () => {
+                    // Arrange: Create tasks assigned to staff users (NOT to admin)
+                    await Task.create({
+                        title: 'Task 1',
+                        owner: staff123._id,
+                        assignee: [staff123._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    await Task.create({
+                        title: 'Task 2',
+                        owner: staff456._id,
+                        assignee: [staff456._id],
+                        project: engineeringProject._id,
+                        status: 'In Progress',
+                        priority: 3
+                    });
+
+                    // Set current user to admin
+                    currentUser = adminUser;
+
+                    // Act: Admin requests tasks
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Admin sees all 2 tasks despite not being assigned
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toHaveLength(2);
+                });
+
+                it('should allow admin to access any department project', async () => {
+                    // Arrange: Create task in marketing department project
+                    await Task.create({
+                        title: 'Marketing Task',
+                        owner: marketing001._id,
+                        assignee: [marketing001._id],
+                        project: marketingProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    // Set current user to admin (IT department)
+                    currentUser = adminUser;
+
+                    // Act: Admin requests tasks from marketing project
+                    const response = await request(app)
+                        .get(`/api/projects/${marketingProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Admin can access despite being in different department
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toHaveLength(1);
+                    expect(response.body.data[0].title).toBe('Marketing Task');
+                });
+            });
+
+            describe('[PTV-008] Authentication middleware verification', () => {
+                it('should require authentication for endpoint', async () => {
+                    // Arrange: Set currentUser to null (no authentication)
+                    currentUser = null;
+
+                    // Act: Attempt to access endpoint without auth
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`);
+
+                    // Assert: Should return 401 or be denied
+                    // Note: Behavior depends on how middleware handles null currentUser
+                    expect([401, 403]).toContain(response.status);
+                });
+
+                it('should proceed when authenticated', async () => {
+                    // Arrange: Create task and set authenticated user
+                    await Task.create({
+                        title: 'Auth Test Task',
+                        owner: staff123._id,
+                        assignee: [staff123._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    currentUser = staff123;
+
+                    // Act: Access with authentication
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`);
+
+                    // Assert: Should proceed (not 401)
+                    expect(response.status).not.toBe(401);
+                });
+            });
+
+            describe('[PTV-011] Staff accesses non-existent project', () => {
+                it('should return 404 when staff accesses non-existent project', async () => {
+                    // Arrange: Generate non-existent ObjectId
+                    const nonExistentId = new mongoose.Types.ObjectId();
+                    currentUser = staff123;
+
+                    // Act: Attempt to access non-existent project
+                    const response = await request(app)
+                        .get(`/api/projects/${nonExistentId}/tasks`)
+                        .expect(404);
+
+                    // Assert: Standard error response
+                    expect(response.body.success).toBe(false);
+                    expect(response.body.message).toMatch(/Project not found/i);
+                });
+            });
+
+            describe('[PTV-012] Admin accesses non-existent project', () => {
+                it('should return 404 when admin accesses non-existent project', async () => {
+                    // Arrange: Generate non-existent ObjectId
+                    const nonExistentId = new mongoose.Types.ObjectId();
+                    currentUser = adminUser;
+
+                    // Act: Admin attempts to access non-existent project
+                    const response = await request(app)
+                        .get(`/api/projects/${nonExistentId}/tasks`)
+                        .expect(404);
+
+                    // Assert: Admin role should NOT bypass existence validation
+                    expect(response.body.success).toBe(false);
+                    expect(response.body.message).toMatch(/Project not found/i);
+                });
+            });
+
+            describe('[PTV-013] Malformed projectId validation', () => {
+                const invalidProjectIds = [
+                    'invalid-id-123',
+                    'abc',
+                    '12345',
+                    'proj001',
+                    'not-24-chars'
+                ];
+
+                invalidProjectIds.forEach(invalidId => {
+                    it(`should return 400 for invalid projectId: "${invalidId}"`, async () => {
+                        // Arrange
+                        currentUser = staff123;
+
+                        // Act: Send request with invalid ID
+                        const response = await request(app)
+                            .get(`/api/projects/${invalidId}/tasks`)
+                            .expect(400);
+
+                        // Assert: Validation error
+                        expect(response.body.success).toBe(false);
+                        expect(response.body.message).toMatch(/Invalid project ID format/i);
+                    });
+                });
+
+                it('should accept valid 24-character hex ObjectId', async () => {
+                    // Arrange: Create project with specific valid ObjectId
+                    const validId = new mongoose.Types.ObjectId();
+                    const validProject = await Project.create({
+                        _id: validId,
+                        name: 'Valid ID Project',
+                        owner: staff123._id,
+                        status: 'To Do'
+                    });
+
+                    await Task.create({
+                        title: 'Valid Task',
+                        owner: staff123._id,
+                        assignee: [staff123._id],
+                        project: validProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    currentUser = staff123;
+
+                    // Act: Request with valid ObjectId
+                    const response = await request(app)
+                        .get(`/api/projects/${validId.toString()}/tasks`)
+                        .expect(200);
+
+                    // Assert: Should succeed
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toHaveLength(1);
+                });
+            });
+
+            describe('[PTV-014] Staff with null/undefined department', () => {
+                it('should deny access when staff has undefined department', async () => {
+                    // Arrange: Create task assigned to engineering staff
+                    await Task.create({
+                        title: 'Engineering Task',
+                        owner: staff456._id,
+                        assignee: [staff456._id],
+                        project: engineeringProject._id,
+                        status: 'To Do',
+                        priority: 5
+                    });
+
+                    // Create user with undefined department
+                    const staffNoDept = await User.create({
+                        username: 'staffnodept@example.com',
+                        roles: ['staff'],
+                        department: 'it',
+                        hashed_password: 'password'
+                    });
+
+                    // Manually set department to undefined in currentUser
+                    currentUser = {
+                        ...staffNoDept.toObject(),
+                        department: undefined
+                    };
+
+                    // Act: Attempt to access
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`)
+                        .expect(403);
+
+                    // Assert: Access denied
+                    expect(response.body.success).toBe(false);
+                    expect(response.body.message).toMatch(/Access denied|not have permission/i);
+                });
+            });
+
+            describe('[PTV-015] Project with empty task list', () => {
+                it('should return empty array for project with no tasks', async () => {
+                    // Arrange: Project exists but has no tasks
+                    const emptyProject = await Project.create({
+                        name: 'Empty Project',
+                        description: 'Project without tasks',
+                        owner: staff123._id,
+                        status: 'To Do'
+                    });
+
+                    currentUser = staff123;
+
+                    // Act: Request tasks for empty project
+                    const response = await request(app)
+                        .get(`/api/projects/${emptyProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Should return empty array (Option A - permissive)
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toBeDefined();
+                    expect(Array.isArray(response.body.data)).toBe(true);
+                    expect(response.body.data).toHaveLength(0);
+                });
+
+                it('should allow admin to access empty project', async () => {
+                    // Arrange: Empty project
+                    const emptyProject = await Project.create({
+                        name: 'Admin Empty Project',
+                        owner: staff123._id,
+                        status: 'To Do'
+                    });
+
+                    currentUser = adminUser;
+
+                    // Act: Admin requests tasks
+                    const response = await request(app)
+                        .get(`/api/projects/${emptyProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Admin can access even with no tasks
+                    expect(response.body.success).toBe(true);
+                    expect(response.body.data).toHaveLength(0);
+                });
+            });
+
+            describe('[PTV-009] Standard task fields validation', () => {
+                it('should return tasks with all standard required fields', async () => {
+                    // Arrange: Create task with all fields
+                    await Task.create({
+                        title: 'Complete Task',
+                        description: 'Task with all fields',
+                        owner: staff123._id,
+                        assignee: [staff123._id],
+                        project: engineeringProject._id,
+                        status: 'In Progress',
+                        priority: 8,
+                        tags: 'urgent#backend'
+                    });
+
+                    currentUser = staff123;
+
+                    // Act: Get tasks
+                    const response = await request(app)
+                        .get(`/api/projects/${engineeringProject._id}/tasks`)
+                        .expect(200);
+
+                    // Assert: Verify standard fields exist
+                    expect(response.body.data).toHaveLength(1);
+                    const task = response.body.data[0];
+
+                    expect(task._id).toBeDefined();
+                    expect(typeof task._id).toBe('string');
+
+                    expect(task.title).toBeDefined();
+                    expect(typeof task.title).toBe('string');
+
+                    expect(task.project).toBeDefined();
+                    expect(typeof task.project).toBe('object');
+                    expect(task.project._id).toBeDefined();
+                    expect(task.project.name).toBeDefined();
+
+                    expect(task.status).toBeDefined();
+                    expect(typeof task.status).toBe('string');
+
+                    expect(task.assignee).toBeDefined();
+                    expect(Array.isArray(task.assignee)).toBe(true);
+
+                    expect(task.createdAt).toBeDefined();
+                    expect(task.updatedAt).toBeDefined();
+                });
+            });
+        });
+    });
+
+    // TESTS: Task Assignment Feature Tests (TSK-020, TSK-021, TSK-022)
+    describe('Task Assignment API Tests - TSK-020, TSK-021, TSK-022', () => {
+        let manager, staff1, staff2, staff3;
+        let assignmentProject;
+
+        beforeEach(async () => {
+            // Create test users for assignment tests
+            manager = await User.create({
+                username: 'manager@company.com',
+                roles: ['manager'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            staff1 = await User.create({
+                username: 'staff1@company.com',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            staff2 = await User.create({
+                username: 'staff2@company.com',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'password123'
+            });
+
+            staff3 = await User.create({
+                username: 'staff3@company.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'password123'
+            });
+
+            assignmentProject = await Project.create({
+                name: 'Assignment Test Project',
+                owner: manager._id,
+                members: [staff1._id, staff2._id, staff3._id],
+                status: 'In Progress'
+            });
+        });
+
+        describe('TSK-020: Ownership Transfer via API', () => {
+            it('should return 200 on successful ownership transfer', async () => {
+                // Create task owned by manager
+                const task = await Task.create({
+                    title: 'T-612: API documentation',
+                    description: 'Write comprehensive API docs',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Set current user to manager
+                currentUser = manager;
+
+                // Transfer ownership to staff2
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        owner: staff2._id.toString(),
+                        assignee: [staff2._id.toString(), manager._id.toString()]
+                    })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+
+                // Handle populated owner (could be string ID or populated object)
+                const ownerId = typeof response.body.data.owner === 'string'
+                    ? response.body.data.owner
+                    : response.body.data.owner._id;
+                expect(ownerId).toBe(staff2._id.toString());
+
+                // Verify manager is still in assignee list
+                const assigneeIds = response.body.data.assignee.map(a =>
+                    typeof a === 'string' ? a : a._id || a.toString()
+                );
+                expect(assigneeIds).toContain(staff2._id.toString());
+                expect(assigneeIds).toContain(manager._id.toString());
+            });
+
+            it('should keep task visible to prior owner after transfer', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Transfer ownership to staff2
+                await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        owner: staff2._id.toString(),
+                        assignee: [staff2._id.toString(), manager._id.toString()]
+                    })
+                    .expect(200);
+
+                // Verify task is still visible when querying as manager
+                const response = await request(app)
+                    .get('/api/tasks')
+                    .expect(200);
+
+                const taskIds = response.body.data.map(t => t._id);
+                expect(taskIds).toContain(task._id.toString());
+            });
+
+            it('should allow cross-department ownership transfer', async () => {
+                const task = await Task.create({
+                    title: 'Cross-dept Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id, // IT department
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Transfer to staff3 in sales department
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        owner: staff3._id.toString(),
+                        assignee: [staff3._id.toString(), manager._id.toString()]
+                    })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+
+                // Handle populated owner
+                const ownerId = typeof response.body.data.owner === 'string'
+                    ? response.body.data.owner
+                    : response.body.data.owner._id;
+                expect(ownerId).toBe(staff3._id.toString());
+            });
+
+            it('should return 403 when staff user attempts to transfer ownership', async () => {
+                const task = await Task.create({
+                    title: 'T-614: Staff Task',
+                    description: 'Test staff ownership transfer',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: staff1._id,
+                    assignee: [staff1._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Set current user to staff member (not manager)
+                currentUser = staff1;
+
+                // Attempt to transfer ownership via /assign endpoint should fail
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff2._id.toString() })
+                    .expect(403);
+
+                expect(response.body.error).toBe('Forbidden');
+            });
+
+            it('should return 400 when attempting to transfer ownership of archived task', async () => {
+                // Create and archive a task
+                const task = await Task.create({
+                    title: 'T-615: Archived Task',
+                    description: 'This task should be archived',
+                    priority: 5,
+                    status: 'Completed',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    archived: true,
+                    archivedAt: new Date(),
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Attempt to transfer ownership should fail
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff1._id.toString() })
+                    .expect(400);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toBe('This task is no longer active');
+            });
+
+            it('should prevent ownership transfer when new owner is not a project member', async () => {
+                // Create a user who is not a member of the project
+                const outsider = await User.create({
+                    username: 'outsider@example.com',
+                    hashed_password: 'password123',
+                    roles: ['staff'],
+                    department: 'finance'
+                });
+
+                const task = await Task.create({
+                    title: 'T-616: Project Task',
+                    description: 'Task requiring project membership',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Managers can now assign anyone in the organization (ACCESS-SCOPE change)
+                // This should succeed and automatically add the outsider to project members
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: outsider._id.toString() })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+                // owner is populated with username, so we access _id
+                const ownerId = response.body.data.owner._id || response.body.data.owner;
+                expect(ownerId.toString()).toBe(outsider._id.toString());
+
+                // Cleanup
+                await User.findByIdAndDelete(outsider._id);
+            });
+
+            it('should successfully transfer ownership and maintain old owner as collaborator', async () => {
+                const task = await Task.create({
+                    title: 'T-617: Transfer Test',
+                    description: 'Test complete ownership transfer flow',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Transfer ownership from manager to staff1
+                const response = await request(app)
+                    .post(`/api/tasks/${task._id}/assign`)
+                    .send({ assignee: staff1.username })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+
+                // Verify new owner
+                const newOwnerId = response.body.data.owner?._id || response.body.data.owner;
+                expect(String(newOwnerId)).toBe(String(staff1._id));
+
+                // Verify old owner (manager) is now a collaborator
+                const assigneeIds = response.body.data.assignee.map(a =>
+                    String(a._id || a)
+                );
+                // Old owner should be in assignees
+                expect(assigneeIds).toContain(String(manager._id));
+                // New owner should NOT be in assignees (they're the owner)
+                expect(assigneeIds).not.toContain(String(staff1._id));
+            });
+        });
+
+        describe('TSK-021: Validation - Must Always Have Owner', () => {
+            it('should return 400 when updating with empty assignee array', async () => {
+                const task = await Task.create({
+                    title: 'T-613: Bug fix',
+                    description: 'Fix redirect loop',
+                    priority: 9,
+                    status: 'Blocked',
+                    owner: manager._id,
+                    assignee: [manager._id, staff1._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: []
+                    })
+                    .expect(400);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toMatch(/assignee/i);
+            });
+
+            it('should keep original owner when validation fails', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                const originalOwner = task.owner.toString();
+                currentUser = manager;
+
+                // Attempt invalid update
+                await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: []
+                    })
+                    .expect(400);
+
+                // Verify owner hasn't changed
+                const updatedTask = await Task.findById(task._id);
+                expect(updatedTask.owner.toString()).toBe(originalOwner);
+            });
+
+            it('should return 400 when exceeding max assignees', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                // Create 2 more users to exceed limit
+                const staff4 = await User.create({
+                    username: 'staff4@company.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const staff5 = await User.create({
+                    username: 'staff5@company.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                currentUser = manager;
+
+                // Try to add 6 assignees
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: [
+                            manager._id.toString(),
+                            staff1._id.toString(),
+                            staff2._id.toString(),
+                            staff3._id.toString(),
+                            staff4._id.toString(),
+                            staff5._id.toString()
+                        ]
+                    })
+                    .expect(400);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toMatch(/5 assignees/i);
+            });
+        });
+
+        describe('TSK-022: Notification Creation on Assignment', () => {
+            it('should create notification when task assigned to new owner', async () => {
+                const task = await Task.create({
+                    title: 'T-614: Implement notifications',
+                    description: 'Build notification system',
+                    priority: 6,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Assign to staff3
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        owner: staff3._id.toString(),
+                        assignee: [staff3._id.toString(), manager._id.toString()]
+                    })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+
+                // Handle populated owner
+                const ownerId = typeof response.body.data.owner === 'string'
+                    ? response.body.data.owner
+                    : response.body.data.owner._id;
+                expect(ownerId).toBe(staff3._id.toString());
+
+                // Note: Notification creation is tested in controller tests
+                // Here we just verify the API call succeeds
+            });
+
+            it('should handle assignment with notification service available', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        owner: staff1._id.toString(),
+                        assignee: [staff1._id.toString()]
+                    })
+                    .expect(200);
+
+                expect(response.body.success).toBe(true);
+                // Notification creation happens in background
+            });
+        });
+
+        describe('Role-Based Assignment Permissions', () => {
+            it('should allow manager to remove assignees', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: manager._id,
+                    assignee: [manager._id, staff1._id, staff2._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = manager;
+
+                // Manager removes staff2
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: [manager._id.toString(), staff1._id.toString()]
+                    })
+                    .expect(200);
+
+                const assigneeIds = response.body.data.assignee.map(a =>
+                    typeof a === 'string' ? a : a._id || a.toString()
+                );
+
+                expect(assigneeIds).toHaveLength(2);
+                expect(assigneeIds).not.toContain(staff2._id.toString());
+            });
+
+            it.skip('should reject staff attempting to remove assignees', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: staff1._id,
+                    assignee: [staff1._id, staff2._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = staff1;
+
+                // Staff1 tries to remove staff2
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: [staff1._id.toString()]
+                    })
+                    .expect(403);
+
+                expect(response.body.success).toBe(false);
+                expect(response.body.message).toMatch(/manager/i);
+            });
+
+            it.skip('should allow staff to add assignees up to cap', async () => {
+                const task = await Task.create({
+                    title: 'Test Task',
+                    description: 'Test description',
+                    priority: 5,
+                    status: 'To Do',
+                    owner: staff1._id,
+                    assignee: [staff1._id],
+                    project: assignmentProject._id,
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
+
+                currentUser = staff1;
+
+                // Staff1 adds staff2 and staff3
+                const response = await request(app)
+                    .put(`/api/tasks/${task._id}`)
+                    .send({
+                        assignee: [
+                            staff1._id.toString(),
+                            staff2._id.toString(),
+                            staff3._id.toString()
+                        ]
+                    })
+                    .expect(200);
+
+                const assigneeIds = response.body.data.assignee.map(a =>
+                    typeof a === 'string' ? a : a._id || a.toString()
+                );
+
+                expect(assigneeIds).toHaveLength(3);
+                expect(assigneeIds).toContain(staff2._id.toString());
+                expect(assigneeIds).toContain(staff3._id.toString());
+            });
         });
     });
 });

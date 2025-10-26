@@ -88,6 +88,25 @@ const subtaskSchema = new mongoose.Schema({
       message: 'Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")'
     }
   },
+  comments: [{
+    text: {
+      type: String,
+      required: true
+    },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users',
+      required: true
+    },
+    authorName: {
+      type: String,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

@@ -42,14 +42,22 @@ const login = async(req, res, next) => {
         req.session.authenticated = true;
 
         // Send success response (exclude sensitive data)
-        res.status(200).json({
-            message: "Login successful",
-            user: {
-                id: user.id,
-                username: user.username,
-                roles: user.roles,
-                department: user.department
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ message: "Error saving session" });
             }
+            
+            // Send success response (exclude sensitive data)
+            res.status(200).json({
+                message: "Login successful",
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    roles: user.roles,
+                    department: user.department
+                }
+            });
         });
     } catch (err) {
         // Handle authentication errors

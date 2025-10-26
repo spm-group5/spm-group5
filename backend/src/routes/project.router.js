@@ -4,10 +4,12 @@ import projectController from '../controllers/project.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
 
 router.post('/projects', requireAuth, projectController.createProject);
-router.get('/projects', requireAuth, projectController.getProjects);
+// Updated to include canViewTasks metadata
+router.get('/projects', requireAuth, projectController.getProjectsWithAccessMetadata);
 
 // Admin-only routes (must be before parameterized routes)
-router.get('/projects/all', requireAuth, requireRole(['admin']), projectController.getAllProjects);
+// Updated to include canViewTasks metadata for admin
+router.get('/projects/all', requireAuth, requireRole(['admin']), projectController.getProjectsWithAccessMetadata);
 
 router.get('/projects/:projectId', requireAuth, projectController.getProjectById);
 router.put('/projects/:projectId', requireAuth, projectController.updateProject);
