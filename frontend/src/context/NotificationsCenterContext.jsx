@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api.js';
+import { useAuth } from './AuthContext';
 
 const NotificationCenterContext = createContext();
 
 export function NotificationCenterProvider({ children }) {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,6 +21,11 @@ export function NotificationCenterProvider({ children }) {
       setNotifications(Array.isArray(payload) ? payload : []);
       return { success: true };
     } catch (err) {
+      // Silently fail on 401 - user is not authenticated
+      if (err.status === 401) {
+        setNotifications([]);
+        return { success: false, error: 'Not authenticated' };
+      }
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -56,7 +63,15 @@ export function NotificationCenterProvider({ children }) {
     }
   };
 
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  // Only fetch notifications when authenticated and auth check is complete
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchNotifications();
+    } else if (!isAuthenticated) {
+      // Clear notifications when user logs out
+      setNotifications([]);
+    }
+  }, [isAuthenticated, authLoading, fetchNotifications]);
 
   const value = {
     notifications,
