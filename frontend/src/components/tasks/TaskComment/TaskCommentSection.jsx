@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import api from '../../../services/api';
 import styles from './TaskCommentSection.module.css';
@@ -6,7 +6,13 @@ import styles from './TaskCommentSection.module.css';
 export default function CommentSection({ task, onCommentAdded }) {
     const [commentText, setCommentText] = useState('');
     const [loading, setLoading] = useState(false);
+    const [comments, setComments] = useState(task.comments || []);
     const { user } = useAuth();
+
+    // Update local comments when task prop changes
+    useEffect(() => {
+        setComments(task.comments || []);
+    }, [task.comments]);
 
     // Check if user can comment based on roles
     const canComment = () => {
@@ -52,9 +58,20 @@ export default function CommentSection({ task, onCommentAdded }) {
 
         try {
             setLoading(true);
-            await api.addTaskComment(task._id, commentText);
+            const response = await api.addTaskComment(task._id, commentText);
+
+            // Get the updated task from the response
+            const updatedTask = response.data || response;
+
+            // Update local comments state immediately for seamless UI
+            if (updatedTask.comments) {
+                setComments(updatedTask.comments);
+            }
+
             setCommentText('');
-            onCommentAdded?.(); // Refresh task data
+
+            // Optionally notify parent component (but don't trigger full page refresh)
+            onCommentAdded?.(updatedTask);
         } catch (error) {
             console.error('Error adding comment:', error);
             alert(error.response?.data?.message || 'Failed to add comment');
@@ -69,8 +86,8 @@ export default function CommentSection({ task, onCommentAdded }) {
             
             {/* Display existing comments */}
             <div className={styles.commentsList}>
-                {task.comments && task.comments.length > 0 ? (
-                    task.comments.map((comment, idx) => (
+                {comments && comments.length > 0 ? (
+                    comments.map((comment, idx) => (
                         <div key={idx} className={styles.comment}>
                             <strong>{comment.authorName}</strong>
                             <p>{comment.text}</p>

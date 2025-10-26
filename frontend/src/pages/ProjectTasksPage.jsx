@@ -54,47 +54,47 @@ function ProjectTasksPage() {
   const [taskToArchive, setTaskToArchive] = useState(null);
   const [assignmentView, setAssignmentView] = useState('all'); // 'my-tasks', 'team-tasks', 'all'
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setErrorType(null);
+  const loadProjectTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setErrorType(null);
 
-        // Fetch project details
-        const projectResponse = await getProjectById(projectId);
-        if (projectResponse.success) {
-          setProject(projectResponse.data);
-        }
-
-        // Fetch tasks for this project
-        const tasksResponse = await fetchTasksByProject(projectId, userId, user?.role, user?.department);
-        if (tasksResponse.success) {
-          setTasks(tasksResponse.data || []);
-        }
-      } catch (err) {
-        console.error('Error fetching project tasks:', err);
-
-        // Handle different error types based on HTTP status
-        if (err.status === 403) {
-          setErrorType('forbidden');
-          setError('You do not have permission to view tasks in this project. Access requires you or a department colleague to be assigned to at least one task.');
-        } else if (err.status === 404) {
-          setErrorType('notFound');
-          setError('Project not found.');
-        } else if (err.status === 400) {
-          setErrorType('badRequest');
-          setError('Invalid project ID.');
-        } else {
-          setErrorType('server');
-          setError('An error occurred while loading tasks. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+      // Fetch project details
+      const projectResponse = await getProjectById(projectId);
+      if (projectResponse.success) {
+        setProject(projectResponse.data);
       }
-    };
 
-    fetchData();
+      // Fetch tasks for this project
+      const tasksResponse = await fetchTasksByProject(projectId, userId, user?.role, user?.department);
+      if (tasksResponse.success) {
+        setTasks(tasksResponse.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching project tasks:', err);
+
+      // Handle different error types based on HTTP status
+      if (err.status === 403) {
+        setErrorType('forbidden');
+        setError('You do not have permission to view tasks in this project. Access requires you or a department colleague to be assigned to at least one task.');
+      } else if (err.status === 404) {
+        setErrorType('notFound');
+        setError('Project not found.');
+      } else if (err.status === 400) {
+        setErrorType('badRequest');
+        setError('Invalid project ID.');
+      } else {
+        setErrorType('server');
+        setError('An error occurred while loading tasks. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProjectTasks();
   }, [projectId, fetchTasksByProject, getProjectById, userId, user]);
 
   const handleBackToProjects = () => {
@@ -480,6 +480,7 @@ function ProjectTasksPage() {
                         onArchive={handleArchiveTask}
                         onUnarchive={handleUnarchiveTask}
                         isArchived={task.archived}
+                        onRefresh={loadProjectTasks}
                       />
                     ))}
                   </div>
