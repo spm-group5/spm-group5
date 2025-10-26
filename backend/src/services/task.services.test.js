@@ -72,6 +72,7 @@ describe('Task Service - Time Calculation', () => {
             owner: testUser._id,
             status: 'In Progress' // Allowed status for task creation
         });
+      }
     });
 
     describe('createTask', () => {
@@ -269,7 +270,7 @@ describe('Task Service - Time Calculation', () => {
     });
 
     it('should handle task with no time and subtasks with time', async () => {
-      const taskData = {
+            const taskData = {
         title: 'Test Task',
         project: mockProjectId,
         timeTaken: ''
@@ -880,8 +881,8 @@ describe('Task Service - Time Calculation', () => {
                 description: 'Project for marketing team',
                 owner: marketing001._id,
                 status: 'In Progress'
-            });
         });
+    });
 
         describe('[PTV-002] Staff views tasks when personally assigned', () => {
             it('should return all tasks when staff member is personally assigned', async () => {
@@ -950,13 +951,13 @@ describe('Task Service - Time Calculation', () => {
         describe('[PTV-003] Staff views tasks via department colleague', () => {
             it('should return all tasks when department colleague is assigned', async () => {
                 // Arrange: Create task assigned ONLY to staff456 (same engineering department as staff123)
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'Engineering Task',
                     description: 'Task for engineering team',
                     owner: staff456._id,
                     assignee: [staff456._id],
                     project: engineeringProject._id,
-                    status: 'To Do',
+                status: 'To Do',
                     priority: 5
                 });
 
@@ -1128,8 +1129,8 @@ describe('Task Service - Time Calculation', () => {
                 // Arrange: Create staff
                 const staffNoDept = await User.create({
                     username: 'staffnodept2@example.com',
-                    roles: ['staff'],
-                    department: 'it',
+                roles: ['staff'],
+                department: 'it',
                     hashed_password: 'password'
                 });
 
@@ -1139,7 +1140,7 @@ describe('Task Service - Time Calculation', () => {
                     owner: staff456._id,
                     assignee: [staff456._id],
                     project: engineeringProject._id,
-                    status: 'To Do',
+                status: 'To Do',
                     priority: 5
                 });
 
@@ -1240,14 +1241,14 @@ describe('Task Service - Time Calculation', () => {
         describe('TSK-020: Ownership Transfer', () => {
             it('should transfer ownership to new assignee', async () => {
                 // Create task owned by manager
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'T-612: API documentation',
                     description: 'Write comprehensive API docs',
-                    priority: 5,
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id,
                     assignee: [manager._id],
-                    project: testProject._id,
+                project: testProject._id,
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
 
@@ -1278,14 +1279,14 @@ describe('Task Service - Time Calculation', () => {
             });
 
             it('should keep prior owner as participant (not owner)', async () => {
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'Test Task',
-                    description: 'Test description',
-                    priority: 5,
+                description: 'Test description',
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id,
                     assignee: [manager._id],
-                    project: testProject._id,
+                project: testProject._id,
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
 
@@ -1317,14 +1318,14 @@ describe('Task Service - Time Calculation', () => {
             });
 
             it('should keep task visible to prior owner after ownership transfer', async () => {
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'Test Task',
-                    description: 'Test description',
-                    priority: 5,
+                description: 'Test description',
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id,
                     assignee: [manager._id],
-                    project: testProject._id,
+                project: testProject._id,
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
 
@@ -1349,15 +1350,15 @@ describe('Task Service - Time Calculation', () => {
 
             it('should prevent ownership transfer on archived task', async () => {
                 // Create and archive a task
-                const task = await Task.create({
-                    title: 'Archived Task',
+            const task = await Task.create({
+                title: 'Archived Task',
                     description: 'This task is archived',
-                    priority: 5,
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id,
                     assignee: [manager._id],
-                    project: testProject._id,
-                    archived: true,
+                project: testProject._id,
+                archived: true,
                     archivedAt: new Date(),
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
@@ -1408,14 +1409,14 @@ describe('Task Service - Time Calculation', () => {
             });
 
             it('should reject update that removes all assignees', async () => {
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'Test Task',
-                    description: 'Test description',
-                    priority: 5,
+                description: 'Test description',
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id,
                     assignee: [manager._id, staff1._id],
-                    project: testProject._id,
+                project: testProject._id,
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
 
@@ -1459,14 +1460,14 @@ describe('Task Service - Time Calculation', () => {
             });
 
             it('should allow transferring ownership across departments', async () => {
-                const task = await Task.create({
+            const task = await Task.create({
                     title: 'Test Task',
-                    description: 'Test description',
-                    priority: 5,
+                description: 'Test description',
+                priority: 5,
                     status: 'To Do',
                     owner: manager._id, // IT department
                     assignee: [manager._id],
-                    project: testProject._id,
+                project: testProject._id,
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
 

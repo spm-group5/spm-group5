@@ -110,13 +110,6 @@ describe('Task Controller - Time Logging', () => {
           title: 'Test Task',
           timeTaken: time
         };
-				_id: '507f1f77bcf86cd799439011',
-				title: 'New Task',
-				status: 'To Do',
-				owner: 'userId123',
-				assignee: [],
-				project: 'projectId123'
-			};
 
 			taskService.createTask.mockResolvedValue(mockTask);
 
@@ -128,15 +121,10 @@ describe('Task Controller - Time Logging', () => {
         );
         expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
-			await taskController.createTask(req, res);
-			expect(taskService.createTask).toHaveBeenCalledWith(req.body, 'userId123');
-			expect(res.status).toHaveBeenCalledWith(201);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				message: 'Task created successfully and notifications sent',
-				data: mockTask
-			});
-		});
+          success: true,
+          message: 'Task created successfully and notifications sent',
+          data: expect.objectContaining({ timeTaken: time })
+        });
 
 		it('should handle task creation error', async () => {
 			req.body = { title: '' };
@@ -381,8 +369,7 @@ describe('Task Controller - Time Logging', () => {
 		});
 	});
 
-
-  describe('Total Time Calculation', () => {
+	describe('Total Time Calculation', () => {
     it('should calculate total time when getting task by ID', async () => {
 			const mockTask = {
         _id: new mongoose.Types.ObjectId(),
