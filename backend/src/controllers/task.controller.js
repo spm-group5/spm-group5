@@ -568,6 +568,56 @@ class TaskController {
     }
 }
 
+    async deleteComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const userId = req.user._id;
+
+            // Get the task
+            const task = await taskModel.findById(taskId);
+
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Task not found'
+                });
+            }
+
+            // Find the comment
+            const comment = task.comments.id(commentId);
+
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Comment not found'
+                });
+            }
+
+            // Check if the user is the author of the comment
+            if (comment.author.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only delete your own comments'
+                });
+            }
+
+            // Remove the comment
+            comment.deleteOne();
+            await task.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Comment deleted successfully',
+                data: task
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
     /**
      * Get tasks for a specific project with authorization
      * Validates input and delegates to service layer for business logic

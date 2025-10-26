@@ -551,11 +551,13 @@ function TaskCard({
                 )}
               </div>
 
-              <CommentSection 
-                task={task} 
-                onCommentAdded={() => {
-                  onRefresh();
-                }} 
+              <CommentSection
+                task={task}
+                onCommentAdded={(updatedTask) => {
+                  // Comments are now handled locally in CommentSection
+                  // No need to refresh the entire page
+                  // The updatedTask can be used for other updates if needed
+                }}
               />
 
               {/* Subtasks Section */}

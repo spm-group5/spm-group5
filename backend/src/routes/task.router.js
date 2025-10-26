@@ -10,6 +10,7 @@ router.get('/tasks/:taskId', requireAuth, taskController.getTaskById);
 router.patch('/tasks/:taskId/archive', requireAuth, taskController.archiveTask);
 router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTask);
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
+router.delete('/tasks/:taskId/comments/:commentId', requireAuth, taskController.deleteComment);
 
 // ASSIGNEE-SCOPE: Post-creation assignment endpoint (legacy - reassigns owner)
 // OWNERSHIP-TRANSFER: Only managers and admins can transfer task ownership

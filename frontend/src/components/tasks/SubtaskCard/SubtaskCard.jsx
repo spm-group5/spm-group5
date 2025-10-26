@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CommentSection from '../TaskComment/TaskCommentSection';
 import styles from './SubtaskCard.module.css';
 
 const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) => {
@@ -104,7 +105,7 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
 
           <div className={styles.actions}>
             {!isArchived && (
-              <button 
+              <button
                 className={`${styles.button} ${styles.editButton}`}
                 onClick={() => onEdit(subtask)}
               >
@@ -112,14 +113,14 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
               </button>
             )}
             {isArchived ? (
-              <button 
+              <button
                 className={`${styles.button} ${styles.unarchiveButton}`}
                 onClick={() => onUnarchive(subtask)}
               >
                 Unarchive
               </button>
             ) : (
-              <button 
+              <button
                 className={`${styles.button} ${styles.archiveButton}`}
                 onClick={() => onArchive(subtask)}
               >
@@ -127,6 +128,16 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
               </button>
             )}
           </div>
+
+          {/* Comments Section */}
+          <CommentSection
+            subtask={subtask}
+            type="subtask"
+            onCommentAdded={(updatedSubtask) => {
+              // Comments are handled locally in CommentSection
+              // No need to refresh the entire page
+            }}
+          />
         </div>
       )}
     </div>

@@ -1162,7 +1162,9 @@ describe('Task Router Test', () => {
                     expect(typeof task.title).toBe('string');
 
                     expect(task.project).toBeDefined();
-                    expect(typeof task.project).toBe('string');
+                    expect(typeof task.project).toBe('object');
+                    expect(task.project._id).toBeDefined();
+                    expect(task.project.name).toBeDefined();
 
                     expect(task.status).toBeDefined();
                     expect(typeof task.status).toBe('string');
