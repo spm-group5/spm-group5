@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format as formatDate } from 'date-fns';
 import { useState, useEffect } from 'react';
 import Button from '../../common/Button/Button';
 import Card from '../../common/Card/Card';
@@ -16,7 +16,7 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState(null);
-  const [subtaskToArchive, setSubtaskToArchive] = useState(null);
+  const [_subtaskToArchive, setSubtaskToArchive] = useState(null);
   const [subtasks, setSubtasks] = useState([]);
   const [totalTime, setTotalTime] = useState('Not specified');
   
@@ -69,7 +69,7 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
   const formatDueDate = (dateString) => {
     if (!dateString) return 'No due date';
     try {
-      return format(new Date(dateString), 'MMM dd, yyyy');
+      return formatDate(new Date(dateString), 'MMM dd, yyyy');
     } catch {
       return 'Invalid date';
     }

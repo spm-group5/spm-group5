@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import Task from './task.model.js';
+import User from './user.model.js';
+import Project from './project.model.js';
 
 describe('Task Model', () => {
   beforeEach(async () => {

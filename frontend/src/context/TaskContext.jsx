@@ -40,7 +40,7 @@ export function TaskProvider({ children }) {
     try {
       setError(null);
       const response = await apiService.updateTask(taskId, taskData);
-      const updatedTask = response.data || response;
+      const _updatedTask = response.data || response;
 
       // Fetch the updated task again to ensure we have all populated fields
       const freshTaskResponse = await apiService.getTaskById(taskId);

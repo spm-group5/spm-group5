@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../context/TaskContext';
 import { useProjects } from '../context/ProjectContext';
-import { useNotifications } from '../hooks/useNotifications';
+// import { useNotifications } from '../hooks/useNotifications';
 import Header from '../components/common/Header/Header';
 import Button from '../components/common/Button/Button';
 import Card from '../components/common/Card/Card';

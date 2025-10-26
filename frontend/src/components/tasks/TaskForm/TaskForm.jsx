@@ -255,7 +255,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
               >
                 {projectMembers?.map((member) => {
                   const isCreator = !isEditing && member._id === user?._id;
-                  const isCurrentAssignee = isEditing && currentAssignees.includes(member._id);
+                  const _isCurrentAssignee = isEditing && currentAssignees.includes(member._id);
                   const label = isCreator ? `${member.username} (You - Creator)` : member.username;
 
                   return (

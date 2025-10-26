@@ -7,17 +7,17 @@ import styles from './SubtaskList.module.css';
 
 const SubtaskList = ({ 
   parentTaskId, 
-  projectId, 
-  ownerId,
+  projectId: _projectId, 
+  ownerId: _ownerId,
   onShowSubtaskForm,
-  onArchiveSubtask,
-  onUnarchiveSubtask
+  onArchiveSubtask: _onArchiveSubtask,
+  onUnarchiveSubtask: _onUnarchiveSubtask
 }) => {
   const { 
     subtasks, 
     fetchSubtasksByParentTask, 
-    archiveSubtask,
-    unarchiveSubtask,
+    archiveSubtask: _archiveSubtask,
+    unarchiveSubtask: _unarchiveSubtask,
     loading 
   } = useSubtasks();
 
@@ -63,7 +63,7 @@ const SubtaskList = ({
     };
 
     activeSubtasks.forEach(subtask => {
-      if (stats.hasOwnProperty(subtask.status)) {
+      if (Object.prototype.hasOwnProperty.call(stats, subtask.status)) {
         stats[subtask.status]++;
       }
     });
