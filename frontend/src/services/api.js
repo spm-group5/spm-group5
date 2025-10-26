@@ -389,6 +389,12 @@ class ApiService {
             body: JSON.stringify({ text })
         });
     }
+
+    async deleteTaskComment(taskId, commentId) {
+        return this.request(`/tasks/${taskId}/comments/${commentId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 export default new ApiService();

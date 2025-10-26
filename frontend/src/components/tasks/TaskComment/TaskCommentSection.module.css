@@ -24,11 +24,45 @@
     border-left: 3px solid #007bff;
 }
 
-.comment strong {
-    display: block;
-    color: #007bff;
+.commentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.25rem;
+}
+
+.comment strong {
+    color: #007bff;
     font-size: 0.9rem;
+}
+
+.deleteButton {
+    background: transparent;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.deleteButton:hover {
+    background: #fee;
+    color: #dc3545;
+}
+
+.deleteButton:active {
+    transform: scale(0.95);
+}
+
+.deleteButton svg {
+    width: 16px;
+    height: 16px;
 }
 
 .comment p {
