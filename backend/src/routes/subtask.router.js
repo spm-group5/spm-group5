@@ -31,5 +31,11 @@ router.get('/tasks/:parentTaskId/subtasks/archived', subtaskController.getArchiv
 // Unarchive a subtask
 router.put('/subtasks/:subtaskId/unarchive', subtaskController.unarchiveSubtask);
 
+// Add a comment to a subtask
+router.post('/subtasks/:subtaskId/comments', subtaskController.addComment);
+
+// Delete a comment from a subtask
+router.delete('/subtasks/:subtaskId/comments/:commentId', subtaskController.deleteComment);
+
 export default router;
 

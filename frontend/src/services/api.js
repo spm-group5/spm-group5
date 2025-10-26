@@ -395,6 +395,19 @@ class ApiService {
             method: 'DELETE'
         });
     }
+
+    async addSubtaskComment(subtaskId, text) {
+        return this.request(`/subtasks/${subtaskId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ text })
+        });
+    }
+
+    async deleteSubtaskComment(subtaskId, commentId) {
+        return this.request(`/subtasks/${subtaskId}/comments/${commentId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 export default new ApiService();

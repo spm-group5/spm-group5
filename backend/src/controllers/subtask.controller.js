@@ -1,4 +1,5 @@
 import subtaskService from '../services/subtask.services.js';
+import Subtask from '../models/subtask.model.js';
 
 class SubtaskController {
   /**
@@ -178,6 +179,103 @@ class SubtaskController {
       res.status(400).json({
         success: false,
         message: error.message || 'Failed to unarchive subtask'
+      });
+    }
+  }
+
+  async addComment(req, res) {
+    try {
+      const { subtaskId } = req.params;
+      const { text } = req.body;
+      const userId = req.user._id;
+      const userName = req.user.username;
+
+      if (!text || text.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Comment text is required'
+        });
+      }
+
+      const subtask = await Subtask.findById(subtaskId);
+
+      if (!subtask) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subtask not found'
+        });
+      }
+
+      // Add the comment
+      const comment = {
+        text: text.trim(),
+        author: userId,
+        authorName: userName,
+        createdAt: new Date()
+      };
+
+      subtask.comments = subtask.comments || [];
+      subtask.comments.push(comment);
+      await subtask.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Comment added successfully',
+        data: subtask
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async deleteComment(req, res) {
+    try {
+      const { subtaskId, commentId } = req.params;
+      const userId = req.user._id;
+
+      const subtask = await Subtask.findById(subtaskId);
+
+      if (!subtask) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subtask not found'
+        });
+      }
+
+      // Find the comment
+      const comment = subtask.comments.id(commentId);
+
+      if (!comment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Comment not found'
+        });
+      }
+
+      // Check if the user is the author of the comment
+      if (comment.author.toString() !== userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only delete your own comments'
+        });
+      }
+
+      // Remove the comment
+      comment.deleteOne();
+      await subtask.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Comment deleted successfully',
+        data: subtask
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
   }

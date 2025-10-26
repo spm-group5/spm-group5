@@ -4,54 +4,63 @@ import api from '../../../services/api';
 import Modal from '../../common/Modal/Modal';
 import styles from './TaskCommentSection.module.css';
 
-export default function CommentSection({ task, onCommentAdded }) {
+export default function CommentSection({ task, subtask, onCommentAdded, type = 'task' }) {
+    const item = type === 'subtask' ? subtask : task;
     const [commentText, setCommentText] = useState('');
     const [loading, setLoading] = useState(false);
-    const [comments, setComments] = useState(task.comments || []);
+    const [comments, setComments] = useState(item?.comments || []);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [commentToDelete, setCommentToDelete] = useState(null);
     const { user } = useAuth();
 
-    // Update local comments when task prop changes
+    // Update local comments when task/subtask prop changes
     useEffect(() => {
-        setComments(task.comments || []);
-    }, [task.comments]);
+        setComments(item?.comments || []);
+    }, [item?.comments]);
 
     // Check if user can comment based on roles
     const canComment = () => {
         if (!user) return false;
-        
+
         // Admin can comment on all
         if (user.roles?.includes('admin')) {
             return true;
         }
-        
+
         // Get userId - could be user.id or user._id depending on context
         const userId = user.id || user._id;
-        
-        // Staff can only comment if assigned
-        if (user.roles?.includes('staff') && !user.roles?.includes('manager')) {
-            return task.assignee?.some(assignee => {
-                const assigneeId = assignee._id || assignee;
-                return assigneeId === userId;
-            });
+
+        if (type === 'subtask') {
+            // For subtasks: owner or assignee can comment
+            const ownerId = item.ownerId?._id || item.ownerId;
+            const assigneeId = item.assigneeId?._id || item.assigneeId;
+            return ownerId === userId || assigneeId === userId;
+        } else {
+            // For tasks: existing logic
+            // Staff can only comment if assigned
+            if (user.roles?.includes('staff') && !user.roles?.includes('manager')) {
+                return item.assignee?.some(assignee => {
+                    const assigneeId = assignee._id || assignee;
+                    return assigneeId === userId;
+                });
+            }
+
+            // Manager can comment if any assignee is from their department
+            if (user.roles?.includes('manager')) {
+                // Check if manager is assigned directly
+                const isAssigned = item.assignee?.some(assignee => {
+                    const assigneeId = assignee._id || assignee;
+                    return assigneeId === userId;
+                });
+                if (isAssigned) return true;
+
+                // Check if any assignee is from manager's department
+                return item.assignee?.some(assignee =>
+                    assignee?.department === user.department
+                );
+            }
         }
-        
-        // Manager can comment if any assignee is from their department
-        if (user.roles?.includes('manager')) {
-            // Check if manager is assigned directly
-            const isAssigned = task.assignee?.some(assignee => {
-                const assigneeId = assignee._id || assignee;
-                return assigneeId === userId;
-            });
-            if (isAssigned) return true;
-            
-            // Check if any assignee is from manager's department
-            return task.assignee?.some(assignee => 
-                assignee?.department === user.department
-            );
-        }
-        
+
         return false;
     };
 
@@ -61,20 +70,22 @@ export default function CommentSection({ task, onCommentAdded }) {
 
         try {
             setLoading(true);
-            const response = await api.addTaskComment(task._id, commentText);
+            const response = type === 'subtask'
+                ? await api.addSubtaskComment(item._id, commentText)
+                : await api.addTaskComment(item._id, commentText);
 
-            // Get the updated task from the response
-            const updatedTask = response.data || response;
+            // Get the updated item from the response
+            const updatedItem = response.data || response;
 
             // Update local comments state immediately for seamless UI
-            if (updatedTask.comments) {
-                setComments(updatedTask.comments);
+            if (updatedItem.comments) {
+                setComments(updatedItem.comments);
             }
 
             setCommentText('');
 
             // Optionally notify parent component (but don't trigger full page refresh)
-            onCommentAdded?.(updatedTask);
+            onCommentAdded?.(updatedItem);
         } catch (error) {
             console.error('Error adding comment:', error);
             alert(error.response?.data?.message || 'Failed to add comment');
@@ -92,18 +103,20 @@ export default function CommentSection({ task, onCommentAdded }) {
         if (!commentToDelete) return;
 
         try {
-            const response = await api.deleteTaskComment(task._id, commentToDelete);
+            const response = type === 'subtask'
+                ? await api.deleteSubtaskComment(item._id, commentToDelete)
+                : await api.deleteTaskComment(item._id, commentToDelete);
 
-            // Get the updated task from the response
-            const updatedTask = response.data || response;
+            // Get the updated item from the response
+            const updatedItem = response.data || response;
 
             // Update local comments state immediately for seamless UI
-            if (updatedTask.comments) {
-                setComments(updatedTask.comments);
+            if (updatedItem.comments) {
+                setComments(updatedItem.comments);
             }
 
             // Optionally notify parent component
-            onCommentAdded?.(updatedTask);
+            onCommentAdded?.(updatedItem);
 
             // Close modal and reset
             setShowDeleteModal(false);
@@ -181,7 +194,7 @@ export default function CommentSection({ task, onCommentAdded }) {
                 </form>
             ) : (
                 <p className={styles.noPermission} style={{ color: '#666', fontStyle: 'italic', marginTop: '10px' }}>
-                    You don't have permission to comment on this task
+                    You don't have permission to comment on this {type}
                 </p>
             )}
 
