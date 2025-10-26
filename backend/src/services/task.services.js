@@ -577,6 +577,9 @@ class TaskService {
         }
 
         return 0;
+    }
+
+    /**
      * Get tasks for a specific project with authorization
      * Authorization rules:
      * - Admin: can view all tasks
