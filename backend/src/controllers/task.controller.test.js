@@ -369,7 +369,8 @@ describe('Task Controller - Time Logging', () => {
 		});
 	});
 
-	describe('Total Time Calculation', () => {
+
+  describe('Total Time Calculation', () => {
     it('should calculate total time when getting task by ID', async () => {
 			const mockTask = {
         _id: new mongoose.Types.ObjectId(),
