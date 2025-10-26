@@ -21,13 +21,33 @@ export const SubtaskProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
+      console.log('=== FETCHING SUBTASKS FOR PARENT TASK ===');
+      console.log('Parent Task ID:', parentTaskId);
+      
       const [activeResponse, archivedResponse] = await Promise.all([
         apiService.getSubtasksByParentTask(parentTaskId),
         apiService.getArchivedSubtasksByParentTask(parentTaskId)
       ]);
       
+      console.log('Active response:', activeResponse);
+      console.log('Archived response:', archivedResponse);
+      
       if (activeResponse.success && archivedResponse.success) {
         const allSubtasks = [...activeResponse.data, ...archivedResponse.data];
+        console.log('All subtasks (active + archived):', allSubtasks);
+        console.log('Active subtasks count:', activeResponse.data.length);
+        console.log('Archived subtasks count:', archivedResponse.data.length);
+        
+        // Log each subtask's details
+        allSubtasks.forEach((subtask, index) => {
+          console.log(`Subtask ${index + 1}:`, {
+            title: subtask.title,
+            timeTaken: subtask.timeTaken,
+            parentTaskId: subtask.parentTaskId,
+            archived: subtask.archived
+          });
+        });
+        
         setSubtasks(allSubtasks);
         return allSubtasks;
       } else {

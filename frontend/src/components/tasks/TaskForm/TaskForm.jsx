@@ -1,11 +1,13 @@
 import { useForm } from 'react-hook-form';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useProjects } from '../../../context/ProjectContext';
 import { useAuth } from '../../../context/AuthContext';
 import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
 import Card from '../../common/Card/Card';
+import TimePicker from '../../common/TimePicker/TimePicker';
 import styles from './TaskForm.module.css';
+import cardStyles from '../../common/Card/Card.module.css';
 
 function TaskForm({ task, onSubmit, onCancel }) {
   const { projects } = useProjects();
@@ -32,6 +34,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
       project: task?.project?._id || task?.project || '',
       assignee: task?.assignee?.map(a => a._id || a) || [],
       tags: task?.tags || '',
+      timeTaken: task?.timeTaken || '',
       isRecurring: task?.isRecurring || false,
       recurrenceInterval: task?.recurrenceInterval || '',
     },
@@ -108,7 +111,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const minDate = today.toISOString().split('T')[0];
 
   return (
-    <Card className={styles.formCard}>
+    <Card className={`${styles.formCard} ${cardStyles.allowOverflow}`}>
       <Card.Header>
         <h2>{isEditing ? 'Edit Task' : 'Create New Task'}</h2>
       </Card.Header>
@@ -302,6 +305,18 @@ function TaskForm({ task, onSubmit, onCancel }) {
               label="Tags"
               placeholder="e.g., bug#urgent#frontend"
               {...register('tags')}
+            />
+          </div>
+
+          <div className={styles.row}>
+            <TimePicker
+              label="Time Taken"
+              value={watch('timeTaken')}
+              onChange={useCallback((value) => {
+                setValue('timeTaken', value);
+              }, [setValue])}
+              error={errors.timeTaken?.message}
+              placeholder="Select time..."
             />
           </div>
 

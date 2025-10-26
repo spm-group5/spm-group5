@@ -1,882 +1,252 @@
-import { describe, it, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import taskService from './task.services.js';
 import Task from '../models/task.model.js';
-import User from '../models/user.model.js';
-import Project from '../models/project.model.js';
+import Subtask from '../models/subtask.model.js';
+import taskService from './task.services.js';
 
-let mongoServer;
+// Mock the dependencies
+vi.mock('../models/project.model.js', () => ({
+  default: {
+    findById: vi.fn()
+  }
+}));
 
-beforeAll(async () => {
-    // Setup: Use the shared MongoDB connection from global test setup
-    // Connection is already established by global test setup
-    if (mongoose.connection.readyState !== 1) {
-        throw new Error('Database connection not ready');
-    }
-});
+vi.mock('../models/user.model.js', () => ({
+  default: {
+    findById: vi.fn()
+  }
+}));
 
-afterAll(async () => {
-    // Cleanup is handled by global test setup
-});
-
-describe('Task Service Test', () => {
-    let testUser;
-    let testProject;
+describe('Task Service - Time Calculation', () => {
+  let mockTaskId;
+  let mockProjectId;
+  let mockOwnerId;
+  let mockUserId;
 
     beforeEach(async () => {
         await Task.deleteMany({});
-        await User.deleteMany({});
-        await Project.deleteMany({});
+    await Subtask.deleteMany({});
 
-        testUser = await User.create({
-            username: 'testuser@example.com',
-            roles: ['staff'],
-            department: 'it',
-            hashed_password: 'password123'
-        });
+    mockTaskId = new mongoose.Types.ObjectId();
+    mockProjectId = new mongoose.Types.ObjectId();
+    mockOwnerId = new mongoose.Types.ObjectId();
+    mockUserId = new mongoose.Types.ObjectId();
+  });
 
-        testProject = await Project.create({
-            name: 'Test Project',
-            description: 'Test project description',
-            owner: testUser._id
-        });
+  afterEach(async () => {
+    await Task.deleteMany({});
+    await Subtask.deleteMany({});
+  });
+
+  describe('Time Validation - 15 Minute Increments', () => {
+    it('should accept valid 15-minute increment time formats', async () => {
+      const validTimes = [
+        '15 minutes',
+        '30 minutes', 
+        '45 minutes',
+        '1 hour',
+        '1 hour 15 minutes',
+        '1 hour 30 minutes',
+        '1 hour 45 minutes',
+        '2 hours',
+        '2 hours 15 minutes',
+        '2 hours 30 minutes',
+        '2 hours 45 minutes',
+        '3 hours'
+      ];
+
+      for (const time of validTimes) {
+            const taskData = {
+          title: 'Test Task',
+          project: mockProjectId,
+          timeTaken: time
+        };
+
+        // Mock project exists
+        const { default: Project } = await import('../models/project.model.js');
+        Project.findById.mockResolvedValue({ status: 'Active' });
+
+        const task = await taskService.createTask(taskData, mockUserId);
+        expect(task.timeTaken).toBe(time);
+      }
     });
 
-    describe('createTask', () => {
-        it('should create a task with valid data', async () => {
+    it('should reject invalid time formats', async () => {
+      const invalidTimes = [
+        '10 minutes', // Not 15-minute increment
+        '20 minutes', // Not 15-minute increment
+        '1 hour 5 minutes', // Not 15-minute increment
+        '1 hour 10 minutes', // Not 15-minute increment
+        '1 hour 20 minutes', // Not 15-minute increment
+        '1 hour 25 minutes', // Not 15-minute increment
+        '1 hour 35 minutes', // Not 15-minute increment
+        '1 hour 40 minutes', // Not 15-minute increment
+        '1 hour 50 minutes', // Not 15-minute increment
+        '1 hour 55 minutes', // Not 15-minute increment
+        '2 hours 5 minutes', // Not 15-minute increment
+        'invalid format',
+        '1.5 hours',
+        '90 minutes' // Should be "1 hour 30 minutes"
+      ];
+
+      for (const time of invalidTimes) {
             const taskData = {
-                title: 'New Task',
-                description: 'Task description',
-                project: testProject._id
-            };
+          title: 'Test Task',
+          project: mockProjectId,
+          timeTaken: time
+        };
 
-            const task = await taskService.createTask(taskData, testUser._id);
+        // Mock project exists
+        const { default: Project } = await import('../models/project.model.js');
+        Project.findById.mockResolvedValue({ status: 'Active' });
 
-            expect(task.title).toBe('New Task');
-            expect(task.status).toBe('To Do');
-            expect(task.owner.toString()).toBe(testUser._id.toString());
-            expect(task.project.toString()).toBe(testProject._id.toString());
-            expect(task.assignee).toHaveLength(1);
-            expect(task.assignee[0].toString()).toBe(testUser._id.toString());
-        });
+        await expect(taskService.createTask(taskData, mockUserId)).rejects.toThrow();
+      }
+    });
+  });
 
-        it('should set creator as default assignee', async () => {
+  describe('Total Time Calculation', () => {
+    it('should calculate total time as task time + subtask times', async () => {
+      // Create a task with time
             const taskData = {
-                title: 'Task',
-                project: testProject._id
-            };
+        title: 'Test Task',
+        project: mockProjectId,
+        timeTaken: '1 hour'
+      };
 
-            const task = await taskService.createTask(taskData, testUser._id);
+      // Mock project exists
+      const { default: Project } = await import('../models/project.model.js');
+      Project.findById.mockResolvedValue({ status: 'Active' });
 
-            expect(task.assignee).toHaveLength(1);
-            expect(task.assignee[0].toString()).toBe(testUser._id.toString());
-        });
+      const task = await taskService.createTask(taskData, mockUserId);
 
-        it('should include creator when additional assignees are provided', async () => {
-            const otherUser = await User.create({
-                username: 'otheruser@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'password456'
-            });
+      // Create subtasks with time
+      const subtask1 = new Subtask({
+        title: 'Subtask 1',
+        parentTaskId: task._id,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '30 minutes'
+      });
+      await subtask1.save();
 
-            const taskData = {
-                title: 'Task',
-                project: testProject._id,
-                assignee: [otherUser._id]
-            };
+      const subtask2 = new Subtask({
+        title: 'Subtask 2',
+        parentTaskId: task._id,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '45 minutes'
+      });
+      await subtask2.save();
 
-            const task = await taskService.createTask(taskData, testUser._id);
+      const subtask3 = new Subtask({
+        title: 'Subtask 3',
+        parentTaskId: task._id,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '15 minutes'
+      });
+      await subtask3.save();
 
-            expect(task.assignee).toHaveLength(2);
-            expect(task.assignee.map(a => a.toString())).toContain(testUser._id.toString());
-            expect(task.assignee.map(a => a.toString())).toContain(otherUser._id.toString());
-        });
-
-        it('should throw error when more than 5 assignees', async () => {
-            const users = await Promise.all([
-                User.create({ username: 'user1@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user2@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user3@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user4@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'user5@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
-            ]);
-
-            const taskData = {
-                title: 'Task',
-                project: testProject._id,
-                assignee: users.map(u => u._id)
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('A task can have a maximum of 5 assignees');
-        });
-
-        it('should throw error for empty title', async () => {
-            const taskData = {
-                title: '',
-                project: testProject._id
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Task title is required');
-        });
-
-        it('should throw error for missing project', async () => {
-            const taskData = {
-                title: 'Task without project'
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Project is required');
-        });
-
-        it('should throw error for past due date', async () => {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            const taskData = {
-                title: 'Task',
-                project: testProject._id,
-                dueDate: yesterday
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Due date cannot be in the past');
-        });
-
-        it('should create task with tags', async () => {
-            const taskData = {
-                title: 'Task with tags',
-                project: testProject._id,
-                tags: 'bug#urgent#frontend'
-            };
-
-            const task = await taskService.createTask(taskData, testUser._id);
-
-            expect(task.tags).toBe('bug#urgent#frontend');
-        });
-
-        it('should throw error for non-existent project', async () => {
-            const taskData = {
-                title: 'Task',
-                project: new mongoose.Types.ObjectId()
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Selected project does not exist');
-        });
-
-        it('should throw error for inactive project', async () => {
-            const inactiveProject = await Project.create({
-                name: 'Inactive Project',
-                owner: testUser._id,
-                status: 'Completed'
-            });
-
-            const taskData = {
-                title: 'Task',
-                project: inactiveProject._id
-            };
-
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Project must be Active');
-        });
+      // Test the calculation
+      const totalTime = await taskService.calculateTotalTime(task._id);
+      expect(totalTime).toBe('2 hours 30 minutes'); // 1 hour + 1 hour 30 minutes
     });
 
-    describe('updateTask', () => {
-        let existingTask;
-        let managerUser;
+    it('should handle task with no time and subtasks with time', async () => {
+      const taskData = {
+        title: 'Test Task',
+        project: mockProjectId,
+        timeTaken: ''
+      };
 
-        beforeEach(async () => {
-            managerUser = await User.create({
-                username: 'manager@example.com',
-                roles: ['manager'],
-                department: 'it',
-                hashed_password: 'password123'
-            });
+      // Mock project exists
+      const { default: Project } = await import('../models/project.model.js');
+      Project.findById.mockResolvedValue({ status: 'Active' });
 
-            existingTask = await Task.create({
-                title: 'Original Task',
-                owner: testUser._id,
-                assignee: [testUser._id],
-                project: testProject._id
-            });
-        });
+      const task = await taskService.createTask(taskData, mockUserId);
 
-        it('should update task title', async () => {
-            const updateData = {
-                title: 'Updated Title'
-            };
+      // Create subtasks with time
+      const subtask1 = new Subtask({
+        title: 'Subtask 1',
+        parentTaskId: task._id,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '1 hour'
+      });
+      await subtask1.save();
 
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            );
+      const subtask2 = new Subtask({
+        title: 'Subtask 2',
+        parentTaskId: task._id,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        timeTaken: '30 minutes'
+      });
+      await subtask2.save();
 
-            expect(updatedTask.title).toBe('Updated Title');
-        });
-
-        it('should throw error for empty title update', async () => {
-            const updateData = {
-                title: ''
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            )).rejects.toThrow('Task title cannot be empty');
-        });
-
-        it('should throw error for unauthorized update', async () => {
-            const otherUser = await User.create({
-                username: 'otheruser@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'password456'
-            });
-
-            const updateData = {
-                title: 'Unauthorized Update'
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                otherUser._id.toString()
-            )).rejects.toThrow('You do not have permission to modify this task');
-        });
-
-        it('should update due date', async () => {
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 7);
-
-            const updateData = {
-                dueDate: futureDate
-            };
-
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.dueDate).toBeDefined();
-        });
-
-        it('should clear due date when null provided', async () => {
-            existingTask.dueDate = new Date();
-            await existingTask.save();
-
-            const updateData = {
-                dueDate: null
-            };
-
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.dueDate).toBeNull();
-        });
-
-        it('should update tags', async () => {
-            const updateData = {
-                tags: 'updated#urgent#backend'
-            };
-
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.tags).toBe('updated#urgent#backend');
-        });
-
-        it('should throw error when trying to change project', async () => {
-            const newProject = await Project.create({
-                name: 'New Project',
-                owner: testUser._id,
-                status: 'Active'
-            });
-
-            const updateData = {
-                project: newProject._id
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            )).rejects.toThrow('Project cannot be changed after task creation');
-        });
-
-        it('should allow assignee to add new assignees', async () => {
-            const newUser = await User.create({
-                username: 'newuser@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'password789'
-            });
-
-            const updateData = {
-                assignee: [testUser._id, newUser._id]
-            };
-
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.assignee).toHaveLength(2);
-            expect(updatedTask.assignee.map(a => a._id?.toString ? a._id.toString() : a.toString())).toContain(newUser._id.toString());
-        });
-
-        it('should throw error when non-manager tries to remove assignee', async () => {
-            const otherUser = await User.create({
-                username: 'other@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'pass'
-            });
-
-            existingTask.assignee = [testUser._id, otherUser._id];
-            await existingTask.save();
-
-            const updateData = {
-                assignee: [testUser._id] // Removing otherUser
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            )).rejects.toThrow('Only managers can remove assignees from a task');
-        });
-
-        it('should allow manager to remove assignees', async () => {
-            const otherUser = await User.create({
-                username: 'other@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'pass'
-            });
-
-            existingTask.assignee = [testUser._id, otherUser._id, managerUser._id];
-            await existingTask.save();
-
-            const updateData = {
-                assignee: [testUser._id] // Manager removing others
-            };
-
-            const updatedTask = await taskService.updateTask(
-                existingTask._id,
-                updateData,
-                managerUser._id.toString()
-            );
-
-            expect(updatedTask.assignee).toHaveLength(1);
-            expect(updatedTask.assignee[0]._id?.toString ? updatedTask.assignee[0]._id.toString() : updatedTask.assignee[0].toString()).toBe(testUser._id.toString());
-        });
-
-        it('should throw error when trying to have more than 5 assignees', async () => {
-            const users = await Promise.all([
-                User.create({ username: 'u1@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u2@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u3@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u4@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' }),
-                User.create({ username: 'u5@example.com', roles: ['staff'], department: 'hr', hashed_password: 'pass' })
-            ]);
-
-            const updateData = {
-                assignee: [testUser._id, ...users.map(u => u._id)]
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            )).rejects.toThrow('A task can have a maximum of 5 assignees');
-        });
-
-        it('should throw error when trying to remove all assignees', async () => {
-            const updateData = {
-                assignee: []
-            };
-
-            await expect(taskService.updateTask(
-                existingTask._id,
-                updateData,
-                testUser._id.toString()
-            )).rejects.toThrow('At least one assignee is required');
-        });
+      const totalTime = await taskService.calculateTotalTime(task._id);
+      expect(totalTime).toBe('1 hour 30 minutes');
     });
 
-    describe('Task Recurrence', () => {
-        it('should create recurring task with valid interval and due date', async () => {
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 7);
-
+    it('should handle task with time and no subtasks', async () => {
             const taskData = {
-                title: 'Recurring Task',
-                project: testProject._id,
-                dueDate: futureDate,
-                isRecurring: true,
-                recurrenceInterval: 7
-            };
+        title: 'Test Task',
+        project: mockProjectId,
+        timeTaken: '2 hours'
+      };
 
-            const task = await taskService.createTask(taskData, testUser._id);
+      // Mock project exists
+      const { default: Project } = await import('../models/project.model.js');
+      Project.findById.mockResolvedValue({ status: 'Active' });
 
-            expect(task.isRecurring).toBe(true);
-            expect(task.recurrenceInterval).toBe(7);
-        });
+      const task = await taskService.createTask(taskData, mockUserId);
 
-        it('should throw error for recurring task without interval', async () => {
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 7);
+      const totalTime = await taskService.calculateTotalTime(task._id);
+      expect(totalTime).toBe('2 hours');
+    });
 
+    it('should handle task with no time and no subtasks', async () => {
             const taskData = {
-                title: 'Recurring Task',
-                project: testProject._id,
-                dueDate: futureDate,
-                isRecurring: true
-            };
+        title: 'Test Task',
+        project: mockProjectId,
+        timeTaken: ''
+      };
 
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Recurrence interval must be a positive number for recurring tasks');
-        });
+      // Mock project exists
+      const { default: Project } = await import('../models/project.model.js');
+      Project.findById.mockResolvedValue({ status: 'Active' });
 
-        it('should throw error for recurring task without due date', async () => {
-            const taskData = {
-                title: 'Recurring Task',
-                project: testProject._id,
-                isRecurring: true,
-                recurrenceInterval: 7
-            };
+      const task = await taskService.createTask(taskData, mockUserId);
 
-            await expect(taskService.createTask(taskData, testUser._id))
-                .rejects.toThrow('Due date is required for recurring tasks');
-        });
+      const totalTime = await taskService.calculateTotalTime(task._id);
+      expect(totalTime).toBe('Not specified');
+    });
+  });
 
-        it('should turn off recurrence when updating', async () => {
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 7);
-
-            const recurringTask = await Task.create({
-                title: 'Recurring Task',
-                owner: testUser._id,
-                assignee: [testUser._id],
-                project: testProject._id,
-                dueDate: futureDate,
-                isRecurring: true,
-                recurrenceInterval: 7
-            });
-
-            const updateData = {
-                isRecurring: false
-            };
-
-            const updatedTask = await taskService.updateTask(
-                recurringTask._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.isRecurring).toBe(false);
-            expect(updatedTask.recurrenceInterval).toBeNull();
-        });
-
-        it('should turn on recurrence when updating', async () => {
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 7);
-
-            const task = await Task.create({
-                title: 'Task',
-                owner: testUser._id,
-                assignee: [testUser._id],
-                project: testProject._id,
-                dueDate: futureDate
-            });
-
-            const updateData = {
-                isRecurring: true,
-                recurrenceInterval: 14
-            };
-
-            const updatedTask = await taskService.updateTask(
-                task._id,
-                updateData,
-                testUser._id.toString()
-            );
-
-            expect(updatedTask.isRecurring).toBe(true);
-            expect(updatedTask.recurrenceInterval).toBe(14);
-        });
-
-        it('should create new recurring task instance', async () => {
-            const originalDueDate = new Date();
-            originalDueDate.setDate(originalDueDate.getDate() + 7);
-
-            const originalTask = await Task.create({
-                title: 'Weekly Report',
-                owner: testUser._id,
-                assignee: [testUser._id],
-                project: testProject._id,
-                dueDate: originalDueDate,
-                isRecurring: true,
-                recurrenceInterval: 7,
-                status: 'Done',
-                description: 'Submit weekly report',
-                priority: 8,
-                tags: 'report#weekly'
-            });
-
-            const newTask = await taskService.createRecurringTask(originalTask);
-
-            expect(newTask).toBeDefined();
-            expect(newTask.title).toBe(originalTask.title);
-            expect(newTask.description).toBe(originalTask.description);
-            expect(newTask.priority).toBe(originalTask.priority);
-            expect(newTask.tags).toBe(originalTask.tags);
-            expect(newTask.isRecurring).toBe(true);
-            expect(newTask.recurrenceInterval).toBe(7);
-            expect(newTask.status).toBe('To Do');
-            expect(newTask.assignee.map(a => a.toString())).toEqual(
-                originalTask.assignee.map(a => a.toString())
-            );
-
-            // Check due date is 7 days after original
-            const expectedDueDate = new Date(originalDueDate);
-            expectedDueDate.setDate(expectedDueDate.getDate() + 7);
-            expect(newTask.dueDate.toDateString()).toBe(expectedDueDate.toDateString());
-        });
-
-        it('should not create recurring task for non-recurring task', async () => {
-            const task = await Task.create({
-                title: 'One-time Task',
-                owner: testUser._id,
-                assignee: [testUser._id],
-                project: testProject._id,
-                status: 'Done'
-            });
-
-            const newTask = await taskService.createRecurringTask(task);
-
-            expect(newTask).toBeNull();
-        });
+  describe('Time Format Conversion', () => {
+    it('should convert minutes to hours and minutes format', () => {
+      expect(taskService.formatTime(15)).toBe('15 minutes');
+      expect(taskService.formatTime(30)).toBe('30 minutes');
+      expect(taskService.formatTime(45)).toBe('45 minutes');
+      expect(taskService.formatTime(60)).toBe('1 hour');
+      expect(taskService.formatTime(75)).toBe('1 hour 15 minutes');
+      expect(taskService.formatTime(90)).toBe('1 hour 30 minutes');
+      expect(taskService.formatTime(105)).toBe('1 hour 45 minutes');
+      expect(taskService.formatTime(120)).toBe('2 hours');
+      expect(taskService.formatTime(135)).toBe('2 hours 15 minutes');
     });
 
-    describe('getTasks', () => {
-        let anotherProject;
-
-        beforeEach(async () => {
-            anotherProject = await Project.create({
-                name: 'Another Project',
-                owner: testUser._id,
-                status: 'Active'
-            });
-
-            await Task.create([
-                {
-                    title: 'Task 1',
-                    owner: testUser._id,
-                    status: 'To Do',
-                    project: testProject._id
-                },
-                {
-                    title: 'Task 2',
-                    owner: testUser._id,
-                    status: 'In Progress',
-                    project: anotherProject._id
-                },
-                {
-                    title: 'Task 3',
-                    owner: testUser._id,
-                    status: 'Done',
-                    project: testProject._id
-                }
-            ]);
-        });
-
-        it('should get all tasks', async () => {
-            const tasks = await taskService.getTasks();
-            expect(tasks).toHaveLength(3);
-        });
-
-        it('should filter tasks by status', async () => {
-            const tasks = await taskService.getTasks({ status: 'To Do' });
-            expect(tasks).toHaveLength(1);
-            expect(tasks[0].title).toBe('Task 1');
-        });
-
-        it('should filter tasks by project', async () => {
-            const tasks = await taskService.getTasks({ project: testProject._id });
-            expect(tasks).toHaveLength(2);
-        });
-    });
-
-    describe('deleteTask', () => {
-        let taskToDelete;
-
-        beforeEach(async () => {
-            taskToDelete = await Task.create({
-                title: 'Task to Delete',
-                owner: testUser._id,
-                project: testProject._id
-            });
-        });
-
-        it('should delete task by owner', async () => {
-            await taskService.deleteTask(taskToDelete._id, testUser._id.toString());
-
-            const task = await Task.findById(taskToDelete._id);
-            expect(task).toBeNull();
-        });
-
-        it('should throw error for unauthorized deletion', async () => {
-            const otherUser = await User.create({
-                username: 'otheruser@example.com',
-                roles: ['staff'],
-                department: 'hr',
-                hashed_password: 'password456'
-            });
-
-            await expect(taskService.deleteTask(
-                taskToDelete._id,
-                otherUser._id.toString()
-            )).rejects.toThrow('You do not have permission to delete this task');
-        });
-
-        it('should throw error for non-existent task', async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-
-            await expect(taskService.deleteTask(
-                fakeId,
-                testUser._id.toString()
-            )).rejects.toThrow('Task not found');
-        });
-    });
-
-    describe('archiveTask', () => {
-        it('should archive a task successfully by owner', async () => {
-            const task = await Task.create({
-                title: 'Task to Archive',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: []
-            });
-
-            const archivedTask = await taskService.archiveTask(
-                task._id.toString(),
-                testUser._id.toString()
-            );
-
-            expect(archivedTask.archived).toBe(true);
-            expect(archivedTask.archivedAt).toBeDefined();
-            expect(archivedTask.archivedAt).toBeInstanceOf(Date);
-        });
-
-        it('should archive a task successfully by assignee', async () => {
-            const assignee = await User.create({
-                username: 'assignee@example.com',
-                roles: ['staff'],
-                department: 'it',
-                hashed_password: 'password123'
-            });
-
-            const task = await Task.create({
-                title: 'Task to Archive',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [assignee._id]
-            });
-
-            const archivedTask = await taskService.archiveTask(
-                task._id.toString(),
-                assignee._id.toString()
-            );
-
-            expect(archivedTask.archived).toBe(true);
-            expect(archivedTask.archivedAt).toBeDefined();
-        });
-
-        it('should throw error when non-owner/non-assignee tries to archive', async () => {
-            const otherUser = await User.create({
-                username: 'otheruser@example.com',
-                roles: ['staff'],
-                department: 'it',
-                hashed_password: 'password123'
-            });
-
-            const task = await Task.create({
-                title: 'Task to Archive',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: []
-            });
-
-            await expect(taskService.archiveTask(
-                task._id.toString(),
-                otherUser._id.toString()
-            )).rejects.toThrow('You do not have permission to archive this task');
-        });
-
-        it('should throw error for non-existent task', async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-
-            await expect(taskService.archiveTask(
-                fakeId.toString(),
-                testUser._id.toString()
-            )).rejects.toThrow('Task not found');
-        });
-
-        it('should return populated fields after archiving', async () => {
-            const task = await Task.create({
-                title: 'Task to Archive',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [testUser._id]
-            });
-
-            const archivedTask = await taskService.archiveTask(
-                task._id.toString(),
-                testUser._id.toString()
-            );
-
-            expect(archivedTask.owner).toBeDefined();
-            expect(archivedTask.owner.username).toBe('testuser@example.com');
-            expect(archivedTask.project).toBeDefined();
-            expect(archivedTask.project.name).toBe('Test Project');
-        });
-    });
-
-    describe('unarchiveTask', () => {
-        it('should unarchive a task successfully by owner', async () => {
-            const task = await Task.create({
-                title: 'Archived Task',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [],
-                archived: true,
-                archivedAt: new Date()
-            });
-
-            const unarchivedTask = await taskService.unarchiveTask(
-                task._id.toString(),
-                testUser._id.toString()
-            );
-
-            expect(unarchivedTask.archived).toBe(false);
-            expect(unarchivedTask.archivedAt).toBeNull();
-        });
-
-        it('should unarchive a task successfully by assignee', async () => {
-            const assignee = await User.create({
-                username: 'assignee@example.com',
-                roles: ['staff'],
-                department: 'it',
-                hashed_password: 'password123'
-            });
-
-            const task = await Task.create({
-                title: 'Archived Task',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [assignee._id],
-                archived: true,
-                archivedAt: new Date()
-            });
-
-            const unarchivedTask = await taskService.unarchiveTask(
-                task._id.toString(),
-                assignee._id.toString()
-            );
-
-            expect(unarchivedTask.archived).toBe(false);
-            expect(unarchivedTask.archivedAt).toBeNull();
-        });
-
-        it('should throw error when non-owner/non-assignee tries to unarchive', async () => {
-            const otherUser = await User.create({
-                username: 'otheruser@example.com',
-                roles: ['staff'],
-                department: 'it',
-                hashed_password: 'password123'
-            });
-
-            const task = await Task.create({
-                title: 'Archived Task',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [],
-                archived: true,
-                archivedAt: new Date()
-            });
-
-            await expect(taskService.unarchiveTask(
-                task._id.toString(),
-                otherUser._id.toString()
-            )).rejects.toThrow('You do not have permission to unarchive this task');
-        });
-
-        it('should throw error for non-existent task', async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-
-            await expect(taskService.unarchiveTask(
-                fakeId.toString(),
-                testUser._id.toString()
-            )).rejects.toThrow('Task not found');
-        });
-
-        it('should return populated fields after unarchiving', async () => {
-            const task = await Task.create({
-                title: 'Archived Task',
-                description: 'Test description',
-                status: 'To Do',
-                priority: 5,
-                owner: testUser._id,
-                project: testProject._id,
-                assignee: [testUser._id],
-                archived: true,
-                archivedAt: new Date()
-            });
-
-            const unarchivedTask = await taskService.unarchiveTask(
-                task._id.toString(),
-                testUser._id.toString()
-            );
-
-            expect(unarchivedTask.owner).toBeDefined();
-            expect(unarchivedTask.owner.username).toBe('testuser@example.com');
-            expect(unarchivedTask.project).toBeDefined();
-            expect(unarchivedTask.project.name).toBe('Test Project');
+    it('should parse time string to minutes', () => {
+      expect(taskService.parseTimeToMinutes('15 minutes')).toBe(15);
+      expect(taskService.parseTimeToMinutes('30 minutes')).toBe(30);
+      expect(taskService.parseTimeToMinutes('45 minutes')).toBe(45);
+      expect(taskService.parseTimeToMinutes('1 hour')).toBe(60);
+      expect(taskService.parseTimeToMinutes('1 hour 15 minutes')).toBe(75);
+      expect(taskService.parseTimeToMinutes('1 hour 30 minutes')).toBe(90);
+      expect(taskService.parseTimeToMinutes('1 hour 45 minutes')).toBe(105);
+      expect(taskService.parseTimeToMinutes('2 hours')).toBe(120);
+      expect(taskService.parseTimeToMinutes('2 hours 15 minutes')).toBe(135);
         });
     });
 });

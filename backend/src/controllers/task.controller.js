@@ -225,10 +225,19 @@ class TaskController {
         try {
             const { taskId } = req.params;
             const task = await taskService.getTaskById(taskId);
+            
+            // Calculate total time (task time + subtask times)
+            const totalTime = await taskService.calculateTotalTime(taskId);
+            
+            // Add total time to the response
+            const taskWithTotalTime = {
+                ...task.toObject(),
+                totalTime: totalTime
+            };
 
             res.status(200).json({
                 success: true,
-                data: task
+                data: taskWithTotalTime
             });
         } catch (error) {
             const statusCode = error.message === 'Task not found' ? 404 : 500;

@@ -43,3 +43,7 @@
 .footer:first-child {
   border-top: none;
 }
+
+.allowOverflow {
+  overflow: visible;
+}

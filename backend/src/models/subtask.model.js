@@ -74,7 +74,19 @@ const subtaskSchema = new mongoose.Schema({
   timeTaken: {
     type: String,
     trim: true,
-    maxlength: [100, 'Time taken cannot exceed 100 characters']
+    maxlength: [100, 'Time taken cannot exceed 100 characters'],
+    validate: {
+      validator: function(v) {
+        // Allow empty or null values
+        if (!v || v.trim() === '') {
+          return true;
+        }
+        
+        // Validate 15-minute increment format
+        return this.isValidTimeFormat(v);
+      },
+      message: 'Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")'
+    }
   },
   createdAt: {
     type: Date,
@@ -97,12 +109,52 @@ const subtaskSchema = new mongoose.Schema({
 // Update the updatedAt field on save
 subtaskSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  
+  // Set archivedAt when archived is true
+  if (this.archived && !this.archivedAt) {
+    this.archivedAt = new Date();
+  } else if (!this.archived) {
+    this.archivedAt = null;
+  }
+  
   next();
 });
 
 // Add index for faster queries
 subtaskSchema.index({ parentTaskId: 1, status: 1 });
-subtaskSchema.index({ projectId: 1, status: 1 });
+
+// Add method to validate 15-minute increment time format
+subtaskSchema.methods.isValidTimeFormat = function(timeString) {
+  if (!timeString || typeof timeString !== 'string') {
+    return false;
+  }
+
+  const trimmedTime = timeString.trim();
+  
+  // Pattern for "X minutes" - only allow 15, 30, 45 (not 60+ which should be hours)
+  const minutesPattern = /^(\d+)\s+minutes$/;
+  const minutesMatch = trimmedTime.match(minutesPattern);
+  if (minutesMatch) {
+    const minutes = parseInt(minutesMatch[1]);
+    return minutes === 15 || minutes === 30 || minutes === 45;
+  }
+
+  // Pattern for "X hour" or "X hours" - any number of hours is valid
+  const hoursPattern = /^(\d+)\s+hours?$/;
+  const hoursMatch = trimmedTime.match(hoursPattern);
+  if (hoursMatch) {
+    return true; // Any number of hours is valid
+  }
+
+  // Pattern for "X hour Y minutes" or "X hours Y minutes" - Y must be 15, 30, or 45
+  const hoursMinutesPattern = /^(\d+)\s+hours?\s+(15|30|45)\s+minutes$/;
+  const hoursMinutesMatch = trimmedTime.match(hoursMinutesPattern);
+  if (hoursMinutesMatch) {
+    return true; // This pattern already ensures 15-minute increments
+  }
+
+  return false;
+};
 
 // Check if model already exists to avoid overwrite errors
 const Subtask = mongoose.models.Subtask || mongoose.model('Subtask', subtaskSchema);

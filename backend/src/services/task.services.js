@@ -51,6 +51,14 @@ class TaskService {
             }
         }
 
+        // Validate time format if provided
+        if (taskData.timeTaken && taskData.timeTaken.trim() !== '') {
+            const tempTask = new Task();
+            if (!tempTask.isValidTimeFormat(taskData.timeTaken)) {
+                throw new Error('Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")');
+            }
+        }
+
         const newTaskData = {
             title: title.trim(),
             description: description || '',
@@ -62,6 +70,7 @@ class TaskService {
             project: project,
             isRecurring: isRecurring || false,
             recurrenceInterval: isRecurring ? recurrenceInterval : null,
+            timeTaken: taskData.timeTaken || '',
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -189,6 +198,16 @@ class TaskService {
 
         if (updateData.tags !== undefined) {
             task.tags = updateData.tags;
+        }
+
+        if (updateData.timeTaken !== undefined) {
+            // Validate time format if provided
+            if (updateData.timeTaken && updateData.timeTaken.trim() !== '') {
+                if (!task.isValidTimeFormat(updateData.timeTaken)) {
+                    throw new Error('Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")');
+                }
+            }
+            task.timeTaken = updateData.timeTaken;
         }
 
         // Handle recurrence updates
@@ -369,6 +388,103 @@ class TaskService {
         }
 
         return await Task.findByIdAndDelete(taskId);
+    }
+
+    /**
+     * Calculate total time for a task (task time + subtask times)
+     */
+    async calculateTotalTime(taskId) {
+        try {
+            const task = await Task.findById(taskId);
+            if (!task) {
+                throw new Error('Task not found');
+            }
+
+            // Get all subtasks for this task
+            const Subtask = (await import('../models/subtask.model.js')).default;
+            const subtasks = await Subtask.find({ parentTaskId: taskId, archived: false });
+
+            // Parse task time
+            let taskMinutes = 0;
+            if (task.timeTaken && task.timeTaken.trim() !== '') {
+                taskMinutes = this.parseTimeToMinutes(task.timeTaken);
+            }
+
+            // Parse subtask times
+            let subtaskMinutes = 0;
+            for (const subtask of subtasks) {
+                if (subtask.timeTaken && subtask.timeTaken.trim() !== '') {
+                    subtaskMinutes += this.parseTimeToMinutes(subtask.timeTaken);
+                }
+            }
+
+            const totalMinutes = taskMinutes + subtaskMinutes;
+            
+            if (totalMinutes === 0) {
+                return 'Not specified';
+            }
+
+            return this.formatTime(totalMinutes);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Format minutes to hours and minutes string
+     */
+    formatTime(minutes) {
+        if (!minutes || minutes === 0) {
+            return '';
+        }
+
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+
+        if (hours === 0) {
+            return `${remainingMinutes} minutes`;
+        } else if (remainingMinutes === 0) {
+            return hours === 1 ? '1 hour' : `${hours} hours`;
+        } else {
+            const hourText = hours === 1 ? 'hour' : 'hours';
+            return `${hours} ${hourText} ${remainingMinutes} minutes`;
+        }
+    }
+
+    /**
+     * Parse time string to minutes
+     */
+    parseTimeToMinutes(timeString) {
+        if (!timeString || typeof timeString !== 'string') {
+            return 0;
+        }
+
+        const trimmedTime = timeString.trim();
+        
+        // Pattern for "X minutes"
+        const minutesPattern = /^(\d+)\s+minutes$/;
+        const minutesMatch = trimmedTime.match(minutesPattern);
+        if (minutesMatch) {
+            return parseInt(minutesMatch[1]);
+        }
+
+        // Pattern for "X hour" or "X hours"
+        const hoursPattern = /^(\d+)\s+hours?$/;
+        const hoursMatch = trimmedTime.match(hoursPattern);
+        if (hoursMatch) {
+            return parseInt(hoursMatch[1]) * 60;
+        }
+
+        // Pattern for "X hour Y minutes" or "X hours Y minutes"
+        const hoursMinutesPattern = /^(\d+)\s+hours?\s+(\d+)\s+minutes$/;
+        const hoursMinutesMatch = trimmedTime.match(hoursMinutesPattern);
+        if (hoursMinutesMatch) {
+            const hours = parseInt(hoursMinutesMatch[1]);
+            const minutes = parseInt(hoursMinutesMatch[2]);
+            return hours * 60 + minutes;
+        }
+
+        return 0;
     }
 }
 

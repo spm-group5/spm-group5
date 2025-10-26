@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
+import TimePicker from '../../common/TimePicker/TimePicker';
 import styles from './SubtaskForm.module.css';
+import cardStyles from '../../common/Card/Card.module.css';
 
 const SubtaskForm = ({ 
   onSubmit, 
@@ -119,7 +121,7 @@ const SubtaskForm = ({
   };
 
   return (
-    <div className={styles.formCard}>
+    <div className={`${styles.formCard} ${cardStyles.allowOverflow}`}>
       <form onSubmit={handleSubmit} className={styles.form}>
         <h3 className={styles.formTitle}>
           {initialData ? 'Edit Subtask' : 'Create New Subtask'}
@@ -231,13 +233,14 @@ const SubtaskForm = ({
         </div>
 
         <div className={styles.formRow}>
-          <Input
+          <TimePicker
             label="Time Taken"
-            name="timeTaken"
             value={formData.timeTaken}
-            onChange={handleChange}
-            placeholder="e.g., 2 hours, 1 day, 30 minutes"
+            onChange={useCallback((value) => {
+              setFormData(prev => ({ ...prev, timeTaken: value }));
+            }, [])}
             error={errors.timeTaken}
+            placeholder="Select time..."
           />
         </div>
 

@@ -46,41 +46,17 @@ function App() {
                       <ProjectsPage />
                     </ProtectedRoute>
                   } />
+                  <Route path="/reports" element={
+                    <AdminRoute>
+                      <ReportsPage />
+                    </AdminRoute>
+                  } />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
                 <NotificationContainer />
               </Router>
             </SubtaskProvider>
-            <Router>
-              <SocketManager />
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/tasks" element={
-                  <ProtectedRoute>
-                    <TasksPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/projects" element={
-                  <ProtectedRoute>
-                    <ProjectsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/reports" element={
-                  <AdminRoute>
-                    <ReportsPage />
-                  </AdminRoute>
-                } />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-              <NotificationContainer />
-            </Router>
           </ProjectProvider>
         </TaskProvider>
       </NotificationProvider>

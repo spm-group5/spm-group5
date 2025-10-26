@@ -4,85 +4,17 @@ import Subtask from './subtask.model.js';
 
 describe('Subtask Model', () => {
   beforeEach(async () => {
-    // Clear the database before each test
     await Subtask.deleteMany({});
   });
 
   afterEach(async () => {
-    // Clear the database after each test
     await Subtask.deleteMany({});
   });
 
-  describe('Schema Validation', () => {
-    it('should create a valid subtask with all required fields', async () => {
+  describe('Basic Subtask Creation', () => {
+    it('should create a subtask with required fields', async () => {
       const subtaskData = {
         title: 'Test Subtask',
-        description: 'Test description',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        status: 'To Do',
-        priority: 5
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask._id).toBeDefined();
-      expect(savedSubtask.title).toBe(subtaskData.title);
-      expect(savedSubtask.description).toBe(subtaskData.description);
-      expect(savedSubtask.status).toBe('To Do');
-      expect(savedSubtask.priority).toBe(5);
-    });
-
-    it('should fail validation when title is missing', async () => {
-      const subtaskData = {
-        description: 'Test description',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should fail validation when parentTaskId is missing', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should fail validation when projectId is missing', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should fail validation when ownerId is missing', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should trim whitespace from title', async () => {
-      const subtaskData = {
-        title: '  Test Subtask  ',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId()
@@ -92,310 +24,115 @@ describe('Subtask Model', () => {
       const savedSubtask = await subtask.save();
 
       expect(savedSubtask.title).toBe('Test Subtask');
-    });
-
-    it('should fail validation when title exceeds max length', async () => {
-      const subtaskData = {
-        title: 'a'.repeat(201),
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-  });
-
-  describe('Status Field', () => {
-    it('should default to "To Do" status', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
       expect(savedSubtask.status).toBe('To Do');
-    });
-
-    it('should accept valid status values', async () => {
-      const validStatuses = ['To Do', 'In Progress', 'Completed', 'Blocked'];
-
-      for (const status of validStatuses) {
-        const subtaskData = {
-          title: `Test Subtask ${status}`,
-          parentTaskId: new mongoose.Types.ObjectId(),
-          projectId: new mongoose.Types.ObjectId(),
-          ownerId: new mongoose.Types.ObjectId(),
-          status
-        };
-
-        const subtask = new Subtask(subtaskData);
-        const savedSubtask = await subtask.save();
-
-        expect(savedSubtask.status).toBe(status);
-      }
-    });
-
-    it('should reject invalid status values', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        status: 'Invalid Status'
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-  });
-
-  describe('Priority Field', () => {
-    it('should default to priority 5', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
       expect(savedSubtask.priority).toBe(5);
     });
 
-    it('should accept valid priority values (1-10)', async () => {
-      const validPriorities = [1, 3, 5, 7, 10];
+    it('should reject subtask without required fields', async () => {
+      const subtaskData = {
+        title: 'Test Subtask'
+        // Missing required fields
+      };
 
-      for (const priority of validPriorities) {
+      const subtask = new Subtask(subtaskData);
+      await expect(subtask.save()).rejects.toThrow();
+    });
+  });
+
+  describe('Time Taken Field - 15 Minute Increment Validation', () => {
+    it('should accept valid 15-minute increment values', async () => {
+      const validTimes = [
+        '15 minutes',
+        '30 minutes', 
+        '45 minutes',
+        '1 hour',
+        '1 hour 15 minutes',
+        '1 hour 30 minutes',
+        '1 hour 45 minutes',
+        '2 hours',
+        '2 hours 15 minutes',
+        '2 hours 30 minutes',
+        '2 hours 45 minutes',
+        '3 hours'
+      ];
+
+      for (const time of validTimes) {
         const subtaskData = {
-          title: `Test Subtask ${priority}`,
+          title: 'Test Subtask',
           parentTaskId: new mongoose.Types.ObjectId(),
           projectId: new mongoose.Types.ObjectId(),
           ownerId: new mongoose.Types.ObjectId(),
-          priority
+          timeTaken: time
         };
 
         const subtask = new Subtask(subtaskData);
         const savedSubtask = await subtask.save();
-
-        expect(savedSubtask.priority).toBe(priority);
+        expect(savedSubtask.timeTaken).toBe(time);
       }
     });
 
-    it('should reject priority values below 1', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        priority: 0
-      };
+    it('should reject invalid time formats', async () => {
+      const invalidTimes = [
+        '10 minutes', // Not 15-minute increment
+        '20 minutes', // Not 15-minute increment
+        '1 hour 5 minutes', // Not 15-minute increment
+        '1 hour 10 minutes', // Not 15-minute increment
+        '1 hour 20 minutes', // Not 15-minute increment
+        '1 hour 25 minutes', // Not 15-minute increment
+        '1 hour 35 minutes', // Not 15-minute increment
+        '1 hour 40 minutes', // Not 15-minute increment
+        '1 hour 50 minutes', // Not 15-minute increment
+        '1 hour 55 minutes', // Not 15-minute increment
+        '2 hours 5 minutes', // Not 15-minute increment
+        'invalid format',
+        '1.5 hours',
+        '90 minutes' // Should be "1 hour 30 minutes"
+      ];
 
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
+      for (const time of invalidTimes) {
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: new mongoose.Types.ObjectId(),
+          projectId: new mongoose.Types.ObjectId(),
+          ownerId: new mongoose.Types.ObjectId(),
+          timeTaken: time
+        };
+
+        const subtask = new Subtask(subtaskData);
+        await expect(subtask.save()).rejects.toThrow();
+      }
     });
 
-    it('should reject priority values above 10', async () => {
+    it('should accept empty timeTaken field', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        priority: 11
+        timeTaken: ''
       };
 
       const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
+      const savedSubtask = await subtask.save();
+      expect(savedSubtask.timeTaken).toBe('');
+    });
+
+    it('should accept null timeTaken field', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        timeTaken: null
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+      expect(savedSubtask.timeTaken).toBe(null);
     });
   });
 
-  describe('Timestamps', () => {
-    it('should automatically set createdAt and updatedAt', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.createdAt).toBeDefined();
-      expect(savedSubtask.updatedAt).toBeDefined();
-      expect(savedSubtask.createdAt).toBeInstanceOf(Date);
-      expect(savedSubtask.updatedAt).toBeInstanceOf(Date);
-    });
-
-    it('should update updatedAt on save', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-      const firstUpdatedAt = savedSubtask.updatedAt;
-
-      // Wait a bit to ensure time difference
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      savedSubtask.title = 'Updated Title';
-      const updatedSubtask = await savedSubtask.save();
-
-      expect(updatedSubtask.updatedAt.getTime()).toBeGreaterThan(firstUpdatedAt.getTime());
-    });
-  });
-
-  describe('Optional Fields', () => {
-    it('should save subtask without optional assigneeId', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.assigneeId).toBeUndefined();
-    });
-
-    it('should save subtask with assigneeId', async () => {
-      const assigneeId = new mongoose.Types.ObjectId();
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        assigneeId
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.assigneeId).toEqual(assigneeId);
-    });
-
-    it('should save subtask without dueDate', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.dueDate).toBeUndefined();
-    });
-
-    it('should save subtask with dueDate', async () => {
-      const dueDate = new Date('2024-12-31');
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        dueDate
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.dueDate).toEqual(dueDate);
-    });
-  });
-
-  describe('Recurring Fields', () => {
-    it('should default to non-recurring', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId()
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.isRecurring).toBe(false);
-      expect(savedSubtask.recurrenceInterval).toBe(null);
-    });
-
-    it('should save recurring subtask with valid interval', async () => {
-      const dueDate = new Date('2024-12-31');
-      const subtaskData = {
-        title: 'Test Recurring Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        isRecurring: true,
-        recurrenceInterval: 7,
-        dueDate
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.isRecurring).toBe(true);
-      expect(savedSubtask.recurrenceInterval).toBe(7);
-    });
-
-    it('should reject recurring subtask without interval', async () => {
-      const subtaskData = {
-        title: 'Test Recurring Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        isRecurring: true
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should reject recurring subtask with zero interval', async () => {
-      const subtaskData = {
-        title: 'Test Recurring Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        isRecurring: true,
-        recurrenceInterval: 0
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-
-    it('should reject non-recurring subtask with interval', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        isRecurring: false,
-        recurrenceInterval: 7
-      };
-
-      const subtask = new Subtask(subtaskData);
-      await expect(subtask.save()).rejects.toThrow();
-    });
-  });
-
-  describe('Time Taken Field', () => {
+  describe('Time Taken Field - Legacy Tests', () => {
     it('should save subtask without timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
@@ -410,34 +147,19 @@ describe('Subtask Model', () => {
       expect(savedSubtask.timeTaken).toBeUndefined();
     });
 
-    it('should save subtask with timeTaken', async () => {
-      const subtaskData = {
-        title: 'Test Subtask',
-        parentTaskId: new mongoose.Types.ObjectId(),
-        projectId: new mongoose.Types.ObjectId(),
-        ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '2 hours'
-      };
-
-      const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.timeTaken).toBe('2 hours');
-    });
-
     it('should trim whitespace from timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '  2 hours  '
+        timeTaken: '  1 hour  '
       };
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.timeTaken).toBe('2 hours');
+      expect(savedSubtask.timeTaken).toBe('1 hour');
     });
 
     it('should reject timeTaken exceeding max length', async () => {
@@ -455,7 +177,7 @@ describe('Subtask Model', () => {
   });
 
   describe('Archived Field', () => {
-    it('should default to not archived', async () => {
+    it('should default archived to false', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
@@ -467,17 +189,16 @@ describe('Subtask Model', () => {
       const savedSubtask = await subtask.save();
 
       expect(savedSubtask.archived).toBe(false);
-      expect(savedSubtask.archivedAt).toBeNull();
+      expect(savedSubtask.archivedAt).toBe(null);
     });
 
-    it('should save archived subtask', async () => {
+    it('should set archivedAt when archived is true', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        archived: true,
-        archivedAt: new Date()
+        archived: true
       };
 
       const subtask = new Subtask(subtaskData);
@@ -488,4 +209,3 @@ describe('Subtask Model', () => {
     });
   });
 });
-

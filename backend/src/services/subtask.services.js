@@ -31,6 +31,14 @@ class SubtaskService {
         }
       }
 
+      // Validate time format if provided
+      if (subtaskData.timeTaken && subtaskData.timeTaken.trim() !== '') {
+        const tempSubtask = new Subtask();
+        if (!tempSubtask.isValidTimeFormat(subtaskData.timeTaken)) {
+          throw new Error('Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")');
+        }
+      }
+
       const subtask = new Subtask({
         title: subtaskData.title,
         description: subtaskData.description,
@@ -43,7 +51,7 @@ class SubtaskService {
         dueDate: subtaskData.dueDate,
         isRecurring: subtaskData.isRecurring || false,
         recurrenceInterval: subtaskData.recurrenceInterval || null,
-        timeTaken: subtaskData.timeTaken || ''
+        timeTaken: subtaskData.timeTaken !== undefined ? subtaskData.timeTaken : ''
       });
 
       await subtask.save();
@@ -121,6 +129,13 @@ class SubtaskService {
       
       if (!subtask) {
         throw new Error('Subtask not found');
+      }
+
+      // Validate time format if provided
+      if (updateData.timeTaken !== undefined && updateData.timeTaken && updateData.timeTaken.trim() !== '') {
+        if (!subtask.isValidTimeFormat(updateData.timeTaken)) {
+          throw new Error('Time must be in 15-minute increments (e.g., "15 minutes", "1 hour", "1 hour 15 minutes")');
+        }
       }
 
       // Update fields
@@ -244,6 +259,98 @@ class SubtaskService {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Format minutes to hours and minutes string
+   */
+  formatTime(minutes) {
+    if (!minutes || minutes === 0) {
+      return '';
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (hours === 0) {
+      return `${remainingMinutes} minutes`;
+    } else if (remainingMinutes === 0) {
+      return hours === 1 ? '1 hour' : `${hours} hours`;
+    } else {
+      const hourText = hours === 1 ? 'hour' : 'hours';
+      return `${hours} ${hourText} ${remainingMinutes} minutes`;
+    }
+  }
+
+  /**
+   * Parse time string to minutes
+   */
+  parseTimeToMinutes(timeString) {
+    if (!timeString || typeof timeString !== 'string') {
+      return 0;
+    }
+
+    const trimmedTime = timeString.trim();
+    
+    // Pattern for "X minutes"
+    const minutesPattern = /^(\d+)\s+minutes$/;
+    const minutesMatch = trimmedTime.match(minutesPattern);
+    if (minutesMatch) {
+      return parseInt(minutesMatch[1]);
+    }
+
+    // Pattern for "X hour" or "X hours"
+    const hoursPattern = /^(\d+)\s+hours?$/;
+    const hoursMatch = trimmedTime.match(hoursPattern);
+    if (hoursMatch) {
+      return parseInt(hoursMatch[1]) * 60;
+    }
+
+    // Pattern for "X hour Y minutes" or "X hours Y minutes"
+    const hoursMinutesPattern = /^(\d+)\s+hours?\s+(\d+)\s+minutes$/;
+    const hoursMinutesMatch = trimmedTime.match(hoursMinutesPattern);
+    if (hoursMinutesMatch) {
+      const hours = parseInt(hoursMinutesMatch[1]);
+      const minutes = parseInt(hoursMinutesMatch[2]);
+      return hours * 60 + minutes;
+    }
+
+    return 0;
+  }
+
+  /**
+   * Validate 15-minute increment time format
+   */
+  isValidTimeFormat(timeString) {
+    if (!timeString || typeof timeString !== 'string') {
+      return false;
+    }
+
+    const trimmedTime = timeString.trim();
+    
+    // Pattern for "X minutes" - only allow 15, 30, 45 (not 60+ which should be hours)
+    const minutesPattern = /^(\d+)\s+minutes$/;
+    const minutesMatch = trimmedTime.match(minutesPattern);
+    if (minutesMatch) {
+      const minutes = parseInt(minutesMatch[1]);
+      return minutes === 15 || minutes === 30 || minutes === 45;
+    }
+
+    // Pattern for "X hour" or "X hours" - any number of hours is valid
+    const hoursPattern = /^(\d+)\s+hours?$/;
+    const hoursMatch = trimmedTime.match(hoursPattern);
+    if (hoursMatch) {
+      return true; // Any number of hours is valid
+    }
+
+    // Pattern for "X hour Y minutes" or "X hours Y minutes" - Y must be 15, 30, or 45
+    const hoursMinutesPattern = /^(\d+)\s+hours?\s+(15|30|45)\s+minutes$/;
+    const hoursMinutesMatch = trimmedTime.match(hoursMinutesPattern);
+    if (hoursMinutesMatch) {
+      return true; // This pattern already ensures 15-minute increments
+    }
+
+    return false;
   }
 }
 

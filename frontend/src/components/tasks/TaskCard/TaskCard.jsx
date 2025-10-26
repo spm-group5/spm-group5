@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '../../common/Button/Button';
 import Card from '../../common/Card/Card';
 import Modal from '../../common/Modal/Modal';
@@ -8,6 +8,7 @@ import SubtaskForm from '../SubtaskForm/SubtaskForm';
 import { useSubtasks } from '../../../context/SubtaskContext';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useAuth } from '../../../context/AuthContext';
+import { calculateTotalTime } from '../../../utils/timeUtils';
 import styles from './TaskCard.module.css';
 
 function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
@@ -16,10 +17,36 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState(null);
   const [subtaskToArchive, setSubtaskToArchive] = useState(null);
+  const [subtasks, setSubtasks] = useState([]);
+  const [totalTime, setTotalTime] = useState('Not specified');
   
   const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
   const { user } = useAuth();
+
+  // Fetch subtasks and calculate total time
+  useEffect(() => {
+    const loadSubtasks = async () => {
+      try {
+        console.log('=== TASKCARD CALCULATION DEBUG ===');
+        console.log('Task ID:', task._id);
+        console.log('Task timeTaken:', task.timeTaken);
+        
+        const subtasksData = await fetchSubtasksByParentTask(task._id);
+        console.log('Fetched subtasks:', subtasksData);
+        setSubtasks(subtasksData);
+        
+        // Calculate total time
+        const calculatedTotalTime = calculateTotalTime(task, subtasksData);
+        console.log('Calculated total time:', calculatedTotalTime);
+        setTotalTime(calculatedTotalTime);
+      } catch (error) {
+        console.error('Error loading subtasks:', error);
+      }
+    };
+
+    loadSubtasks();
+  }, [task._id, task.timeTaken, fetchSubtasksByParentTask]);
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'To Do':
@@ -157,6 +184,9 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
               <span>
                 <strong>Project:</strong> {task.project?.name || task.project || 'N/A'}
               </span>
+              <span>
+                <strong>Total Time for Task and Subtasks:</strong> {totalTime}
+              </span>
             </div>
             <div className={styles.compactActions}>
               {!isArchived && (
@@ -196,6 +226,12 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
                   <span className={styles.metaLabel}>Assigned:</span>
                   <span className={styles.metaValue}>{formatAssignee(task.assignee)}</span>
                 </div>
+                {task.timeTaken && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Time taken for task:</span>
+                    <span className={styles.metaValue}>{task.timeTaken}</span>
+                  </div>
+                )}
                 {task.tags && (
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Tags:</span>
@@ -246,6 +282,7 @@ function TaskCard({ task, onEdit, onArchive, onUnarchive, isArchived }) {
                         parentTaskId={task._id}
                         projectId={task.project?._id || task.project}
                         ownerId={user?._id || user?.id}
+                        subtasks={subtasks}
                         onShowSubtaskForm={handleShowSubtaskForm}
                         onArchiveSubtask={handleArchiveSubtask}
                         onUnarchiveSubtask={handleUnarchiveSubtask}

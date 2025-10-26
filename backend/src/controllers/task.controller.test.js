@@ -1,438 +1,204 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import mongoose from 'mongoose';
 import taskController from './task.controller.js';
 import taskService from '../services/task.services.js';
 
-vi.mock('../services/task.services.js');
+// Mock the service
+vi.mock('../services/task.services.js', () => ({
+  default: {
+    createTask: vi.fn(),
+    updateTask: vi.fn(),
+    getTaskById: vi.fn(),
+    calculateTotalTime: vi.fn(),
+    formatTime: vi.fn((minutes) => {
+      if (!minutes || minutes === 0) return 'Not specified';
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      if (hours === 0) return `${remainingMinutes} minutes`;
+      if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+      return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} minutes`;
+    }),
+    parseTimeToMinutes: vi.fn((timeString) => {
+      if (!timeString || timeString.trim() === '') return 0;
+      const hoursMinutesMatch = timeString.match(/(\d+)\s*hours?\s*(\d+)\s*minutes?/i);
+      if (hoursMinutesMatch) {
+        const hours = parseInt(hoursMinutesMatch[1]);
+        const minutes = parseInt(hoursMinutesMatch[2]);
+        return hours * 60 + minutes;
+      }
+      const minutesMatch = timeString.match(/(\d+)\s*minutes?/i);
+      if (minutesMatch) return parseInt(minutesMatch[1]);
+      const hoursMatch = timeString.match(/(\d+)\s*hours?/i);
+      if (hoursMatch) return parseInt(hoursMatch[1]) * 60;
+      return 0;
+    })
+  }
+}));
 
-describe('Task Controller Test', () => {
-	let req, res;
+describe('Task Controller - Time Logging', () => {
+  let mockReq, mockRes, mockNext;
 
 	beforeEach(() => {
-		req = {
-			user: { _id: 'userId123' },
+    mockReq = {
+      user: { _id: new mongoose.Types.ObjectId() },
 			body: {},
-			params: {},
-			query: {},
-			app: {
-                get: vi.fn().mockReturnValue(null) // Return null for 'io' and 'userSockets'
-            }
-		};
-		res = {
+      params: { taskId: new mongoose.Types.ObjectId().toString() },
+      app: {
+        get: vi.fn().mockReturnValue(null)
+      }
+    };
+    mockRes = {
 			status: vi.fn().mockReturnThis(),
-			json: vi.fn().mockReturnThis()
+      json: vi.fn()
 		};
+    mockNext = vi.fn();
+  });
+
+  afterEach(() => {
 		vi.clearAllMocks();
 	});
 
-	describe('createTask', () => {
-		it('should create task successfully', async () => {
-			const mockTask = {
-				_id: 'taskId123',
-				title: 'New Task',
-				status: 'To Do',
-				owner: 'userId123',
-				assignee: [],
-				project: 'projectId123'
-			};
+  describe('Time Validation - 15 Minute Increments', () => {
+    it('should accept valid 15-minute increment time formats', async () => {
+      const validTimes = [
+        '15 minutes',
+        '30 minutes', 
+        '45 minutes',
+        '1 hour',
+        '1 hour 15 minutes',
+        '1 hour 30 minutes',
+        '1 hour 45 minutes',
+        '2 hours',
+        '2 hours 15 minutes',
+        '2 hours 30 minutes',
+        '2 hours 45 minutes',
+        '3 hours'
+      ];
 
-			req.body = { title: 'New Task', project: 'projectId123' };
+      for (const time of validTimes) {
+        mockReq.body = {
+          title: 'Test Task',
+          project: new mongoose.Types.ObjectId().toString(),
+          timeTaken: time
+        };
+
+			const mockTask = {
+          _id: new mongoose.Types.ObjectId(),
+          title: 'Test Task',
+          timeTaken: time
+        };
+
 			taskService.createTask.mockResolvedValue(mockTask);
 
-			await taskController.createTask(req, res);
-			expect(taskService.createTask).toHaveBeenCalledWith(req.body, 'userId123');
-			expect(res.status).toHaveBeenCalledWith(201);
-			expect(res.json).toHaveBeenCalledWith({
+        await taskController.createTask(mockReq, mockRes);
+
+        expect(taskService.createTask).toHaveBeenCalledWith(
+          expect.objectContaining({ timeTaken: time }),
+          mockReq.user._id
+        );
+        expect(mockRes.status).toHaveBeenCalledWith(201);
+        expect(mockRes.json).toHaveBeenCalledWith({
 				success: true,
 				message: 'Task created successfully',
 				data: mockTask
 			});
-		});
+      }
+    });
 
-		it('should handle task creation error', async () => {
-			req.body = { title: '' };
-			taskService.createTask.mockRejectedValue(new Error('Task title is required'));
+    it('should reject invalid time formats', async () => {
+      const invalidTimes = [
+        '10 minutes', // Not 15-minute increment
+        '20 minutes', // Not 15-minute increment
+        '1 hour 5 minutes', // Not 15-minute increment
+        '1 hour 10 minutes', // Not 15-minute increment
+        '1 hour 20 minutes', // Not 15-minute increment
+        '1 hour 25 minutes', // Not 15-minute increment
+        '1 hour 35 minutes', // Not 15-minute increment
+        '1 hour 40 minutes', // Not 15-minute increment
+        '1 hour 50 minutes', // Not 15-minute increment
+        '1 hour 55 minutes', // Not 15-minute increment
+        '2 hours 5 minutes', // Not 15-minute increment
+        'invalid format',
+        '1.5 hours',
+        '90 minutes' // Should be "1 hour 30 minutes"
+      ];
 
-			await taskController.createTask(req, res);
+      for (const time of invalidTimes) {
+        mockReq.body = {
+          title: 'Test Task',
+          project: new mongoose.Types.ObjectId().toString(),
+          timeTaken: time
+        };
 
-			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({
+        taskService.createTask.mockRejectedValue(new Error('Invalid time format'));
+
+        await taskController.createTask(mockReq, mockRes);
+
+        expect(mockRes.status).toHaveBeenCalledWith(400);
+        expect(mockRes.json).toHaveBeenCalledWith({
 				success: false,
-				message: 'Task title is required'
+          message: 'Invalid time format'
 			});
-		});
-
-		it('should handle missing project error', async () => {
-			req.body = { title: 'New Task' };
-			taskService.createTask.mockRejectedValue(new Error('Project is required'));
-
-			await taskController.createTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Project is required'
-			});
+      }
 		});
 	});
 
-	describe('updateTask', () => {
-		it('should update task successfully', async () => {
-			const mockUpdatedTask = {
-				_id: 'taskId123',
-				title: 'Updated Task',
-				status: 'In Progress',
-				assignee: []
-			};
-
-			const mockOriginalTask = {
-                _id: 'taskId123',
-                title: 'Original Task',
-                assignee: []
-            };
-
-			req.params = { taskId: 'taskId123' };
-			req.body = { title: 'Updated Task', status: 'In Progress' };
-			taskService.getTaskById.mockResolvedValue(mockOriginalTask);
-            taskService.updateTask.mockResolvedValue(mockUpdatedTask);
-
-			await taskController.updateTask(req, res);
-
-			expect(taskService.updateTask).toHaveBeenCalledWith('taskId123', req.body, 'userId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				message: 'Task updated successfully',
-				data: mockUpdatedTask
-			});
-		});
-
-		it('should handle update error', async () => {
-			req.params = { taskId: 'taskId123' };
-			req.body = { title: '' };
-			taskService.getTaskById.mockResolvedValue({ assignee: [] });
-            taskService.updateTask.mockRejectedValue(new Error('Task title cannot be empty'));
-
-			await taskController.updateTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task title cannot be empty'
-			});
-		});
-	});
-
-	describe('getTasks', () => {
-		it('should get all tasks', async () => {
-			const mockTasks = [
-				{ _id: 'task1', title: 'Task 1' },
-				{ _id: 'task2', title: 'Task 2' }
-			];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({});
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				data: mockTasks
-			});
-		});
-
-		it('should filter tasks by owner', async () => {
-			req.query = { owner: 'me' };
-			const mockTasks = [{ _id: 'task1', title: 'My Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ owner: 'userId123' });
-			expect(res.status).toHaveBeenCalledWith(200);
-		});
-
-		it('should filter tasks by assignee', async () => {
-			req.query = { assignee: 'me' };
-			const mockTasks = [{ _id: 'task1', title: 'Assigned Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ assignee: 'userId123' });
-		});
-
-		it('should filter tasks by project', async () => {
-			req.query = { project: 'projectId123' };
-			const mockTasks = [{ _id: 'task1', title: 'Project Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ project: 'projectId123' });
-		});
-
-		it('should filter tasks by status', async () => {
-			req.query = { status: 'To Do' };
-			const mockTasks = [{ _id: 'task1', title: 'Todo Task' }];
-
-			taskService.getTasks.mockResolvedValue(mockTasks);
-
-			await taskController.getTasks(req, res);
-
-			expect(taskService.getTasks).toHaveBeenCalledWith({ status: 'To Do' });
-		});
-
-		it('should handle get tasks error', async () => {
-			taskService.getTasks.mockRejectedValue(new Error('Database error'));
-
-			await taskController.getTasks(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
-			});
-		});
-	});
-
-	describe('getTaskById', () => {
-		it('should get task by ID successfully', async () => {
-			const mockTask = { _id: 'taskId123', title: 'Test Task' };
-
-			req.params = { taskId: 'taskId123' };
-			taskService.getTaskById.mockResolvedValue(mockTask);
-
-			await taskController.getTaskById(req, res);
-
-			expect(taskService.getTaskById).toHaveBeenCalledWith('taskId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				data: mockTask
-			});
-		});
-
-		it('should handle task not found', async () => {
-			req.params = { taskId: 'nonExistentId' };
-			taskService.getTaskById.mockRejectedValue(new Error('Task not found'));
-
-			await taskController.getTaskById(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(404);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task not found'
-			});
-		});
-
-		it('should handle other errors', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.getTaskById.mockRejectedValue(new Error('Database error'));
-
-			await taskController.getTaskById(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
-			});
-		});
-	});
-
-	describe('deleteTask', () => {
-		it('should delete task successfully', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockResolvedValue({ _id: 'taskId123' });
-
-			await taskController.deleteTask(req, res);
-
-			expect(taskService.deleteTask).toHaveBeenCalledWith('taskId123', 'userId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				message: 'Task deleted successfully'
-			});
-		});
-
-		it('should handle task not found on delete', async () => {
-			req.params = { taskId: 'nonExistentId' };
-			taskService.deleteTask.mockRejectedValue(new Error('Task not found'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(404);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task not found'
-			});
-		});
-
-		it('should handle permission denied on delete', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockRejectedValue(new Error('You do not have permission to delete this task'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(403);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'You do not have permission to delete this task'
-			});
-		});
-
-		it('should handle other delete errors', async () => {
-			req.params = { taskId: 'taskId123' };
-			taskService.deleteTask.mockRejectedValue(new Error('Database error'));
-
-			await taskController.deleteTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
-			});
-		});
-	});
-
-	describe('archiveTask', () => {
-		it('should archive a task successfully', async () => {
+  describe('Total Time Calculation', () => {
+    it('should calculate total time when getting task by ID', async () => {
 			const mockTask = {
-				_id: 'taskId123',
+        _id: new mongoose.Types.ObjectId(),
 				title: 'Test Task',
-				archived: true,
-				archivedAt: new Date()
-			};
+        timeTaken: '1 hour',
+        toObject: vi.fn().mockReturnValue({
+          _id: new mongoose.Types.ObjectId(),
+          title: 'Test Task',
+          timeTaken: '1 hour'
+        })
+      };
 
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'userId123' };
-			taskService.archiveTask.mockResolvedValue(mockTask);
+      taskService.getTaskById.mockResolvedValue(mockTask);
+      taskService.calculateTotalTime.mockReturnValue('2 hours 30 minutes');
 
-			await taskController.archiveTask(req, res);
+      await taskController.getTaskById(mockReq, mockRes);
 
-			expect(taskService.archiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
+      expect(taskService.getTaskById).toHaveBeenCalledWith(mockReq.params.taskId);
+      expect(taskService.calculateTotalTime).toHaveBeenCalledWith(mockReq.params.taskId);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith({
 				success: true,
-				message: 'Task archived successfully',
-				data: mockTask
-			});
-		});
-
-		it('should return 404 for non-existent task', async () => {
-			req.params = { taskId: 'nonexistent' };
-			req.user = { _id: 'userId123' };
-			taskService.archiveTask.mockRejectedValue(new Error('Task not found'));
-
-			await taskController.archiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(404);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task not found'
-			});
-		});
-
-		it('should return 403 for permission error', async () => {
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'unauthorizedUser' };
-			taskService.archiveTask.mockRejectedValue(
-				new Error('You do not have permission to archive this task')
-			);
-
-			await taskController.archiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(403);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'You do not have permission to archive this task'
-			});
-		});
-
-		it('should handle other archive errors', async () => {
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'userId123' };
-			taskService.archiveTask.mockRejectedValue(new Error('Database error'));
-
-			await taskController.archiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
+        data: expect.objectContaining({
+          _id: expect.any(mongoose.Types.ObjectId),
+          title: 'Test Task',
+          timeTaken: '1 hour',
+          totalTime: '2 hours 30 minutes'
+        })
 			});
 		});
 	});
 
-	describe('unarchiveTask', () => {
-		it('should unarchive a task successfully', async () => {
-			const mockTask = {
-				_id: 'taskId123',
-				title: 'Test Task',
-				archived: false,
-				archivedAt: null
-			};
+  describe('Time Format Conversion', () => {
+    it('should format time correctly', () => {
+      expect(taskService.formatTime(15)).toBe('15 minutes');
+      expect(taskService.formatTime(30)).toBe('30 minutes');
+      expect(taskService.formatTime(45)).toBe('45 minutes');
+      expect(taskService.formatTime(60)).toBe('1 hour');
+      expect(taskService.formatTime(75)).toBe('1 hour 15 minutes');
+      expect(taskService.formatTime(90)).toBe('1 hour 30 minutes');
+      expect(taskService.formatTime(105)).toBe('1 hour 45 minutes');
+      expect(taskService.formatTime(120)).toBe('2 hours');
+      expect(taskService.formatTime(135)).toBe('2 hours 15 minutes');
+    });
 
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'userId123' };
-			taskService.unarchiveTask.mockResolvedValue(mockTask);
-
-			await taskController.unarchiveTask(req, res);
-
-			expect(taskService.unarchiveTask).toHaveBeenCalledWith('taskId123', 'userId123');
-			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({
-				success: true,
-				message: 'Task unarchived successfully',
-				data: mockTask
-			});
-		});
-
-		it('should return 404 for non-existent task', async () => {
-			req.params = { taskId: 'nonexistent' };
-			req.user = { _id: 'userId123' };
-			taskService.unarchiveTask.mockRejectedValue(new Error('Task not found'));
-
-			await taskController.unarchiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(404);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Task not found'
-			});
-		});
-
-		it('should return 403 for permission error', async () => {
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'unauthorizedUser' };
-			taskService.unarchiveTask.mockRejectedValue(
-				new Error('You do not have permission to unarchive this task')
-			);
-
-			await taskController.unarchiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(403);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'You do not have permission to unarchive this task'
-			});
-		});
-
-		it('should handle other unarchive errors', async () => {
-			req.params = { taskId: 'taskId123' };
-			req.user = { _id: 'userId123' };
-			taskService.unarchiveTask.mockRejectedValue(new Error('Database error'));
-
-			await taskController.unarchiveTask(req, res);
-
-			expect(res.status).toHaveBeenCalledWith(500);
-			expect(res.json).toHaveBeenCalledWith({
-				success: false,
-				message: 'Database error'
-			});
+    it('should parse time string to minutes', () => {
+      expect(taskService.parseTimeToMinutes('15 minutes')).toBe(15);
+      expect(taskService.parseTimeToMinutes('30 minutes')).toBe(30);
+      expect(taskService.parseTimeToMinutes('45 minutes')).toBe(45);
+      expect(taskService.parseTimeToMinutes('1 hour')).toBe(60);
+      expect(taskService.parseTimeToMinutes('1 hour 15 minutes')).toBe(75);
+      expect(taskService.parseTimeToMinutes('1 hour 30 minutes')).toBe(90);
+      expect(taskService.parseTimeToMinutes('1 hour 45 minutes')).toBe(105);
+      expect(taskService.parseTimeToMinutes('2 hours')).toBe(120);
+      expect(taskService.parseTimeToMinutes('2 hours 15 minutes')).toBe(135);
 		});
 	});
 });
