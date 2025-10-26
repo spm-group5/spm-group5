@@ -481,7 +481,8 @@ class TaskService {
         if (userRole === 'admin') {
             return await Task.find({ project: projectId })
                 .populate('owner', 'username department')
-                .populate('assignee', 'username department');
+                .populate('assignee', 'username department')
+                .populate('project', 'name');
         }
 
         // Project owner can always view tasks in their own project
@@ -489,7 +490,8 @@ class TaskService {
         if (projectOwnerId === userId?.toString()) {
             return await Task.find({ project: projectId })
                 .populate('owner', 'username department')
-                .populate('assignee', 'username department');
+                .populate('assignee', 'username department')
+                .populate('project', 'name');
         }
 
         // Check if user is a project member
@@ -501,7 +503,8 @@ class TaskService {
             // Project members can view all tasks in the project
             return await Task.find({ project: projectId })
                 .populate('owner', 'username department')
-                .populate('assignee', 'username department');
+                .populate('assignee', 'username department')
+                .populate('project', 'name');
         }
 
         // User is not admin, not owner, and not a member
