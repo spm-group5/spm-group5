@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Button from "../../common/Button/Button";
 import Card from "../../common/Card/Card";
 import CommentSection from "../TaskComment/TaskCommentSection";
@@ -7,6 +7,7 @@ import Modal from '../../common/Modal/Modal';
 import SubtaskList from '../SubtaskList/SubtaskList';
 import SubtaskForm from '../SubtaskForm/SubtaskForm';
 import StatusUpdatePopup from '../StatusUpdatePopup/StatusUpdatePopup';
+import TimeDisplayBadge from '../TimeLoggingInput/TimeDisplayBadge';
 import { useSubtasks } from '../../../context/SubtaskContext';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useAuth } from '../../../context/AuthContext';
@@ -40,6 +41,13 @@ function TaskCard({
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [statusPopupPosition, setStatusPopupPosition] = useState({ top: 0, left: 0 });
   const statusBadgeRef = useRef(null);
+  // State for total time calculation
+  const [isUpdatingTime, setIsUpdatingTime] = useState(false);
+  const [totalTimeData, setTotalTimeData] = useState({ 
+    taskTimeTaken: task?.timeTaken || 0, 
+    subtasksTotalTime: 0, 
+    totalTime: task?.timeTaken || 0 
+  });
 
   const { createSubtask, updateSubtask, archiveSubtask, unarchiveSubtask, fetchSubtasksByParentTask } = useSubtasks();
   const { addNotification } = useNotifications();
@@ -182,6 +190,8 @@ function TaskCard({
       }
       handleCloseSubtaskForm();
       await fetchSubtasksByParentTask(task._id);
+      // Recalculate total time after subtask changes
+      await fetchTaskTotalTime();
     } catch (error) {
       addNotification(error.message || 'Failed to save subtask', 'error');
     }
@@ -393,6 +403,81 @@ function TaskCard({
     }
   };
 
+  // Manual Time Logging handlers
+  const handleUpdateTaskTime = async (timeTaken) => {
+    setIsUpdatingTime(true);
+    try {
+      await apiService.updateTaskTimeTaken(task._id, timeTaken);
+      addNotification('Task time logged successfully', 'success');
+      
+      // Try to fetch updated total time
+      try {
+        const timeData = await apiService.getTaskTotalTime(task._id);
+        setTotalTimeData(timeData.data);
+      } catch (timeError) {
+        console.error('Error fetching total time:', timeError);
+        // Even if fetching fails, refresh task data which will update UI
+        // Set minimal total time based on what we know
+        setTotalTimeData({
+          taskId: task._id,
+          taskTimeTaken: timeTaken,
+          subtasksTotalTime: 0,
+          totalTime: timeTaken
+        });
+      }
+      
+      // Refresh task data to ensure everything is in sync
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error) {
+      console.error('Error logging task time:', error);
+      addNotification(error.message || 'Failed to log task time', 'error');
+    } finally {
+      setIsUpdatingTime(false);
+    }
+  };
+
+  const fetchTaskTotalTime = useCallback(async () => {
+    try {
+      const timeData = await apiService.getTaskTotalTime(task._id);
+      setTotalTimeData(timeData.data);
+    } catch (error) {
+      console.error('Failed to fetch task total time:', error);
+    }
+  }, [task._id]);
+
+  // Fetch total time when task expands or task changes
+  useEffect(() => {
+    if (isExpanded && task._id) {
+      fetchTaskTotalTime();
+    }
+  }, [isExpanded, task._id, fetchTaskTotalTime]);
+
+  // Also fetch total time when showing subtasks to ensure latest data
+  useEffect(() => {
+    if (showSubtasks && task._id && isExpanded) {
+      fetchTaskTotalTime();
+    }
+  }, [showSubtasks, task._id, isExpanded, fetchTaskTotalTime]);
+
+  // Fetch total time when task changes to ensure we have latest data
+  useEffect(() => {
+    if (task._id) {
+      // Initialize with task's current time
+      setTotalTimeData({
+        taskTimeTaken: task.timeTaken || 0,
+        subtasksTotalTime: 0,
+        totalTime: task.timeTaken || 0
+      });
+      
+      // If expanded, fetch the full calculation
+      if (isExpanded) {
+        fetchTaskTotalTime();
+      }
+    }
+  }, [task._id, task.timeTaken, isExpanded, fetchTaskTotalTime]);
+
   return (
     <>
       <Card
@@ -549,6 +634,16 @@ function TaskCard({
                     </span>
                   </div>
                 )}
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Time Logged:</span>
+                  <TimeDisplayBadge
+                    timeTaken={task.timeTaken || 0}
+                    onTimeUpdate={handleUpdateTaskTime}
+                    isLoading={isUpdatingTime}
+                    canEdit={!isArchived && canEdit()}
+                    type="task"
+                  />
+                </div>
               </div>
 
               <CommentSection
@@ -559,6 +654,31 @@ function TaskCard({
                 //   // The updatedTask can be used for other updates if needed
                 // }}
               />
+
+              {/* Time Summary Section */}
+              <div className={styles.timeSummarySection}>
+                <h4 className={styles.timeSummaryTitle}>Time Summary</h4>
+                <div className={styles.timeSummaryGrid}>
+                  <div className={styles.timeSummaryItem}>
+                    <span className={styles.timeSummaryLabel}>Task Time:</span>
+                    <span className={styles.timeSummaryValue}>
+                      {task.timeTaken ? `${task.timeTaken} mins` : 'Not logged'}
+                    </span>
+                  </div>
+                  <div className={styles.timeSummaryItem}>
+                    <span className={styles.timeSummaryLabel}>Subtask Total:</span>
+                    <span className={styles.timeSummaryValue}>
+                      {totalTimeData.subtasksTotalTime ? `${totalTimeData.subtasksTotalTime} mins` : 'No time'}
+                    </span>
+                  </div>
+                  <div className={`${styles.timeSummaryItem} ${styles.totalTimeItem}`}>
+                    <span className={styles.timeSummaryLabel}>Combined Total:</span>
+                    <span className={styles.timeSummaryValueTotal}>
+                      {totalTimeData.totalTime ? `${totalTimeData.totalTime} mins` : '0 mins'}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Subtasks Section */}
               {!isArchived && canEdit() && (
@@ -582,6 +702,7 @@ function TaskCard({
                         onShowSubtaskForm={handleShowSubtaskForm}
                         onArchiveSubtask={handleArchiveSubtask}
                         onUnarchiveSubtask={handleUnarchiveSubtask}
+                        onTotalTimeUpdate={fetchTaskTotalTime}
                       />
                     </div>
                   )}

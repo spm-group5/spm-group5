@@ -893,6 +893,64 @@ class TaskController {
             });
         }
     }
+
+    // Manual Time Logging: Update task time taken
+    async updateTaskTimeTaken(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { timeTaken } = req.body;
+
+            const task = await taskService.updateTaskTimeTaken(taskId, timeTaken);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task time logged successfully',
+                data: task
+            });
+        } catch (error) {
+            console.error('❌ Error logging task time:', error);
+
+            let statusCode = 400;
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            } else if (error.message === 'Time taken cannot be blank') {
+                statusCode = 400;
+            } else if (error.message.includes('positive number')) {
+                statusCode = 400;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // Manual Time Logging: Get total time for task + all subtasks
+    async getTaskTotalTime(req, res) {
+        try {
+            const { taskId } = req.params;
+
+            const totalTimeData = await taskService.getTaskTotalTime(taskId);
+
+            res.status(200).json({
+                success: true,
+                data: totalTimeData
+            });
+        } catch (error) {
+            console.error('❌ Error getting task total time:', error);
+
+            let statusCode = 400;
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
 }
 
 export default new TaskController();

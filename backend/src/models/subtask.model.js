@@ -72,9 +72,9 @@ const subtaskSchema = new mongoose.Schema({
     }
   },
   timeTaken: {
-    type: String,
-    trim: true,
-    maxlength: [100, 'Time taken cannot exceed 100 characters']
+    type: Number,
+    default: 0,
+    min: [0, 'Time taken must be a non-negative number']
   },
   comments: [{
     text: {

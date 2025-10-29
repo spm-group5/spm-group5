@@ -20,7 +20,6 @@ const SubtaskForm = ({
     assigneeId: '',
     isRecurring: false,
     recurrenceInterval: 1,
-    timeTaken: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -36,7 +35,6 @@ const SubtaskForm = ({
         assigneeId: initialData.assigneeId?._id || initialData.assigneeId || '',
         isRecurring: initialData.isRecurring || false,
         recurrenceInterval: initialData.recurrenceInterval || 1,
-        timeTaken: initialData.timeTaken || '',
       });
     }
   }, [initialData]);
@@ -86,10 +84,6 @@ const SubtaskForm = ({
       if (formData.recurrenceInterval) {
         setFormData(prev => ({ ...prev, recurrenceInterval: 1 }));
       }
-    }
-
-    if (formData.timeTaken && formData.timeTaken.length > 100) {
-      newErrors.timeTaken = 'Time taken cannot exceed 100 characters';
     }
 
     setErrors(newErrors);
@@ -228,17 +222,6 @@ const SubtaskForm = ({
               </div>
             )}
           </div>
-        </div>
-
-        <div className={styles.formRow}>
-          <Input
-            label="Time Taken"
-            name="timeTaken"
-            value={formData.timeTaken}
-            onChange={handleChange}
-            placeholder="e.g., 2 hours, 1 day, 30 minutes"
-            error={errors.timeTaken}
-          />
         </div>
 
         <div className={styles.formActions}>

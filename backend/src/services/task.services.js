@@ -2,6 +2,7 @@ import Task from '../models/task.model.js';
 import Project from '../models/project.model.js';
 import User from '../models/user.model.js';
 import notificationModel from '../models/notification.model.js';
+import Subtask from '../models/subtask.model.js';
 import mongoose from 'mongoose';
 
 class TaskService {
@@ -852,6 +853,59 @@ class TaskService {
             .populate('project', 'title');
 
         return populatedTask;
+    }
+
+    // Manual Time Logging: Update task time taken
+    async updateTaskTimeTaken(taskId, timeTaken) {
+        // Validate input
+        if (timeTaken === null || timeTaken === undefined || timeTaken === '') {
+            throw new Error('Time taken cannot be blank');
+        }
+
+        const numTimeTaken = Number(timeTaken);
+        if (isNaN(numTimeTaken) || numTimeTaken < 0) {
+            throw new Error('Time taken must be a positive number');
+        }
+
+        // Find and update task
+        const task = await Task.findById(taskId);
+        if (!task) {
+            throw new Error('Task not found');
+        }
+
+        task.timeTaken = numTimeTaken;
+        task.updatedAt = new Date();
+        await task.save();
+
+        return task;
+    }
+
+    // Manual Time Logging: Get total time for task + all subtasks
+    async getTaskTotalTime(taskId) {
+        // Find task
+        const task = await Task.findById(taskId);
+        if (!task) {
+            throw new Error('Task not found');
+        }
+
+        const taskTimeTaken = task.timeTaken || 0;
+
+        // Get subtasks for this task using the imported Subtask model
+        const subtasks = await Subtask.find({ parentTaskId: taskId });
+
+        // Calculate total subtask time
+        const subtasksTotalTime = subtasks.reduce((total, subtask) => {
+            return total + (subtask.timeTaken || 0);
+        }, 0);
+
+        const totalTime = taskTimeTaken + subtasksTotalTime;
+
+        return {
+            taskId: taskId,
+            taskTimeTaken: taskTimeTaken,
+            subtasksTotalTime: subtasksTotalTime,
+            totalTime: totalTime
+        };
     }
 }
 

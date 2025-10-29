@@ -408,6 +408,33 @@ class ApiService {
             method: 'DELETE'
         });
     }
+
+    // Manual Time Logging API Methods
+    async updateTaskTimeTaken(taskId, timeTaken) {
+        return this.request(`/tasks/${taskId}/time-taken`, {
+            method: 'PATCH',
+            body: JSON.stringify({ timeTaken })
+        });
+    }
+
+    async getTaskTotalTime(taskId) {
+        return this.request(`/tasks/${taskId}/total-time`, {
+            method: 'GET'
+        });
+    }
+
+    async updateSubtaskTimeTaken(subtaskId, timeTaken) {
+        return this.request(`/subtasks/${subtaskId}/time-taken`, {
+            method: 'PATCH',
+            body: JSON.stringify({ timeTaken })
+        });
+    }
+
+    async getSubtaskTotalTime(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}/total-time`, {
+            method: 'GET'
+        });
+    }
 }
 
 export default new ApiService();

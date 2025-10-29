@@ -1124,4 +1124,128 @@ describe('Task Controller Test', () => {
 			});
 		});
 	});
+
+	describe('updateTaskTimeTaken', () => {
+		it('should update task timeTaken successfully', async () => {
+			const mockUpdatedTask = {
+				_id: '507f1f77bcf86cd799439015',
+				title: 'Task with Time',
+				timeTaken: 60,
+				status: 'In Progress',
+				assignee: []
+			};
+
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			req.body = { timeTaken: 60 };
+			taskService.updateTaskTimeTaken.mockResolvedValue(mockUpdatedTask);
+
+			await taskController.updateTaskTimeTaken(req, res);
+
+			expect(taskService.updateTaskTimeTaken).toHaveBeenCalledWith('507f1f77bcf86cd799439015', 60);
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task time logged successfully',
+				data: mockUpdatedTask
+			});
+		});
+
+		it('should reject blank timeTaken field', async () => {
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			req.body = { timeTaken: '' };
+			taskService.updateTaskTimeTaken.mockRejectedValue(new Error('Time taken cannot be blank'));
+
+			await taskController.updateTaskTimeTaken(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: 'Time taken cannot be blank'
+			});
+		});
+
+		it('should handle invalid timeTaken value', async () => {
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			req.body = { timeTaken: -10 };
+			taskService.updateTaskTimeTaken.mockRejectedValue(new Error('Time taken must be a positive number'));
+
+			await taskController.updateTaskTimeTaken(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+		});
+
+		it('should update task timeTaken replacing previous value', async () => {
+			const mockUpdatedTask = {
+				_id: '507f1f77bcf86cd799439015',
+				title: 'Task with Updated Time',
+				timeTaken: 120,
+				status: 'In Progress'
+			};
+
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			req.body = { timeTaken: 120 };
+			taskService.updateTaskTimeTaken.mockResolvedValue(mockUpdatedTask);
+
+			await taskController.updateTaskTimeTaken(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				message: 'Task time logged successfully',
+				data: mockUpdatedTask
+			});
+		});
+	});
+
+	describe('getTaskTotalTime', () => {
+		it('should calculate total time for task including subtasks', async () => {
+			const mockTotalTime = {
+				taskId: '507f1f77bcf86cd799439015',
+				taskTimeTaken: 60,
+				subtasksTotalTime: 75,
+				totalTime: 135
+			};
+
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			taskService.getTaskTotalTime.mockResolvedValue(mockTotalTime);
+
+			await taskController.getTaskTotalTime(req, res);
+
+			expect(taskService.getTaskTotalTime).toHaveBeenCalledWith('507f1f77bcf86cd799439015');
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				data: mockTotalTime
+			});
+		});
+
+		it('should return 0 when no time is logged', async () => {
+			const mockTotalTime = {
+				taskId: '507f1f77bcf86cd799439015',
+				taskTimeTaken: 0,
+				subtasksTotalTime: 0,
+				totalTime: 0
+			};
+
+			req.params = { taskId: '507f1f77bcf86cd799439015' };
+			taskService.getTaskTotalTime.mockResolvedValue(mockTotalTime);
+
+			await taskController.getTaskTotalTime(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(200);
+			expect(res.json).toHaveBeenCalledWith({
+				success: true,
+				data: mockTotalTime
+			});
+		});
+
+		it('should handle task not found', async () => {
+			req.params = { taskId: 'invalidTaskId' };
+			taskService.getTaskTotalTime.mockRejectedValue(new Error('Task not found'));
+
+			await taskController.getTaskTotalTime(req, res);
+
+			expect(res.status).toHaveBeenCalledWith(404);
+		});
+	});
 });
