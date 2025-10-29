@@ -311,7 +311,111 @@ class ReportController {
         }
     }
 
-    // ...existing code...
+    /**
+     * Generate logged time report for a specific project
+     * GET /api/reports/logged-time/project/:projectId
+     * Query parameters (REQUIRED):
+     * - format: 'pdf' or 'excel'
+     * NOTE: No date range needed - fetches all non-archived tasks for the project
+     */
+    generateProjectLoggedTimeReport = async (req, res) => {
+        try {
+            const { projectId } = req.params;
+            const { format } = req.query;
+
+            // Validate required parameters
+            if (!projectId) {
+                return res.status(400).json({
+                    error: 'Missing projectId',
+                    message: 'Project ID is required in the URL path'
+                });
+            }
+
+            if (!format) {
+                return res.status(400).json({
+                    error: 'Missing required parameters',
+                    message: 'format is a required parameter'
+                });
+            }
+
+            // Validate format parameter (only PDF and Excel supported)
+            if (!['pdf', 'excel'].includes(format.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
+                });
+            }
+
+            // Generate report data (no date range - fetches all non-archived tasks)
+            const reportData = await reportService.generateProjectLoggedTimeReportData(projectId);
+
+            // Check if no tasks found - return JSON message instead of generating files
+            if (reportData.aggregates.total === 0) {
+                return res.status(200).json({
+                    success: false,
+                    message: `No tasks found for this project. Please try a different project.`,
+                    type: 'NO_DATA_FOUND'
+                });
+            }
+
+            // Handle different formats
+            return await this.handleLoggedTimeReportFormat(res, reportData, format, `project-${projectId}`);
+
+        } catch (error) {
+            return this.handleReportError(res, error);
+        }
+    }
+
+    /**
+     * Handle logged time report formats (PDF, Excel)
+     * @param {Object} res - Express response object
+     * @param {Object} reportData - Report data
+     * @param {String} format - Format type (pdf or excel)
+     * @param {String} identifier - File identifier for naming
+     */
+    handleLoggedTimeReportFormat = async (res, reportData, format, identifier) => {
+        switch (format.toLowerCase()) {
+            case 'pdf':
+                try {
+                    const pdfBuffer = await reportService.generateProjectLoggedTimePdfReport(reportData);
+                    const filename = `logged-time-report-${identifier}-${new Date().toISOString().split('T')[0]}.pdf`;
+                    
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', pdfBuffer.length);
+                    
+                    return res.send(pdfBuffer);
+                } catch (pdfError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate PDF report',
+                        message: 'There was an error generating the PDF. Please try again or contact support.'
+                    });
+                }
+
+            case 'excel':
+                try {
+                    const excelBuffer = await reportService.generateProjectLoggedTimeExcelReport(reportData);
+                    const filename = `logged-time-report-${identifier}-${new Date().toISOString().split('T')[0]}.xlsx`;
+                    
+                    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', excelBuffer.length);
+                    
+                    return res.send(excelBuffer);
+                } catch (excelError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate Excel report',
+                        message: 'There was an error generating the Excel file. Please try again or contact support.'
+                    });
+                }
+
+            default:
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
+                });
+        }
+    }
 
     /**
      * Handle different report formats (PDF, Excel)

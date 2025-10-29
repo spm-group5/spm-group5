@@ -27,4 +27,12 @@ router.get('/reports/team-summary/project/:projectId',
     reportController.generateTeamSummaryReport
 );
 
+// Route for generating logged time report for a specific project
+// Only admin users can access this endpoint
+router.get('/reports/logged-time/project/:projectId',
+    requireAuth,
+    requireRole(['admin']),
+    reportController.generateProjectLoggedTimeReport
+);
+
 export default router;

@@ -101,6 +101,12 @@ function ReportsPage() {
           data.timeframe,
           data.format
         );
+      } else if (data.reportType === 'logged-time') {
+        // Logged Time Report - no date range needed
+        result = await apiService.generateLoggedTimeReport(
+          data.targetId,
+          data.format
+        );
       } else {
         // Task Completion Reports - require start and end dates
         const startDate = new Date(data.startDate);
@@ -166,7 +172,7 @@ function ReportsPage() {
         <div className={styles.header}>
           <h1>Report Generation</h1>
           <p className={styles.subtitle}>
-            Generate task completion and team summary reports
+            Generate task completion, logged time, and team summary reports
           </p>
         </div>
 
@@ -214,6 +220,15 @@ function ReportsPage() {
                       className={styles.radioInput}
                     />
                     <span className={styles.radioLabel}>Team Summary Report</span>
+                  </label>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      value="logged-time"
+                      {...register('reportType', { required: 'Please select a report type' })}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioLabel}>Logged Time Report by Project</span>
                   </label>
                 </div>
                 {errors.reportType && (
@@ -297,7 +312,7 @@ function ReportsPage() {
               )}
 
               {/* Date Range */}
-              {reportType !== 'team-summary' ? (
+              {reportType !== 'team-summary' && reportType !== 'logged-time' ? (
                 <div className={styles.dateRange}>
                   <Input
                     label="Start Date"
@@ -314,7 +329,7 @@ function ReportsPage() {
                     required
                   />
                 </div>
-              ) : (
+              ) : reportType === 'team-summary' ? (
                 <div className={styles.singleDate}>
                   <Input
                     label="Start Date"
@@ -324,7 +339,7 @@ function ReportsPage() {
                     required
                   />
                 </div>
-              )}
+              ) : null}
 
               {/* Format Selection */}
               <div className={styles.formatSelection}>
