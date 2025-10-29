@@ -314,10 +314,10 @@ function TaskCard({
     setIsChangingOwner(true);
 
     try {
-      const data = await apiService.request(`/tasks/${task._id}/assign`, {
-        method: 'POST',
-        body: JSON.stringify({ assignee: selectedNewOwner })
-      });
+      // const data = await apiService.request(`/tasks/${task._id}/assign`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ assignee: selectedNewOwner })
+      // });
 
       addNotification('Task ownership transferred successfully', 'success');
       handleCloseChangeOwnerModal();
@@ -553,11 +553,11 @@ function TaskCard({
 
               <CommentSection
                 task={task}
-                onCommentAdded={(updatedTask) => {
-                  // Comments are now handled locally in CommentSection
-                  // No need to refresh the entire page
-                  // The updatedTask can be used for other updates if needed
-                }}
+                // onCommentAdded={(updatedTask) => {
+                //   // Comments are now handled locally in CommentSection
+                //   // No need to refresh the entire page
+                //   // The updatedTask can be used for other updates if needed
+                // }}
               />
 
               {/* Subtasks Section */}
