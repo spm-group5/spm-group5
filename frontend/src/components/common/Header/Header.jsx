@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotificationCenter } from '../../../context/NotificationsCenterContext';
 import Button from '../Button/Button';
 import styles from './Header.module.css';
+import ThemeToggle from '../ThemeToggle/ThemeToggle';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -23,7 +24,8 @@ function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link to="/dashboard" className={styles.logoLink}>
-            <h2>All-In-One Task Management System</h2>
+            <img src="All-In-One-favicon.png" alt="All-In-One Logo" className={styles.logoIcon} />
+            <h2 className={styles.logoText}>All-In-One Task Management System</h2>
           </Link>
         </div>
 
@@ -54,6 +56,7 @@ function Header() {
           {/* <span className={styles.userName}>
             {user?.name || user?.email || user?.username}
           </span> */}
+          <ThemeToggle />
           <Button variant="ghost" size="small" onClick={handleLogout}>
             Logout
           </Button>

@@ -1,15 +1,15 @@
 .taskCard {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e1e8ed;
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
-  background-color: white;
+  background-color: var(--color-background);
   overflow: hidden;
 }
 
 .taskCard:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 123, 255, 0.08);
-  border-color: rgba(0, 123, 255, 0.5);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
   transform: translateY(-3px);
 }
 
@@ -99,7 +99,7 @@
   gap: var(--spacing-md);
   padding: var(--spacing-md) 0 0 0;
   margin-left: 24px; /* Align with title */
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--color-border);
   margin-top: var(--spacing-md);
 }
 
@@ -111,7 +111,7 @@
   gap: var(--spacing-lg);
   flex-wrap: wrap;
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .compactMeta span {
@@ -127,7 +127,7 @@
 }
 
 .overdueMeta {
-  color: #dc3545;
+  color: var(--color-error);
   font-weight: 700;
 }
 
@@ -222,22 +222,22 @@
 }
 
 .statusTodo {
-  background-color: #6c757d;
+  background-color: var(--color-secondary);
   color: white;
 }
 
 .statusInProgress {
-  background-color: #0d6efd;
+  background-color: var(--color-primary);
   color: white;
 }
 
 .statusDone {
-  background-color: #198754;
+  background-color: var(--color-success);
   color: white;
 }
 
 .statusBlocked {
-  background-color: #dc3545;
+  background-color: var(--color-error);
   color: white;
 }
 
@@ -347,17 +347,17 @@
 .timeSummarySection {
   margin-top: var(--spacing-lg);
   padding: var(--spacing-md);
-  background: linear-gradient(135deg, #f0f9ff 0%, #f5f9ff 100%);
-  border: 1px solid #bfdbfe;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--color-primary);
 }
 
 .timeSummaryTitle {
   margin: 0 0 var(--spacing-md) 0;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-  color: #1e40af;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -374,21 +374,21 @@
   flex-direction: column;
   gap: 4px;
   padding: var(--spacing-sm);
-  background-color: white;
+  background-color: var(--color-background);
   border-radius: 6px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--color-border-light);
   transition: all 0.2s ease;
 }
 
 .timeSummaryItem:hover {
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
-  border-color: #93c5fd;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-primary);
 }
 
 .timeSummaryLabel {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: #475569;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -396,24 +396,24 @@
 .timeSummaryValue {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-  color: #1e40af;
+  color: var(--color-primary);
 }
 
 .totalTimeItem {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border: 1.5px solid #3b82f6;
+  background: var(--color-background-tertiary);
+  border: 1.5px solid var(--color-primary);
   padding: var(--spacing-md);
 }
 
 .totalTimeItem:hover {
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .timeSummaryValueTotal {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  color: #1e3a8a;
+  color: var(--color-primary-dark);
 }
 
 @media (max-width: 768px) {
