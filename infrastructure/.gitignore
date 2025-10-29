@@ -74,3 +74,6 @@ credentials
 *.p12
 *.pfx
 *.pkg
+
+# Lambda build artifacts
+builds/

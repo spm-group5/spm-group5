@@ -235,7 +235,26 @@ describe('Email Notification Service - TDD', () => {
     });
 
     describe('Transporter Configuration', () => {
-        it('should create transporter with correct SMTP settings', () => {
+        it('should create transporter with correct SMTP settings when sendEmail is called', async () => {
+            // Clear any previous calls
+            vi.clearAllMocks();
+            
+            // Mock the transporter
+            const mockTransporter = {
+                sendMail: vi.fn().mockResolvedValue({ messageId: 'test-id' }),
+                verify: vi.fn()
+            };
+            nodemailer.createTransport.mockReturnValue(mockTransporter);
+            
+            // Call sendEmail to trigger transporter creation
+            await sendEmail(
+                'test@example.com',
+                'Test Subject',
+                'Test content',
+                '<p>Test HTML</p>'
+            );
+            
+            // Now verify createTransport was called with correct settings
             expect(nodemailer.createTransport).toHaveBeenCalledWith(
                 expect.objectContaining({
                     host: 'smtp-relay.brevo.com',
@@ -248,9 +267,11 @@ describe('Email Notification Service - TDD', () => {
                 })
             );
         });
-
-        it('should verify SMTP connection on initialization', () => {
-            expect(verifyMock).toHaveBeenCalled();
+    
+        it('should not verify SMTP connection on module initialization (lazy loading)', () => {
+            // With lazy loading, verify should not be called on module load
+            // It should only be called when sendEmail is actually used
+            expect(verifyMock).not.toHaveBeenCalled();
         });
     });
 
