@@ -1,5 +1,5 @@
 import userModel from '../models/user.model.js'; //import the User model
-import bcrypt from 'bcrypt'; //import bcrypt for password comparison
+import bcrypt from 'bcryptjs'; //import bcrypt for password comparison
 import validator from 'validator'; //import validator for input validation
 
 class UserServices {

@@ -133,10 +133,10 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
           <CommentSection
             subtask={subtask}
             type="subtask"
-            onCommentAdded={(updatedSubtask) => {
-              // Comments are handled locally in CommentSection
-              // No need to refresh the entire page
-            }}
+            // onCommentAdded={(updatedSubtask) => {
+            //   // Comments are handled locally in CommentSection
+            //   // No need to refresh the entire page
+            // }}
           />
         </div>
       )}

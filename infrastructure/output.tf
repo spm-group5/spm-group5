@@ -64,3 +64,19 @@ output "frontend_api_url" {
   value       = "VITE_API_URL=https://api.jonongca.com"
 }
 
+# Lambda outputs
+output "lambda_function_arn" {
+  description = "ARN of the deadline notifications Lambda function"
+  value       = module.lambda_function.lambda_function_arn
+}
+
+output "lambda_function_name" {
+  description = "Name of the deadline notifications Lambda function"
+  value       = module.lambda_function.lambda_function_name
+}
+
+output "eventbridge_rule_arn" {
+  description = "ARN of the EventBridge rule for deadline notifications"
+  value       = aws_cloudwatch_event_rule.deadline_notifications.arn
+}
+

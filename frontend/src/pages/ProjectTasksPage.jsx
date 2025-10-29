@@ -95,7 +95,7 @@ function ProjectTasksPage() {
 
   useEffect(() => {
     loadProjectTasks();
-  }, [projectId, fetchTasksByProject, getProjectById, userId, user]);
+  }, [projectId, fetchTasksByProject, getProjectById, userId, user, loadProjectTasks]);
 
   const handleBackToProjects = () => {
     navigate('/projects');
