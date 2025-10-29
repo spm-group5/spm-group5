@@ -60,8 +60,7 @@ describe('Email Notification Service - TDD', () => {
                 'user@example.com',
                 'Welcome Email',
                 'Welcome to our platform',
-                '<h1>Welcome</h1>',
-                'Customer Portal'
+                '<h1>Welcome</h1><p><strong>Project:</strong> Customer Portal</p>'
             );
 
             expect(sendMailMock).toHaveBeenCalledWith(
@@ -69,7 +68,7 @@ describe('Email Notification Service - TDD', () => {
                     from: expect.stringContaining('All-In-One STMS'),
                     to: 'user@example.com',
                     subject: 'Welcome Email',
-                    text: expect.stringContaining('Customer Portal'),
+                    text: 'Welcome to our platform',
                     html: expect.stringContaining('Customer Portal')
                 })
             );

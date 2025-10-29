@@ -53,7 +53,7 @@ function getTransporter() {
 /**
  * Generate a HTML email format for upcoming/overdue tasks
  */
-function generateTaskEmail({ taskTitle, taskId, deadline, type }) {
+function generateTaskEmail({ taskTitle, deadline, type, projectName }) {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const taskUrl = `${baseUrl}/tasks`;
     const subject =
@@ -65,6 +65,7 @@ function generateTaskEmail({ taskTitle, taskId, deadline, type }) {
     <div style="font-family: Arial, sans-serif; line-height:1.6; color:#333;">
         <h2 style="color:#2E86DE;">${type === 'upcoming' ? 'Reminder!' : 'Urgent!'}</h2>
         <p>The task "<strong>${taskTitle}</strong>" is ${type === 'upcoming' ? 'approaching its deadline' : 'overdue'}.</p>
+        ${projectName ? `<p><strong>Project:</strong> ${projectName}</p>` : ''}
         <p>Deadline: <strong>${new Date(deadline).toLocaleString()}</strong></p>
         <p>Please take the necessary action.</p>
         <p>
@@ -80,26 +81,29 @@ function generateTaskEmail({ taskTitle, taskId, deadline, type }) {
 }
 
 
-//checkd if deadline if within 24 hours
+// Calculate hours difference between two dates
+function calculateHoursDifference(fromDate, toDate) {
+    const timeDiff = toDate - fromDate;
+    return timeDiff / (1000 * 60 * 60);
+}
+
+// Check if deadline is within 24 hours
 function checkIfUpcomingDeadline(dueDate){
-    const now = new Date();
-    const timeDiff = dueDate - now;
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    const hoursDiff = calculateHoursDifference(new Date(), dueDate);
     return hoursDiff <= 24 && hoursDiff >= 0;
 }
 
 // Check if the task is overdue (24 or more hours past due date)
 function checkIfOverdue(dueDate){
-    const now = new Date();
-    const timeDiff = now - dueDate;
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    const hoursDiff = calculateHoursDifference(dueDate, new Date());
     return hoursDiff >= 24;
 }
 
 // Function to check if any tasks are nearing their deadlines or overdue
 export async function checkTasksAndNotify() {
     try {
-        const tasks = await Task.find({ status: { $in: ['To Do', 'In Progress', 'Blocked'] } });
+        const tasks = await Task.find({ status: { $in: ['To Do', 'In Progress', 'Blocked'] } })
+            .populate('project', 'name');
 
         // For parallel email sending, collect all promises
         const emailPromises = [];
@@ -122,9 +126,9 @@ export async function checkTasksAndNotify() {
 
                 const emailContent = generateTaskEmail({
                     taskTitle: task.title,
-                    taskId: task._id,
                     deadline: task.dueDate,
-                    type: isUpcoming ? 'upcoming' : 'overdue'
+                    type: isUpcoming ? 'upcoming' : 'overdue',
+                    projectName: task.project?.name || 'Unknown Project'
                 });
 
                 emailPromises.push(
@@ -176,7 +180,7 @@ export async function sendEmail(to, subject, textContent, htmlContent) {
         }
 
         const transporter = getTransporter(); // Get transporter here, after env vars are set
-        
+
         const mailOptions = {
             from: '"All-In-One STMS" <smuspmg4t5@gmail.com>',
             to: to,
@@ -193,18 +197,3 @@ export async function sendEmail(to, subject, textContent, htmlContent) {
         return { success: false, error: error.message };
     }
 }
-
-// // Test function - only runs if this file is executed directly
-// import { pathToFileURL } from 'url';
-// if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-//     (async () => {
-//         console.log('Sending test email...');
-//         const result = await sendEmail(
-//             process.env.TEST_EMAIL_TO,
-//             'Test Email from All-In-One STMS',
-//             'This is a test email sent using Nodemailer.',
-//             '<b>This is a test email sent using Nodemailer.</b>'
-//         );
-//         console.log('Test result:', result);
-//     })();
-// }
