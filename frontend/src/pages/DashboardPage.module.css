@@ -7,9 +7,9 @@
 .welcome {
   margin-bottom: var(--spacing-2xl);
   padding: var(--spacing-lg) var(--spacing-md);
-  background: linear-gradient(135deg, rgba(0, 123, 255, 0.05) 0%, rgba(0, 123, 255, 0.02) 100%);
+  background: var(--color-background-secondary);
   border-radius: var(--border-radius-lg);
-  border-left: 4px solid var(--color-primary, #007bff);
+  border-left: 4px solid var(--color-primary);
 }
 
 .welcome h1 {
@@ -38,13 +38,13 @@
   border: 1px solid var(--color-border, #e5e7eb);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: var(--border-radius-lg);
-  background: white;
+  background: var(--color-background);
 }
 
 .statCard:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 123, 255, 0.15);
-  border-color: rgba(0, 123, 255, 0.3);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
 }
 
 .stat {
@@ -92,7 +92,7 @@
   align-items: center;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid rgba(0, 123, 255, 0.1);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .sectionHeader h2 {
@@ -123,21 +123,21 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-sm);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--color-border);
   transition: all 0.2s ease;
   border-radius: var(--border-radius-sm);
   margin-bottom: 2px;
 }
 
 .taskItem:hover {
-  background-color: rgba(0, 123, 255, 0.03);
-  border-bottom-color: rgba(0, 123, 255, 0.15);
+  background-color: var(--color-background-secondary);
+  border-bottom-color: var(--color-primary);
   transform: translateX(4px);
-  box-shadow: -4px 0 0 rgba(0, 123, 255, 0.3);
+  box-shadow: -4px 0 0 var(--color-primary);
 }
 
 .taskItem:last-child {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .taskInfo {
@@ -210,4 +210,43 @@
 .actionButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+}
+
+.tabContainer {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--spacing-lg);
+  background-color: var(--color-background-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 4px;
+  width: fit-content;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--border-radius-md) - 2px);
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab:hover {
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+
+.tab.activeTab {
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
 }

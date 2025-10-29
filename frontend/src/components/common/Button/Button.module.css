@@ -73,12 +73,12 @@
 }
 
 .warning {
-  background-color: #f59e0b;
+  background-color: var(--color-warning);
   color: white;
 }
 
 .warning:hover:not(.disabled) {
-  background-color: #d97706;
+  background-color: var(--color-warning-light);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
