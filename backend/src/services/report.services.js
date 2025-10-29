@@ -760,7 +760,6 @@ class ReportService {
             'In Progress': [],
             'Completed': []
         };
-        
         tasks.forEach(task => {
             if (grouped[task.status]) {
                 // Format assignees
@@ -768,18 +767,32 @@ class ReportService {
                 if (task.assignee && task.assignee.length > 0) {
                     assigneeStr = task.assignee.map(a => `${a.username} (${a.department || 'Not set'}, ${a.roles && a.roles.length > 0 ? a.roles[0] : 'Not set'})`).join('; ');
                 }
-                
+                // Format tags as comma-separated string
+                let tagsStr = 'No tags';
+                if (task.tags) {
+                    if (Array.isArray(task.tags)) {
+                        tagsStr = task.tags.length > 0 ? task.tags.join(', ') : 'No tags';
+                    } else if (typeof task.tags === 'string' && task.tags.trim().length > 0) {
+                        tagsStr = task.tags;
+                    }
+                }
+                // Format priority
+                let priorityStr = 'Not set';
+                if (task.priority !== undefined && task.priority !== null) {
+                    priorityStr = task.priority.toString();
+                }
                 grouped[task.status].push({
                     id: task._id.toString(),
                     title: task.title,
                     owner: task.owner ? `${task.owner.username} (${task.owner.department || 'Not set'}, ${task.owner.roles && task.owner.roles.length > 0 ? task.owner.roles[0] : 'Not set'})` : 'No owner',
                     assignee: assigneeStr,
                     createdAt: this.formatDate(task.createdAt),
-                    dueDate: task.dueDate ? this.formatDate(task.dueDate) : 'No deadline'
+                    dueDate: task.dueDate ? this.formatDate(task.dueDate) : 'No deadline',
+                    priority: priorityStr,
+                    tags: tagsStr
                 });
             }
         });
-        
         return grouped;
     }
 
@@ -828,38 +841,37 @@ class ReportService {
         
         statuses.forEach(status => {
             const tasks = reportData.tasksByStatus[status];
-            
             // Convert tasks to worksheet format
             const worksheetData = [
                 // Header row
-                ['Task ID', 'Task Name', 'Owner', 'Assignee(s)', 'Created Date', 'Due Date']
+                ['Task ID', 'Task Name', 'Priority', 'Tags', 'Owner', 'Assignee(s)', 'Created Date', 'Due Date']
             ];
-            
             // Add task rows
             tasks.forEach(task => {
                 worksheetData.push([
                     task.id,
                     task.title,
+                    task.priority,
+                    task.tags,
                     task.owner,
                     task.assignee,
                     task.createdAt,
                     task.dueDate
                 ]);
             });
-            
             // Create worksheet
             const worksheet = xlsx.utils.aoa_to_sheet(worksheetData);
-            
             // Auto-size columns
             worksheet['!cols'] = [
                 { wch: 25 }, // Task ID
                 { wch: 30 }, // Task Name
+                { wch: 10 }, // Priority
+                { wch: 20 }, // Tags
                 { wch: 40 }, // Owner
                 { wch: 50 }, // Assignees
                 { wch: 15 }, // Created Date
                 { wch: 15 }  // Due Date
             ];
-            
             // Add worksheet to workbook
             xlsx.utils.book_append_sheet(workbook, worksheet, status);
         });
@@ -1106,7 +1118,10 @@ class ReportService {
     <table class="task-table">
         <thead>
             <tr>
+                <th>Task ID</th>
                 <th>Task Name</th>
+                <th>Priority</th>
+                <th>Tags</th>
                 <th>Owner</th>
                 <th>Assignee(s)</th>
                 <th>Created</th>
@@ -1114,18 +1129,19 @@ class ReportService {
             </tr>
         </thead>
         <tbody>`;
-
             tasks.forEach(task => {
                 html += `
             <tr>
+                <td>${task.id}</td>
                 <td>${task.title}</td>
+                <td>${task.priority}</td>
+                <td>${task.tags}</td>
                 <td>${task.owner}</td>
                 <td>${task.assignee}</td>
                 <td>${task.createdAt}</td>
                 <td>${task.dueDate}</td>
             </tr>`;
             });
-
             html += `
         </tbody>
     </table>`;
