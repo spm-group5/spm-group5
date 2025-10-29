@@ -295,7 +295,8 @@ class TaskController {
             const userName = req.user.username;
     
             // Fetch task first to get details for notifications
-            const task = await taskModel.findById(taskId);
+            const task = await taskModel.findById(taskId)
+            .populate('project', 'name')
             if (!task) {
                 return res.status(404).json({ success: false, message: 'Task not found' });
             }
@@ -328,7 +329,11 @@ class TaskController {
                     notificationModel.create({
                         user: userId,
                         message: `${userName} archived task: "${task.title}"`,
-                        task: task._id
+                        task: task._id,
+                        project: task.project?._id || null,
+                        projectName: task.project?.name || 'Unknown Project',
+                        taskName: task.title,
+                        archivedBy: userName
                     })
                 ));
 
