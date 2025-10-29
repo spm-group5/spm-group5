@@ -245,6 +245,37 @@ class SubtaskService {
       throw error;
     }
   }
+
+  /**
+   * Manual Time Logging: Update subtask time taken
+   */
+  async updateSubtaskTimeTaken(subtaskId, timeTaken) {
+    try {
+      // Validate input
+      if (timeTaken === null || timeTaken === undefined || timeTaken === '') {
+        throw new Error('Time taken cannot be blank');
+      }
+
+      const numTimeTaken = Number(timeTaken);
+      if (isNaN(numTimeTaken) || numTimeTaken < 0) {
+        throw new Error('Time taken must be a positive number');
+      }
+
+      // Find and update subtask
+      const subtask = await Subtask.findById(subtaskId);
+      if (!subtask) {
+        throw new Error('Subtask not found');
+      }
+
+      subtask.timeTaken = numTimeTaken;
+      subtask.updatedAt = new Date();
+      await subtask.save();
+
+      return subtask;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new SubtaskService();
