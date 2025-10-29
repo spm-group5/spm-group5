@@ -285,14 +285,18 @@
 
 .metadata {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin: var(--spacing-lg) 0;
+  overflow: visible;
 }
 
 .metaItem {
   display: flex;
-  gap: var(--spacing-sm);
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+  overflow: visible;
 }
 
 .metaLabel {
@@ -339,6 +343,79 @@
   margin-top: var(--spacing-md);
 }
 
+/* Time Summary Section */
+.timeSummarySection {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, #f0f9ff 0%, #f5f9ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.timeSummaryTitle {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.timeSummaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--spacing-sm);
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #dbeafe;
+  transition: all 0.2s ease;
+}
+
+.timeSummaryItem:hover {
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  border-color: #93c5fd;
+}
+
+.timeSummaryLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timeSummaryValue {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: #1e40af;
+}
+
+.totalTimeItem {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1.5px solid #3b82f6;
+  padding: var(--spacing-md);
+}
+
+.totalTimeItem:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.timeSummaryValueTotal {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: #1e3a8a;
+}
+
 @media (max-width: 768px) {
   .compactHeader {
     flex-direction: column;
@@ -347,7 +424,7 @@
   }
 
   .compactBadges {
-    margin-left: 24px;
+    flex-wrap: wrap;
   }
 
   .metadata {
@@ -362,5 +439,13 @@
 
   .subtasksHeader button {
     width: 100%;
+  }
+
+  .timeSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .totalTimeItem {
+    grid-column: 1;
   }
 }

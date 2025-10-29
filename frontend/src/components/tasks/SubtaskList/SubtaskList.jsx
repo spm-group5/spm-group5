@@ -9,7 +9,8 @@ const SubtaskList = ({
   parentTaskId, 
   onShowSubtaskForm,
   onArchiveSubtask,
-  onUnarchiveSubtask
+  onUnarchiveSubtask,
+  onTotalTimeUpdate
 }) => {
   const { 
     subtasks, 
@@ -114,6 +115,7 @@ const SubtaskList = ({
               onArchive={handleArchive}
               onUnarchive={handleUnarchive}
               isArchived={false}
+              onTotalTimeUpdate={onTotalTimeUpdate}
             />
           ))}
         </div>
@@ -143,6 +145,7 @@ const SubtaskList = ({
                   onArchive={handleArchive}
                   onUnarchive={handleUnarchive}
                   isArchived={true}
+                  onTotalTimeUpdate={onTotalTimeUpdate}
                 />
               ))}
             </div>
