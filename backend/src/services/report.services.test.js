@@ -958,4 +958,506 @@ describe('Report Service Test', () => {
             });
         });
     });
+
+    // Department Logged Time Report Tests
+    describe('Department Logged Time Report', () => {
+        let itUser1, itUser2, hrUser1, salesUser1, engineeringUser1;
+        let project1, project2, project3;
+        const Subtask = mongoose.model('Subtask');
+
+        beforeEach(async () => {
+            // Clean up
+            await Task.deleteMany({});
+            await User.deleteMany({});
+            await Project.deleteMany({});
+            await Subtask.deleteMany({});
+
+            // Create users from different departments
+            itUser1 = await User.create({
+                username: 'ituser1@example.com',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password123'
+            });
+
+            itUser2 = await User.create({
+                username: 'ituser2@example.com',
+                roles: ['staff'],
+                department: 'it',
+                hashed_password: 'password456'
+            });
+
+            hrUser1 = await User.create({
+                username: 'hruser1@example.com',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'password789'
+            });
+
+            salesUser1 = await User.create({
+                username: 'salesuser1@example.com',
+                roles: ['staff'],
+                department: 'sales',
+                hashed_password: 'password000'
+            });
+
+            engineeringUser1 = await User.create({
+                username: 'engineeringuser1@example.com',
+                roles: ['staff'],
+                department: 'engineering',
+                hashed_password: 'password111'
+            });
+
+            // Create multiple projects
+            project1 = await Project.create({
+                name: 'Project 1',
+                description: 'Test project 1',
+                owner: itUser1._id
+            });
+
+            project2 = await Project.create({
+                name: 'Project 2',
+                description: 'Test project 2',
+                owner: hrUser1._id
+            });
+
+            project3 = await Project.create({
+                name: 'Project 3',
+                description: 'Test project 3',
+                owner: salesUser1._id
+            });
+        });
+
+        // LTRD-009: Data Completeness - Includes Tasks and Subtasks, Excludes Archived
+        it('LTRD-009: should include all non-archived tasks/subtasks where department is involved, exclude archived', async () => {
+            // Create tasks with various department combinations
+            const taskA = await Task.create({
+                title: 'Task A',
+                status: 'To Do',
+                priority: 8,
+                owner: itUser1._id,
+                assignee: [hrUser1._id],
+                project: project1._id,
+                timeTaken: 90,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const taskB = await Task.create({
+                title: 'Task B',
+                status: 'In Progress',
+                priority: 5,
+                owner: hrUser1._id,
+                assignee: [itUser2._id],
+                project: project2._id,
+                timeTaken: 120,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const taskC = await Task.create({
+                title: 'Task C',
+                status: 'Completed',
+                priority: 3,
+                owner: itUser1._id,
+                assignee: [],
+                project: project1._id,
+                timeTaken: 60,
+                archived: true,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const taskD = await Task.create({
+                title: 'Task D',
+                status: 'Completed',
+                priority: 9,
+                owner: hrUser1._id,
+                assignee: [],
+                project: project3._id,
+                timeTaken: 45,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const subtaskA = await Subtask.create({
+                title: 'Subtask A',
+                status: 'Completed',
+                priority: 7,
+                ownerId: itUser2._id,
+                assigneeId: hrUser1._id,
+                parentTaskId: taskA._id,
+                projectId: project1._id,
+                timeTaken: 30,
+                archived: false
+            });
+
+            const subtaskB = await Subtask.create({
+                title: 'Subtask B',
+                status: 'In Progress',
+                priority: 6,
+                ownerId: itUser1._id,
+                assigneeId: null,
+                parentTaskId: taskB._id,
+                projectId: project2._id,
+                timeTaken: 20,
+                archived: true
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('it');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            // Should include: Task A (owner it), Task B (assignee it), Subtask A (owner it)
+            // Should exclude: Task C (archived), Subtask B (archived), Task D (no it users)
+            expect(allTasks).toHaveLength(3);
+            expect(allTasks.some(t => t.title === 'Task A')).toBe(true);
+            expect(allTasks.some(t => t.title === 'Task B')).toBe(true);
+            expect(allTasks.some(t => t.title === 'Subtask A')).toBe(true);
+            expect(allTasks.some(t => t.title === 'Task C')).toBe(false);
+            expect(allTasks.some(t => t.title === 'Subtask B')).toBe(false);
+            expect(allTasks.some(t => t.title === 'Task D')).toBe(false);
+
+            // Verify total time (90 + 120 + 30 = 240 min = 4 hours)
+            expect(reportData.aggregates.totalLoggedTime).toBe('4 hours');
+        });
+
+        // LTRD-010: Task Inclusion - Owner Department Match
+        it('LTRD-010: should include tasks when owner department matches', async () => {
+            const task1 = await Task.create({
+                title: 'Sales Task 1',
+                status: 'To Do',
+                priority: 5,
+                owner: salesUser1._id,
+                assignee: [],
+                project: project3._id,
+                timeTaken: 90,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('sales');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(1);
+            expect(allTasks[0].title).toBe('Sales Task 1');
+            expect(allTasks[0].loggedTime).toBe('1 hour 30 min');
+        });
+
+        // LTRD-011: Task Inclusion - Assignee Department Match
+        it('LTRD-011: should include tasks when any assignee department matches', async () => {
+            const task1 = await Task.create({
+                title: 'Multi-dept Task',
+                status: 'In Progress',
+                priority: 7,
+                owner: hrUser1._id,
+                assignee: [engineeringUser1, salesUser1],
+                project: project2._id,
+                timeTaken: 120,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('engineering');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(1);
+            expect(allTasks[0].title).toBe('Multi-dept Task');
+            expect(allTasks[0].loggedTime).toBe('2 hours');
+        });
+
+        // LTRD-012: Task Exclusion - No Department Match
+        it('LTRD-012: should exclude tasks when neither owner nor assignees match department', async () => {
+            const task1 = await Task.create({
+                title: 'IT/HR Task',
+                status: 'To Do',
+                priority: 5,
+                owner: itUser1._id,
+                assignee: [hrUser1._id],
+                project: project1._id,
+                timeTaken: 60,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('sales');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(0);
+            expect(reportData.aggregates.totalLoggedTime).toBe('0 min');
+        });
+
+        // LTRD-013: Data Accuracy - Logged Time Values from timeTaken Field
+        it('LTRD-013: should correctly retrieve and format logged time from timeTaken field', async () => {
+            const task1 = await Task.create({
+                title: 'Consultancy Task 1',
+                status: 'To Do',
+                priority: 5,
+                owner: itUser1._id, // Use it user for this test
+                assignee: [],
+                project: project1._id,
+                timeTaken: 90,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task2 = await Task.create({
+                title: 'Consultancy Task 2',
+                status: 'Completed',
+                priority: 7,
+                owner: itUser2._id,
+                assignee: [],
+                project: project2._id,
+                timeTaken: 200,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task3 = await Task.create({
+                title: 'Consultancy Task 3',
+                status: 'In Progress',
+                priority: 8,
+                owner: itUser1._id,
+                assignee: [],
+                project: project3._id,
+                timeTaken: 1500,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const subtask1 = await Subtask.create({
+                title: 'Consultancy Subtask 1',
+                status: 'Completed',
+                priority: 6,
+                ownerId: itUser2._id,
+                assigneeId: null,
+                parentTaskId: task1._id,
+                projectId: project1._id,
+                timeTaken: 30,
+                archived: false
+            });
+
+            const subtask2 = await Subtask.create({
+                title: 'Consultancy Subtask 2',
+                status: 'To Do',
+                priority: 4,
+                ownerId: itUser1._id,
+                assigneeId: null,
+                parentTaskId: task2._id,
+                projectId: project2._id,
+                timeTaken: 45,
+                archived: false
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('it');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(5);
+
+            const task1Data = allTasks.find(t => t.title === 'Consultancy Task 1');
+            const task2Data = allTasks.find(t => t.title === 'Consultancy Task 2');
+            const task3Data = allTasks.find(t => t.title === 'Consultancy Task 3');
+            const subtask1Data = allTasks.find(t => t.title === 'Consultancy Subtask 1');
+            const subtask2Data = allTasks.find(t => t.title === 'Consultancy Subtask 2');
+
+            expect(task1Data.loggedTime).toBe('1 hour 30 min');
+            expect(task2Data.loggedTime).toBe('3 hours 20 min');
+            expect(task3Data.loggedTime).toBe('1 day 1 hour');
+            expect(subtask1Data.loggedTime).toBe('30 min');
+            expect(subtask2Data.loggedTime).toBe('45 min');
+
+            // Total: 90 + 200 + 1500 + 30 + 45 = 1865 minutes = 1 day 7 hours 5 min
+            expect(reportData.aggregates.totalLoggedTime).toBe('1 day 7 hours 5 min');
+        });
+
+        // LTRD-014: Aggregation - Total Time Formatting
+        it('LTRD-014: should aggregate total logged time and format correctly', async () => {
+            const task1 = await Task.create({
+                title: 'Systems Task 1',
+                status: 'To Do',
+                priority: 5,
+                owner: itUser1._id, // Use it for this test
+                assignee: [],
+                project: project1._id,
+                timeTaken: 45,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task2 = await Task.create({
+                title: 'Systems Task 2',
+                status: 'Completed',
+                priority: 7,
+                owner: itUser2._id,
+                assignee: [],
+                project: project2._id,
+                timeTaken: 120,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task3 = await Task.create({
+                title: 'Systems Task 3',
+                status: 'In Progress',
+                priority: 8,
+                owner: itUser1._id,
+                assignee: [],
+                project: project3._id,
+                timeTaken: 1500,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('it');
+
+            // Total: 45 + 120 + 1500 = 1665 minutes = 1 day 3 hours 45 min
+            expect(reportData.aggregates.totalLoggedTime).toBe('1 day 3 hours 45 min');
+            expect(reportData.aggregates.total).toBe(3);
+        });
+
+        // LTRD-015: Cross-Project Scope - Tasks from Multiple Projects
+        it('LTRD-015: should include tasks from all projects for the department', async () => {
+            const task1 = await Task.create({
+                title: 'Finance Task in Project 1',
+                status: 'To Do',
+                priority: 5,
+                owner: itUser1._id, // Use it for this test
+                assignee: [],
+                project: project1._id,
+                timeTaken: 60,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task2 = await Task.create({
+                title: 'Finance Task in Project 2',
+                status: 'In Progress',
+                priority: 7,
+                owner: itUser2._id,
+                assignee: [],
+                project: project2._id,
+                timeTaken: 90,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task3 = await Task.create({
+                title: 'Finance Task in Project 3',
+                status: 'Completed',
+                priority: 8,
+                owner: itUser1._id,
+                assignee: [],
+                project: project3._id,
+                timeTaken: 120,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('it');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(3);
+            expect(allTasks.some(t => t.title === 'Finance Task in Project 1')).toBe(true);
+            expect(allTasks.some(t => t.title === 'Finance Task in Project 2')).toBe(true);
+            expect(allTasks.some(t => t.title === 'Finance Task in Project 3')).toBe(true);
+
+            // Verify tasks come from different projects
+            const projects = allTasks.map(t => t.project);
+            expect(projects).toContain('Project 1');
+            expect(projects).toContain('Project 2');
+            expect(projects).toContain('Project 3');
+        });
+
+        // Edge case: Empty department
+        it('should handle department with no tasks', async () => {
+            // Create task with different department
+            await Task.create({
+                title: 'IT Task',
+                status: 'To Do',
+                priority: 5,
+                owner: itUser1._id,
+                assignee: [],
+                project: project1._id,
+                timeTaken: 60,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('finance');
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked'],
+                ...reportData.data['Completed']
+            ];
+
+            expect(allTasks).toHaveLength(0);
+            expect(reportData.aggregates.total).toBe(0);
+            expect(reportData.aggregates.totalLoggedTime).toBe('0 min');
+        });
+
+        // Edge case: Invalid department
+        it('should throw error for invalid department', async () => {
+            await expect(
+                reportService.generateDepartmentLoggedTimeReportData('invalid_dept')
+            ).rejects.toThrow(/Invalid department/i);
+        });
+
+        // Metadata validation
+        it('should return correct metadata for department report', async () => {
+            const task1 = await Task.create({
+                title: 'HR Task',
+                status: 'To Do',
+                priority: 5,
+                owner: hrUser1._id,
+                assignee: [],
+                project: project2._id,
+                timeTaken: 60,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData('hr');
+
+            expect(reportData.metadata).toBeDefined();
+            expect(reportData.metadata.type).toBe('department-logged-time');
+            expect(reportData.metadata.department).toBe('hr');
+            expect(reportData.metadata.generatedAt).toBeDefined();
+        });
+    });
 });
