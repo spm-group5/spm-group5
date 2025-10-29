@@ -11,6 +11,7 @@ backend/TEST_CASE_CARDS_TEAM_SUMMARY.html
 
 .claude
 CLAUDE.md
+claude.config.json
 
 # Vite build artifacts
 frontend/.vite/

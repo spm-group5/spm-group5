@@ -16,6 +16,10 @@
     "test:coverage:backend": "cd backend && npm run test:coverage",
     "test:coverage:frontend": "cd frontend && npm run test:coverage"
   },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
   "workspaces": [
     "backend",
     "frontend"
