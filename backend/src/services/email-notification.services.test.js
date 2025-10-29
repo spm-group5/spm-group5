@@ -53,14 +53,14 @@ describe('Email Notification Service - TDD', () => {
             expect(sendMailMock).toHaveBeenCalledTimes(1);
         });
 
-        it('should send email with correct mail options structure', async () => {
+        it('should send email with correct mail options structure including project name', async () => {
             sendMailMock.mockResolvedValue({ messageId: 'test-id' });
 
             await sendEmail(
                 'user@example.com',
                 'Welcome Email',
                 'Welcome to our platform',
-                '<h1>Welcome</h1>'
+                '<h1>Welcome</h1><p><strong>Project:</strong> Customer Portal</p>'
             );
 
             expect(sendMailMock).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe('Email Notification Service - TDD', () => {
                     to: 'user@example.com',
                     subject: 'Welcome Email',
                     text: 'Welcome to our platform',
-                    html: '<h1>Welcome</h1>'
+                    html: expect.stringContaining('Customer Portal')
                 })
             );
         });
