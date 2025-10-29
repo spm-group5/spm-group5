@@ -631,4 +631,331 @@ describe('Report Service Test', () => {
             expect(formatted).toMatch(/15-01-2024 at \d{2}:\d{2}/);
         });
     });
+
+    // =============================================================================
+    // LOGGED TIME REPORT TESTS - Comprehensive Coverage
+    // =============================================================================
+    describe('Logged Time Report - Data Accuracy and Formatting', () => {
+        let adminUser, staffUser, testProject;
+
+        beforeEach(async () => {
+            // Clean up
+            await Task.deleteMany({});
+            await User.deleteMany({});
+            await Project.deleteMany({});
+            
+            // Create test users
+            adminUser = await User.create({
+                username: 'admin@test.com',
+                roles: ['admin'],
+                department: 'it',
+                hashed_password: 'pass123'
+            });
+            
+            staffUser = await User.create({
+                username: 'staff@test.com',
+                roles: ['staff'],
+                department: 'hr',
+                hashed_password: 'pass456'
+            });
+            
+            // Create test project
+            testProject = await Project.create({
+                name: 'Logged Time Test Project',
+                description: 'Project for testing logged time',
+                owner: adminUser._id
+            });
+        });
+
+        // LTR-010: Data Accuracy - Logged Time Values from timeTaken Field
+        it('LTR-010: should correctly retrieve timeTaken field values for tasks', async () => {
+            // Create tasks with specific timeTaken values
+            const task1 = await Task.create({
+                title: 'Task with 90 min',
+                status: 'To Do',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 90,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task2 = await Task.create({
+                title: 'Task with 200 min',
+                status: 'Completed',
+                priority: 7,
+                owner: staffUser._id,
+                assignee: [adminUser._id],
+                project: testProject._id,
+                timeTaken: 200,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const task3 = await Task.create({
+                title: 'Task with 1500 min',
+                status: 'In Progress',
+                priority: 8,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 1500,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+
+            // Verify tasks are in the report
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['Completed'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked']
+            ];
+
+            expect(allTasks).toHaveLength(3);
+
+            // Find each task and verify logged time
+            const task1Data = allTasks.find(t => t.title === 'Task with 90 min');
+            const task2Data = allTasks.find(t => t.title === 'Task with 200 min');
+            const task3Data = allTasks.find(t => t.title === 'Task with 1500 min');
+
+            expect(task1Data).toBeDefined();
+            expect(task2Data).toBeDefined();
+            expect(task3Data).toBeDefined();
+
+            expect(task1Data.loggedTime).toBe('1 hour 30 min'); // 90 min
+            expect(task2Data.loggedTime).toBe('3 hours 20 min'); // 200 min
+            expect(task3Data.loggedTime).toBe('1 day 1 hour'); // 1500 min = 25 hours
+
+            // Verify total logged time (1790 min = 29 hours 50 min = 1 day 5 hours 50 min)
+            expect(reportData.aggregates.totalLoggedTime).toBe('1 day 5 hours 50 min');
+        });
+
+        // LTR-011: Data Accuracy - Subtask Logged Time Values
+        it('LTR-011: should correctly retrieve timeTaken field values for subtasks', async () => {
+            const Subtask = mongoose.model('Subtask');
+            
+            const task1 = await Task.create({
+                title: 'Parent Task',
+                status: 'In Progress',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 100,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const subtask1 = await Subtask.create({
+                title: 'Subtask with 30 min',
+                status: 'Completed',
+                priority: 5,
+                ownerId: adminUser._id,
+                assigneeId: staffUser._id,
+                parentTaskId: task1._id,
+                projectId: testProject._id,
+                timeTaken: 30
+            });
+
+            const subtask2 = await Subtask.create({
+                title: 'Subtask with 45 min',
+                status: 'To Do',
+                priority: 6,
+                ownerId: staffUser._id,
+                assigneeId: adminUser._id,
+                parentTaskId: task1._id,
+                projectId: testProject._id,
+                timeTaken: 45
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['Completed'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked']
+            ];
+
+            // Should have 1 task + 2 subtasks = 3 items
+            expect(allTasks).toHaveLength(3);
+
+            const subtask1Data = allTasks.find(t => t.title === 'Subtask with 30 min');
+            const subtask2Data = allTasks.find(t => t.title === 'Subtask with 45 min');
+
+            expect(subtask1Data).toBeDefined();
+            expect(subtask2Data).toBeDefined();
+
+            expect(subtask1Data.loggedTime).toBe('30 min');
+            expect(subtask2Data.loggedTime).toBe('45 min');
+
+            // Total = 100 + 30 + 45 = 175 minutes = 2 hours 55 min
+            expect(reportData.aggregates.totalLoggedTime).toBe('2 hours 55 min');
+        });
+
+        // LTR-012: Data Accuracy - Zero vs Non-Zero Logged Time
+        it('LTR-012: should handle both zero and non-zero timeTaken values correctly', async () => {
+            const taskZero = await Task.create({
+                title: 'Task with 0 min',
+                status: 'To Do',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 0,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const taskNonZero = await Task.create({
+                title: 'Task with 120 min',
+                status: 'Completed',
+                priority: 7,
+                owner: staffUser._id,
+                assignee: [adminUser._id],
+                project: testProject._id,
+                timeTaken: 120,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['Completed'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked']
+            ];
+
+            const zeroTask = allTasks.find(t => t.title === 'Task with 0 min');
+            const nonZeroTask = allTasks.find(t => t.title === 'Task with 120 min');
+
+            expect(zeroTask.loggedTime).toBe('0 min');
+            expect(nonZeroTask.loggedTime).toBe('2 hours');
+            expect(reportData.aggregates.totalLoggedTime).toBe('2 hours');
+        });
+
+        // LTR-013: Formatting - Time Display in Minutes
+        it('LTR-013: should format time < 60 minutes as "X min"', async () => {
+            await Task.create({
+                title: 'Task 45 min',
+                status: 'To Do',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 45,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+            const task = reportData.data['To Do'][0];
+
+            expect(task.loggedTime).toBe('45 min');
+        });
+
+        // LTR-014: Formatting - Time Display in Hours
+        it('LTR-014: should format time between 60 and 480 minutes as "X.XX hr"', async () => {
+            await Task.create({
+                title: 'Task 200 min',
+                status: 'In Progress',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 200,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+            const task = reportData.data['In Progress'][0];
+
+            expect(task.loggedTime).toBe('3 hours 20 min'); // 200 min
+        });
+
+        // LTR-015: Formatting - Time Display in Days
+        it('LTR-015: should format time >= 480 minutes as "X.XX day"', async () => {
+            await Task.create({
+                title: 'Task 1500 min',
+                status: 'Completed',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 1500,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+            const task = reportData.data['Completed'][0];
+
+            expect(task.loggedTime).toBe('1 day 1 hour'); // 1500 min = 25 hours
+        });
+
+        // Additional: Verify archived tasks are excluded
+        it('should exclude archived tasks from logged time report', async () => {
+            await Task.create({
+                title: 'Active Task',
+                status: 'To Do',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 100,
+                archived: false,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            await Task.create({
+                title: 'Archived Task',
+                status: 'Completed',
+                priority: 5,
+                owner: adminUser._id,
+                assignee: [staffUser._id],
+                project: testProject._id,
+                timeTaken: 200,
+                archived: true,
+                dueDate: new Date(Date.now() + 86400000)
+            });
+
+            const reportData = await reportService.generateProjectLoggedTimeReportData(testProject._id.toString());
+            
+            const allTasks = [
+                ...reportData.data['To Do'],
+                ...reportData.data['Completed'],
+                ...reportData.data['In Progress'],
+                ...reportData.data['Blocked']
+            ];
+
+            expect(allTasks).toHaveLength(1);
+            expect(allTasks[0].title).toBe('Active Task');
+            expect(reportData.aggregates.totalLoggedTime).toBe('1 hour 40 min'); // Only 100 min
+        });
+
+        // Test formatLoggedTime utility directly
+        describe('formatLoggedTime utility', () => {
+            it('should format < 60 minutes correctly', () => {
+                expect(reportService.formatLoggedTime(0)).toBe('0 min');
+                expect(reportService.formatLoggedTime(30)).toBe('30 min');
+                expect(reportService.formatLoggedTime(59)).toBe('59 min');
+            });
+
+            it('should format 60-1439 minutes as hours and minutes', () => {
+                expect(reportService.formatLoggedTime(60)).toBe('1 hour');
+                expect(reportService.formatLoggedTime(90)).toBe('1 hour 30 min');
+                expect(reportService.formatLoggedTime(120)).toBe('2 hours');
+                expect(reportService.formatLoggedTime(200)).toBe('3 hours 20 min');
+                expect(reportService.formatLoggedTime(1439)).toBe('23 hours 59 min');
+            });
+
+            it('should format >= 1440 minutes as days, hours, and minutes', () => {
+                expect(reportService.formatLoggedTime(1440)).toBe('1 day');
+                expect(reportService.formatLoggedTime(1500)).toBe('1 day 1 hour');
+                expect(reportService.formatLoggedTime(1525)).toBe('1 day 1 hour 25 min');
+                expect(reportService.formatLoggedTime(2880)).toBe('2 days');
+                expect(reportService.formatLoggedTime(3665)).toBe('2 days 13 hours 5 min');
+                expect(reportService.formatLoggedTime(10000)).toBe('6 days 22 hours 40 min');
+            });
+        });
+    });
 });
