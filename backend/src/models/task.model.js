@@ -21,7 +21,11 @@ const taskSchema = new Schema({
         required: true,
         min: 1,
         max: 10,
-        default: 5
+        default: 5,
+        validate: {
+            validator: Number.isInteger,
+            message: 'Priority must be an integer'
+        }
     },
     status: {
         type: String,

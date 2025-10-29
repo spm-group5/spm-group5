@@ -392,8 +392,25 @@ function TaskForm({ task, onSubmit, onCancel }) {
               type="number"
               min="1"
               max="10"
+              step="1"
+              onKeyDown={(e) => {
+                // Prevent decimal point, 'e', 'E', '+', '-' characters
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+                  e.preventDefault();
+                }
+              }}
               {...register('priority', {
                 required: 'Priority is required',
+                validate: {
+                  integer: (value) => {
+                    const num = Number(value);
+                    return Number.isInteger(num) || 'Priority must be a whole number';
+                  },
+                  range: (value) => {
+                    const num = Number(value);
+                    return (num >= 1 && num <= 10) || 'Priority must be between 1 and 10';
+                  }
+                },
                 min: {
                   value: 1,
                   message: 'Priority must be between 1 and 10',

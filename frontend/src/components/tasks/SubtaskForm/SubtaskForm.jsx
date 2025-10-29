@@ -70,7 +70,12 @@ const SubtaskForm = ({
       newErrors.description = 'Description cannot exceed 1000 characters';
     }
 
-    if (!formData.priority || formData.priority < 1 || formData.priority > 10) {
+    const priorityNum = Number(formData.priority);
+    if (!formData.priority) {
+      newErrors.priority = 'Priority is required';
+    } else if (!Number.isInteger(priorityNum)) {
+      newErrors.priority = 'Priority must be a whole number';
+    } else if (priorityNum < 1 || priorityNum > 10) {
       newErrors.priority = 'Priority must be between 1 and 10';
     }
 
@@ -182,8 +187,15 @@ const SubtaskForm = ({
               type="number"
               min="1"
               max="10"
+              step="1"
               value={formData.priority}
               onChange={handleChange}
+              onKeyDown={(e) => {
+                // Prevent decimal point, 'e', 'E', '+', '-' characters
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+                  e.preventDefault();
+                }
+              }}
               error={errors.priority}
               required
             />
