@@ -34,7 +34,7 @@ const notificationSchema = new Schema({
     ref: "projects",
   },
   projectName: { 
-     type: String,
+    type: String,
   }
 });
 

@@ -36,8 +36,16 @@ describe('Task Controller Test', () => {
 			json: vi.fn().mockReturnThis()
 		};
 		vi.clearAllMocks();
-		taskModel.findById = vi.fn();
+		const mockPopulate = vi.fn().mockReturnThis();
+		const mockFindById = vi.fn().mockReturnValue({
+			populate: mockPopulate
+		});
+		
+		taskModel.findById = mockFindById;
 		notificationModel.create = vi.fn();
+		
+		// Set default implementation
+		mockPopulate.mockResolvedValue(null);
 	});
 
 	describe('createTask', () => {
@@ -286,7 +294,7 @@ describe('Task Controller Test', () => {
 			req.user = { _id: '507f1f77bcf86cd799439015', username: 'testuser' };
 			
 			// Mock the new controller flow
-			taskModel.findById.mockResolvedValue(mockTask);
+			taskModel.findById().populate.mockResolvedValue(mockTask);
 			taskService.archiveTask.mockResolvedValue(mockArchivedTask);
 			notificationModel.create.mockResolvedValue({});
 		
@@ -306,7 +314,7 @@ describe('Task Controller Test', () => {
 			req.user = { _id: '507f1f77bcf86cd799439015' };
 			
 			// Mock taskModel.findById to return null (task not found)
-			taskModel.findById.mockResolvedValue(null);
+			taskModel.findById().populate.mockResolvedValue(null);
 		
 			await taskController.archiveTask(req, res);
 		
@@ -327,7 +335,7 @@ describe('Task Controller Test', () => {
 			req.user = { _id: '507f1f77bcf86cd799439016' };
 			
 			// Mock taskModel.findById to return the task
-			taskModel.findById.mockResolvedValue(mockTask);
+			taskModel.findById().populate.mockResolvedValue(mockTask);
 			// Mock service to throw permission error
 			taskService.archiveTask.mockRejectedValue(
 				new Error('You do not have permission to archive this task')
@@ -353,7 +361,7 @@ describe('Task Controller Test', () => {
 			req.user = { _id: '507f1f77bcf86cd799439016' };
 			
 			// Mock taskModel.findById to return the task
-			taskModel.findById.mockResolvedValue(mockTask);
+			taskModel.findById().populate.mockResolvedValue(mockTask);
 			// Mock service to throw other error
 			taskService.archiveTask.mockRejectedValue(new Error('Database error'));
 		
