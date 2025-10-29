@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
 import Card from '../../common/Card/Card';
+import apiService from '../../../services/api';
 import styles from './TaskForm.module.css';
 
 function TaskForm({ task, onSubmit, onCancel }) {
@@ -12,13 +13,22 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const { user } = useAuth();
   const isEditing = !!task;
 
-  const [projectMembers, setProjectMembers] = useState([]);
+  // Debug logging for edit mode
+  if (isEditing) {
+    console.log('📝 TaskForm in EDIT mode');
+    console.log('  Task:', task);
+    console.log('  Task project:', task?.project);
+    console.log('  Task project _id:', task?.project?._id);
+  }
+
+  const [eligibleAssignees, setEligibleAssignees] = useState([]);
+  const [selectedAssignees, setSelectedAssignees] = useState([]);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
   const {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
@@ -36,58 +46,284 @@ function TaskForm({ task, onSubmit, onCancel }) {
   });
 
   const watchedProject = watch('project');
-  const watchedAssignees = watch('assignee');
   const watchedIsRecurring = watch('isRecurring');
 
+  // Fetch all users for managers/admins in create mode, or all users in edit mode
   useEffect(() => {
-    if (watchedProject) {
-      const project = projects.find(p => p._id === watchedProject);
-      if (project?.members) {
-        setProjectMembers(project.members);
-      } else {
-        setProjectMembers([]);
-      }
-    } else {
-      setProjectMembers([]);
-    }
-  }, [watchedProject, projects]);
+    const fetchEligibleAssignees = async () => {
+      console.log('🔄 fetchEligibleAssignees called', { watchedProject, isEditing, user });
 
-  // In create mode, ensure creator is always included
+      if (!watchedProject) {
+        setEligibleAssignees([]);
+        setSelectedAssignees([]);
+        return;
+      }
+
+      const project = projects.find(p => p._id === watchedProject);
+      if (!project) {
+        setEligibleAssignees([]);
+        return;
+      }
+
+      // Check if user is manager or admin
+      const isManagerOrAdmin = user?.roles?.includes('manager') || user?.roles?.includes('admin');
+      console.log('👤 User role check:', { isManagerOrAdmin, roles: user?.roles });
+
+      let fetchedUsers = [];
+
+      try {
+        // In create mode with manager/admin: fetch all users
+        if (!isEditing && isManagerOrAdmin) {
+          try {
+            console.log('📡 Fetching all users from /users endpoint...');
+            const response = await apiService.request('/users');
+            console.log('✅ Received response:', response);
+
+            if (response.data && Array.isArray(response.data)) {
+              // Log first user to see structure
+              if (response.data.length > 0) {
+                console.log('📊 First user structure:', response.data[0]);
+                console.log('📊 First user _id:', response.data[0]._id);
+                console.log('📊 First user id:', response.data[0].id);
+              }
+
+              // Transform to match expected format
+              fetchedUsers = response.data.map(u => ({
+                _id: u._id || u.id,  // Try both _id and id
+                username: u.username,
+                email: u.username,
+                role: u.roles && u.roles.length > 0 ? u.roles[0] : 'staff',
+                department: u.department
+              }));
+              console.log('✅ Transformed users:', fetchedUsers);
+              console.log('✅ First transformed user:', fetchedUsers[0]);
+              setEligibleAssignees(fetchedUsers);
+            } else {
+              // Fallback to project members if API fails
+              console.log('⚠️ No data in response, using project members');
+              fetchedUsers = project.members || [];
+              setEligibleAssignees(fetchedUsers);
+            }
+          } catch (error) {
+            console.error('❌ Failed to fetch all users, falling back to project members:', error);
+            // Fallback to project members
+            fetchedUsers = project.members || [];
+            setEligibleAssignees(fetchedUsers);
+          }
+        } else {
+          // For non-admin/manager in create mode, use project members
+          console.log('📋 Using project members:', project.members);
+          fetchedUsers = project.members || [];
+          setEligibleAssignees(fetchedUsers);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching eligible assignees:', error);
+        setEligibleAssignees(project.members || []);
+      }
+    };
+
+    fetchEligibleAssignees();
+  }, [watchedProject, projects, isEditing, user?.roles, user?._id, user?.username]);
+
+  // Separate effect to initialize creator when eligibleAssignees changes
   useEffect(() => {
-    if (!isEditing && user?._id && watchedProject) {
-      const currentSelection = watchedAssignees || [];
-      // Always include creator if not present
-      if (!currentSelection.includes(user._id)) {
-        setValue('assignee', [user._id, ...currentSelection.filter(id => id !== user._id)].slice(0, 5), { shouldValidate: true });
+    // Only run in create mode when we have eligible assignees but no selected assignees
+    if (!isEditing && eligibleAssignees.length > 0 && selectedAssignees.length === 0 && user?._id) {
+      console.log('🎯 Initializing creator from eligibleAssignees:', {
+        eligibleCount: eligibleAssignees.length,
+        userId: user._id
+      });
+
+      const creator = eligibleAssignees.find(m => String(m._id) === String(user._id));
+      console.log('👤 Creator found:', creator);
+
+      if (creator) {
+        const creatorObj = {
+          _id: creator._id,
+          username: creator.username,
+          email: creator.email || creator.username,
+          role: creator.role || (creator.roles && creator.roles[0]) || 'staff',
+          isCreator: true
+        };
+        console.log('✅ Setting creator:', creatorObj);
+        setSelectedAssignees([creatorObj]);
+      } else if (user) {
+        // If creator not found in eligible list, add them manually
+        const userObj = {
+          _id: user._id,
+          username: user.username,
+          email: user.username,
+          role: user.roles && user.roles[0] || 'staff',
+          isCreator: true
+        };
+        console.log('⚠️ Creator not in eligible list, adding manually:', userObj);
+        setSelectedAssignees([userObj]);
       }
     }
-  }, [isEditing, user, watchedProject, watchedAssignees, setValue]);
+  }, [eligibleAssignees, isEditing, user?._id, user?.username, user?.roles, selectedAssignees.length]);
+
+  // In edit mode, fetch eligible assignees and initialize selected assignees from task
+  useEffect(() => {
+    const fetchEditModeAssignees = async () => {
+      if (isEditing && task?._id) {
+        try {
+          // Fetch eligible assignees using the task-specific endpoint
+          const response = await apiService.request(`/tasks/${task._id}/assignees`);
+          console.log('📝 Edit mode - Received eligible assignees:', response.data);
+
+          if (response.data && Array.isArray(response.data)) {
+            // Transform to ensure consistent property names
+            const transformedAssignees = response.data.map(u => {
+              console.log('📝 Edit mode - User:', u);
+              return {
+                _id: u._id,
+                username: u.email || u.name || u.username,  // Backend returns 'email' as the username
+                email: u.email || u.name || u.username,
+                role: u.role,
+                department: u.department
+              };
+            });
+            console.log('📝 Edit mode - Transformed assignees:', transformedAssignees);
+            setEligibleAssignees(transformedAssignees);
+          }
+        } catch (error) {
+          console.error('Failed to fetch eligible assignees for edit mode:', error);
+        }
+
+        // Initialize selected assignees from task
+        if (task.assignee) {
+          setSelectedAssignees(task.assignee.map(a => ({
+            _id: a._id || a,
+            username: a.username || a.name || a,
+            email: a.email || a.username || a,
+            role: a.role,
+            isOwner: task.owner?._id === (a._id || a)
+          })));
+        }
+      }
+    };
+
+    fetchEditModeAssignees();
+  }, [isEditing, task]);
+
+  // Handler to add an assignee
+  const handleAddAssignee = () => {
+    console.log('🔘 handleAddAssignee called');
+    console.log('  📋 selectedAssignee:', selectedAssignee);
+    console.log('  📋 eligibleAssignees count:', eligibleAssignees.length);
+    console.log('  📋 eligibleAssignees:', eligibleAssignees);
+    console.log('  📋 selectedAssignees count:', selectedAssignees.length);
+
+    if (!selectedAssignee || selectedAssignee.trim() === '') {
+      console.log('❌ No assignee selected');
+      return;
+    }
+
+    // Check if already at max capacity
+    if (selectedAssignees.length >= 5) {
+      alert('Maximum 5 assignees allowed');
+      return;
+    }
+
+    // Find the assignee from eligible list - compare as strings
+    console.log('🔍 Searching for assignee with ID:', selectedAssignee);
+    console.log('🔍 Eligible IDs:', eligibleAssignees.map(a => ({ id: a._id, username: a.username })));
+
+    const assigneeToAdd = eligibleAssignees.find(a => {
+      const match = String(a._id) === String(selectedAssignee);
+      console.log(`  Comparing ${a._id} === ${selectedAssignee}? ${match}`);
+      return match;
+    });
+
+    console.log('✅ assigneeToAdd:', assigneeToAdd);
+
+    if (!assigneeToAdd) {
+      console.error('❌ Assignee not found in eligible list!');
+      console.error('  Looking for ID:', selectedAssignee);
+      console.error('  Available IDs:', eligibleAssignees.map(a => a._id));
+      alert('Could not find the selected user. Please try again.');
+      return;
+    }
+
+    // Check if already assigned
+    if (selectedAssignees.some(a => String(a._id) === String(assigneeToAdd._id))) {
+      alert('This user is already assigned');
+      return;
+    }
+
+    console.log('Adding assignee:', assigneeToAdd);
+
+    // Add to selected assignees
+    setSelectedAssignees([...selectedAssignees, {
+      _id: assigneeToAdd._id,
+      username: assigneeToAdd.username || assigneeToAdd.email,
+      email: assigneeToAdd.email || assigneeToAdd.username,
+      role: assigneeToAdd.role
+    }]);
+
+    // Clear selection
+    setSelectedAssignee('');
+  };
+
+  // Handler to remove an assignee
+  const handleRemoveAssignee = (assigneeId) => {
+    // Prevent removing the creator in create mode
+    if (!isEditing) {
+      const assigneeToRemove = selectedAssignees.find(a => a._id === assigneeId);
+      if (assigneeToRemove?.isCreator) {
+        alert('Cannot remove the creator from the task');
+        return;
+      }
+    }
+
+    // Must have at least 1 assignee
+    if (selectedAssignees.length <= 1) {
+      alert('Task must have at least one assignee');
+      return;
+    }
+
+    // Confirm removal
+    if (!window.confirm('Remove this assignee?')) {
+      return;
+    }
+
+    setSelectedAssignees(selectedAssignees.filter(a => a._id !== assigneeId));
+  };
 
   const onFormSubmit = async (data) => {
     try {
+        // Validate that there is at least one assignee
+        if (selectedAssignees.length === 0) {
+            alert('Please assign at least one member to the task');
+            return;
+        }
+
+        console.log('🔵 Form data before processing:', data);
+        console.log('🔵 isEditing:', isEditing);
+
         const formattedData = {
             ...data,
             priority: parseInt(data.priority, 10),
             dueDate: data.dueDate || null,
-            // Ensure assignee is properly formatted as array
-            assignee: (() => {
-                if (!data.assignee) return [];
-                if (Array.isArray(data.assignee)) {
-                    return data.assignee.filter(id => id && id.trim() !== '');
-                }
-                return data.assignee.trim() !== '' ? [data.assignee] : [];
-            })(),
+            // Use selectedAssignees state for assignee data
+            assignee: selectedAssignees.map(a => a._id),
             tags: data.tags || '',
             isRecurring: !!data.isRecurring,
             recurrenceInterval: data.isRecurring ? parseInt(data.recurrenceInterval, 10) || null : null,
         };
 
+        console.log('🔵 Formatted data before delete:', formattedData);
+
         // Remove project field when editing (project cannot be changed after creation)
         if (isEditing) {
+            console.log('🔵 Deleting project field...');
             delete formattedData.project;
+            console.log('🔵 After delete, formattedData.project:', formattedData.project);
         }
 
-        console.log('Submitting task data:', formattedData);
+        console.log('🔵 Final data being submitted:', formattedData);
+        console.log('🔵 Keys in formattedData:', Object.keys(formattedData));
+
         await onSubmit(formattedData);
     } catch (error) {
         console.error('Form submission error:', error);
@@ -180,17 +416,17 @@ function TaskForm({ task, onSubmit, onCancel }) {
               <select
                 id="project-select"
                 className={styles.select}
-                {...register('project', { required: 'Project is required' })}
+                {...register('project', {
+                  required: isEditing ? false : 'Project is required'
+                })}
                 disabled={isEditing}
               >
                 <option value="">Select Project</option>
-                {projects
-                  .filter(project => !project.archived && ['To Do', 'In Progress'].includes(project.status))
-                  .map((project) => (
-                    <option key={project._id} value={project._id}>
-                      {project.name}
-                    </option>
-                  ))}
+                {projects.map((project) => (
+                  <option key={project._id} value={project._id}>
+                    {project.name}
+                  </option>
+                ))}
               </select>
               {errors.project && (
                 <div className={styles.errorMessage}>{errors.project.message}</div>
@@ -202,90 +438,11 @@ function TaskForm({ task, onSubmit, onCancel }) {
               )}
             </div>
 
-            <div className={styles.selectContainer}>
-              <label className={styles.selectLabel} htmlFor="assignee-select">
-                Assign To <span className={styles.required}>*</span>
-              </label>
-              {isEditing ? (
-                // In edit mode: Show read-only list of current assignees
-                <>
-                  <div
-                    className={styles.select}
-                    style={{
-                      padding: '8px',
-                      backgroundColor: '#f5f5f5',
-                      minHeight: '100px',
-                      cursor: 'not-allowed'
-                    }}
-                  >
-                    {task?.assignee && task.assignee.length > 0 ? (
-                      task.assignee.map((assignee) => (
-                        <div
-                          key={assignee._id || assignee}
-                          style={{
-                            padding: '4px 0',
-                            color: '#333'
-                          }}
-                        >
-                          {assignee.username || assignee.name || assignee}
-                          {task.owner?._id === (assignee._id || assignee) && (
-                            <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
-                              (Owner)
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ color: '#999' }}>No assignees</div>
-                    )}
-                  </div>
-                  <small className={styles.helpText} style={{ color: '#2563eb' }}>
-                    To add or remove assignees, use the "Manage Assignees" button on the task card
-                  </small>
-                </>
-              ) : (
-                // In create mode: Allow selecting assignees
-                <>
-                  <select
-                    id="assignee-select"
-                    className={styles.select}
-                    multiple
-                    size="5"
-                    {...register('assignee', {
-                      validate: {
-                        maxAssignees: (value) => {
-                          if (Array.isArray(value) && value.length > 5) {
-                            return 'Maximum 5 assignees allowed';
-                          }
-                          return true;
-                        }
-                      }
-                    })}
-                  >
-                    {projectMembers?.map((member) => {
-                      const isCreator = member._id === user?._id;
-                      const label = isCreator ? `${member.username} (You - Creator)` : member.username;
-
-                      return (
-                        <option
-                          key={member._id}
-                          value={member._id}
-                          disabled={isCreator}
-                        >
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {errors.assignee && (
-                    <div className={styles.errorMessage}>{errors.assignee.message}</div>
-                  )}
-                  <small className={styles.helpText}>
-                    You (creator) will be automatically assigned. Select up to 4 more members (max 5 total).
-                  </small>
-                </>
-              )}
-            </div>
+            <Input
+              label="Tags"
+              placeholder="e.g., bug#urgent#frontend"
+              {...register('tags')}
+            />
           </div>
 
           <div className={styles.row}>
@@ -305,12 +462,114 @@ function TaskForm({ task, onSubmit, onCancel }) {
               })}
               error={errors.dueDate?.message}
             />
+          </div>
 
-            <Input
-              label="Tags"
-              placeholder="e.g., bug#urgent#frontend"
-              {...register('tags')}
-            />
+          {/* Manage Assignees Section */}
+          <div style={{ marginBottom: '20px', marginTop: '20px' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+              Assignees <span className={styles.required}>*</span> ({selectedAssignees.length}/5)
+            </h3>
+
+            {/* Current Assignees List */}
+            {selectedAssignees.length > 0 ? (
+              <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '8px', marginBottom: '16px', backgroundColor: '#f9f9f9' }}>
+                {selectedAssignees.map((assignee) => (
+                  <div
+                    key={assignee._id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '8px',
+                      borderBottom: '1px solid #f0f0f0'
+                    }}
+                  >
+                    <span>
+                      {assignee.username || assignee.email}
+                      {assignee.isCreator && !isEditing && (
+                        <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                          (You - Creator)
+                        </span>
+                      )}
+                      {assignee.isOwner && isEditing && (
+                        <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                          (Owner)
+                        </span>
+                      )}
+                    </span>
+                    {selectedAssignees.length > 1 && (!assignee.isCreator || isEditing) && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="small"
+                        onClick={() => handleRemoveAssignee(assignee._id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>No assignees selected</p>
+            )}
+
+            {/* Add Assignee Section */}
+            {selectedAssignees.length < 5 && watchedProject && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
+                  Add Assignee
+                </h4>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="assignee-select" style={{ display: 'block', marginBottom: '8px' }}>
+                      Select User:
+                    </label>
+                    <select
+                      id="assignee-select"
+                      value={selectedAssignee}
+                      onChange={(e) => setSelectedAssignee(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        fontSize: '14px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      <option value="">-- Select user --</option>
+                      {eligibleAssignees
+                        .filter(ea => !selectedAssignees.some(sa => sa._id === ea._id))
+                        .map((assignee) => (
+                          <option key={assignee._id} value={assignee._id}>
+                            {assignee.username} ({assignee.role})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleAddAssignee}
+                    disabled={!selectedAssignee}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {selectedAssignees.length >= 5 && (
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+                Maximum of 5 assignees reached
+              </p>
+            )}
+
+            {!watchedProject && (
+              <p style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '16px' }}>
+                Please select a project first to assign users
+              </p>
+            )}
           </div>
 
           <div className={styles.row}>
