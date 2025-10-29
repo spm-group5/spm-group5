@@ -8,7 +8,7 @@ import Card from '../../common/Card/Card';
 import apiService from '../../../services/api';
 import styles from './TaskForm.module.css';
 
-function TaskForm({ task, onSubmit, onCancel }) {
+function TaskForm({ task, onSubmit, onCancel, initialProject }) {
   const { projects } = useProjects();
   const { user } = useAuth();
   const isEditing = !!task;
@@ -37,7 +37,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
       status: task?.status || 'To Do',
       priority: task?.priority || 5,
       dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-      project: task?.project?._id || task?.project || '',
+      project: task?.project?._id || task?.project || initialProject || '',
       assignee: task?.assignee?.map(a => a._id || a) || [],
       tags: task?.tags || '',
       isRecurring: task?.isRecurring || false,
@@ -426,34 +426,36 @@ function TaskForm({ task, onSubmit, onCancel }) {
           </div>
 
           <div className={styles.row}>
-            <div className={styles.selectContainer}>
-              <label className={styles.selectLabel} htmlFor="project-select">
-                Project <span className={styles.required}>*</span>
-              </label>
-              <select
-                id="project-select"
-                className={styles.select}
-                {...register('project', {
-                  required: isEditing ? false : 'Project is required'
-                })}
-                disabled={isEditing}
-              >
-                <option value="">Select Project</option>
-                {projects.map((project) => (
-                  <option key={project._id} value={project._id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-              {errors.project && (
-                <div className={styles.errorMessage}>{errors.project.message}</div>
-              )}
-              {isEditing && (
-                <small className={styles.helpText}>
-                  Project cannot be changed after creation
-                </small>
-              )}
-            </div>
+            {!initialProject && (
+              <div className={styles.selectContainer}>
+                <label className={styles.selectLabel} htmlFor="project-select">
+                  Project <span className={styles.required}>*</span>
+                </label>
+                <select
+                  id="project-select"
+                  className={styles.select}
+                  {...register('project', {
+                    required: isEditing ? false : 'Project is required'
+                  })}
+                  disabled={isEditing}
+                >
+                  <option value="">Select Project</option>
+                  {projects.map((project) => (
+                    <option key={project._id} value={project._id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.project && (
+                  <div className={styles.errorMessage}>{errors.project.message}</div>
+                )}
+                {isEditing && (
+                  <small className={styles.helpText}>
+                    Project cannot be changed after creation
+                  </small>
+                )}
+              </div>
+            )}
 
             <Input
               label="Tags"

@@ -336,6 +336,7 @@ function ProjectTasksPage() {
             task={editingTask}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
+            initialProject={projectId}
           />
         ) : (
           <>
