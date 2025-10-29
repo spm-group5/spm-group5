@@ -507,5 +507,111 @@ describe('Subtask Service', () => {
       await expect(subtaskService.unarchiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
     });
   });
+
+  describe('Tags Functionality - STK-013, STK-014, STK-015, STT-006', () => {
+    it('STK-013: should create subtask with multiple tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['urgent', 'frontend']
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toEqual(['urgent', 'frontend']);
+      expect(Array.isArray(subtask.tags)).toBe(true);
+    });
+
+    it('STK-014: should create subtask with single tag', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['api']
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toEqual(['api']);
+    });
+
+    it('STT-006: should create subtask with multiple hashtag-separated tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['bug', 'critical', 'release-blocker']
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toEqual(['bug', 'critical', 'release-blocker']);
+      expect(subtask.tags).toHaveLength(3);
+    });
+
+    it('should create subtask without tags (optional)', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toEqual([]);
+    });
+
+    it('STK-015: should update subtask to remove tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['urgent', 'frontend']
+      });
+
+      const updateData = { tags: ['urgent'] }; // Remove 'frontend'
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toEqual(['urgent']);
+      expect(updatedSubtask.tags).toHaveLength(1);
+    });
+
+    it('should update subtask to add new tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['urgent']
+      });
+
+      const updateData = { tags: ['urgent', 'frontend', 'api'] };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toEqual(['urgent', 'frontend', 'api']);
+      expect(updatedSubtask.tags).toHaveLength(3);
+    });
+
+    it('should update subtask to remove all tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: ['urgent', 'frontend']
+      });
+
+      const updateData = { tags: [] };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toEqual([]);
+    });
+  });
 });
 

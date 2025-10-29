@@ -485,5 +485,113 @@ describe('Subtask Model', () => {
       expect(savedSubtask.archivedAt).toBeInstanceOf(Date);
     });
   });
+
+  describe('Tags Field - STK-013, STK-014, STT-006', () => {
+    it('STK-013: should save subtask with multiple tags on creation', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: ['urgent', 'frontend']
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toEqual(['urgent', 'frontend']);
+      expect(Array.isArray(savedSubtask.tags)).toBe(true);
+    });
+
+    it('STK-014: should save subtask with single tag', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: ['api']
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toEqual(['api']);
+    });
+
+    it('STT-006: should save subtask with hashtag-separated multi-tag input', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: ['bug', 'critical', 'release-blocker']
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toEqual(['bug', 'critical', 'release-blocker']);
+      expect(savedSubtask.tags).toHaveLength(3);
+    });
+
+    it('should save subtask without tags (optional field)', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId()
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toEqual([]);
+      expect(Array.isArray(savedSubtask.tags)).toBe(true);
+    });
+
+    it('STK-015: should allow removing tags by updating with new array', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: ['urgent', 'frontend']
+      });
+
+      subtask.tags = ['urgent']; // Remove 'frontend' tag
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toEqual(['urgent']);
+      expect(updatedSubtask.tags).toHaveLength(1);
+    });
+
+    it('should allow removing all tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: ['urgent', 'frontend']
+      });
+
+      subtask.tags = [];
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toEqual([]);
+    });
+
+    it('should reject non-array tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'invalid-string'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      await expect(subtask.save()).rejects.toThrow();
+    });
+  });
 });
 
