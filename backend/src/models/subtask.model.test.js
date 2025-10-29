@@ -407,7 +407,7 @@ describe('Subtask Model', () => {
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.timeTaken).toBeUndefined();
+      expect(savedSubtask.timeTaken).toBe(0); // Default value is now 0
     });
 
     it('should save subtask with timeTaken', async () => {
@@ -416,37 +416,35 @@ describe('Subtask Model', () => {
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '2 hours'
+        timeTaken: 120 // 2 hours in minutes
       };
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.timeTaken).toBe('2 hours');
+      expect(savedSubtask.timeTaken).toBe(120);
     });
 
-    it('should trim whitespace from timeTaken', async () => {
+    it('should reject negative timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '  2 hours  '
+        timeTaken: -10
       };
 
       const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.timeTaken).toBe('2 hours');
+      await expect(subtask.save()).rejects.toThrow();
     });
 
-    it('should reject timeTaken exceeding max length', async () => {
+    it('should reject non-numeric timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: 'a'.repeat(101)
+        timeTaken: 'invalid'
       };
 
       const subtask = new Subtask(subtaskData);

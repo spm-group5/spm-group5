@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Button from "../../common/Button/Button";
 import Card from "../../common/Card/Card";
 import CommentSection from "../TaskComment/TaskCommentSection";
@@ -407,7 +407,7 @@ function TaskCard({
   const handleUpdateTaskTime = async (timeTaken) => {
     setIsUpdatingTime(true);
     try {
-      const response = await apiService.updateTaskTimeTaken(task._id, timeTaken);
+      await apiService.updateTaskTimeTaken(task._id, timeTaken);
       addNotification('Task time logged successfully', 'success');
       
       // Try to fetch updated total time
@@ -438,28 +438,28 @@ function TaskCard({
     }
   };
 
-  const fetchTaskTotalTime = async () => {
+  const fetchTaskTotalTime = useCallback(async () => {
     try {
       const timeData = await apiService.getTaskTotalTime(task._id);
       setTotalTimeData(timeData.data);
     } catch (error) {
       console.error('Failed to fetch task total time:', error);
     }
-  };
+  }, [task._id]);
 
   // Fetch total time when task expands or task changes
   useEffect(() => {
     if (isExpanded && task._id) {
       fetchTaskTotalTime();
     }
-  }, [isExpanded, task._id]);
+  }, [isExpanded, task._id, fetchTaskTotalTime]);
 
   // Also fetch total time when showing subtasks to ensure latest data
   useEffect(() => {
     if (showSubtasks && task._id && isExpanded) {
       fetchTaskTotalTime();
     }
-  }, [showSubtasks, task._id, isExpanded]);
+  }, [showSubtasks, task._id, isExpanded, fetchTaskTotalTime]);
 
   // Fetch total time when task changes to ensure we have latest data
   useEffect(() => {
@@ -476,7 +476,7 @@ function TaskCard({
         fetchTaskTotalTime();
       }
     }
-  }, [task._id, task.timeTaken]);
+  }, [task._id, task.timeTaken, isExpanded, fetchTaskTotalTime]);
 
   return (
     <>

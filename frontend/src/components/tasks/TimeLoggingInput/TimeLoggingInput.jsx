@@ -5,8 +5,7 @@ const TimeLoggingInput = ({
   currentTime = 0, 
   onSave, 
   onCancel, 
-  isLoading = false,
-  type = 'task' // 'task' or 'subtask'
+  isLoading = false
 }) => {
   const [inputValue, setInputValue] = useState(currentTime.toString());
   const [error, setError] = useState('');

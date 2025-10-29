@@ -429,12 +429,12 @@ describe('Subtask Service', () => {
         parentTaskId: mockTaskId,
         projectId: mockProjectId,
         ownerId: mockOwnerId,
-        timeTaken: '2 hours'
+        timeTaken: 120
       };
 
       const subtask = await subtaskService.createSubtask(subtaskData);
 
-      expect(subtask.timeTaken).toBe('2 hours');
+      expect(subtask.timeTaken).toBe(120);
     });
 
     it('should update subtask timeTaken', async () => {
@@ -443,13 +443,13 @@ describe('Subtask Service', () => {
         parentTaskId: mockTaskId,
         projectId: mockProjectId,
         ownerId: mockOwnerId,
-        timeTaken: '1 hour'
+        timeTaken: 60
       });
 
-      const updateData = { timeTaken: '3 hours' };
+      const updateData = { timeTaken: 180 };
       const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
 
-      expect(updatedSubtask.timeTaken).toBe('3 hours');
+      expect(updatedSubtask.timeTaken).toBe(180);
     });
   });
 
