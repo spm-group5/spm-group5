@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'; //import mongoose for MongoDB interaction
 // import '../config/db.js'; //import database configuration to ensure connection
-import bcrypt from 'bcrypt'; //import bcrypt for password hashing
+import bcrypt from 'bcryptjs'; //import bcrypt for password hashing
 const Schema = mongoose.Schema; //create a Schema constructor
 
 //define the User schema

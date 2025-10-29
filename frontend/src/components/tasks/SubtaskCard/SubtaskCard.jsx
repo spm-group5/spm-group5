@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import CommentSection from '../TaskComment/TaskCommentSection';
+import TimeDisplayBadge from '../TimeLoggingInput/TimeDisplayBadge';
+import apiService from '../../../services/api';
+import { useNotifications } from '../../../hooks/useNotifications';
 import styles from './SubtaskCard.module.css';
 
-const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) => {
+const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived, onRefresh, onTotalTimeUpdate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isUpdatingTime, setIsUpdatingTime] = useState(false);
+  const [currentTimeTaken, setCurrentTimeTaken] = useState(subtask.timeTaken || 0);
+  const { addNotification } = useNotifications();
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -34,6 +40,32 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  const handleUpdateSubtaskTime = async (timeTaken) => {
+    setIsUpdatingTime(true);
+    try {
+      await apiService.updateSubtaskTimeTaken(subtask._id, timeTaken);
+      
+      // Update local state immediately to show new time in UI
+      setCurrentTimeTaken(timeTaken);
+      addNotification('Subtask time logged successfully', 'success');
+      
+      // Refresh the parent task to recalculate total time
+      if (onRefresh) {
+        await onRefresh();
+      }
+      
+      // Trigger total time update in parent
+      if (onTotalTimeUpdate) {
+        await onTotalTimeUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating subtask time:', error);
+      addNotification(error.message || 'Failed to log subtask time', 'error');
+    } finally {
+      setIsUpdatingTime(false);
+    }
   };
 
   return (
@@ -95,12 +127,16 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
                 <span className={styles.value}>Every {subtask.recurrenceInterval} days</span>
               </div>
             )}
-            {subtask.timeTaken && (
-              <div className={styles.infoItem}>
-                <span className={styles.label}>Time Taken:</span>
-                <span className={styles.value}>{subtask.timeTaken}</span>
-              </div>
-            )}
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Time Logged:</span>
+              <TimeDisplayBadge
+                timeTaken={currentTimeTaken}
+                onTimeUpdate={handleUpdateSubtaskTime}
+                isLoading={isUpdatingTime}
+                canEdit={!isArchived}
+                type="subtask"
+              />
+            </div>
           </div>
 
           <div className={styles.actions}>
@@ -133,10 +169,10 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
           <CommentSection
             subtask={subtask}
             type="subtask"
-            onCommentAdded={(updatedSubtask) => {
-              // Comments are handled locally in CommentSection
-              // No need to refresh the entire page
-            }}
+            // onCommentAdded={(updatedSubtask) => {
+            //   // Comments are handled locally in CommentSection
+            //   // No need to refresh the entire page
+            // }}
           />
         </div>
       )}

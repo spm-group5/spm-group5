@@ -295,7 +295,8 @@ class TaskController {
             const userName = req.user.username;
     
             // Fetch task first to get details for notifications
-            const task = await taskModel.findById(taskId);
+            const task = await taskModel.findById(taskId)
+            .populate('project', 'name')
             if (!task) {
                 return res.status(404).json({ success: false, message: 'Task not found' });
             }
@@ -328,7 +329,11 @@ class TaskController {
                     notificationModel.create({
                         user: userId,
                         message: `${userName} archived task: "${task.title}"`,
-                        task: task._id
+                        task: task._id,
+                        project: task.project?._id || null,
+                        projectName: task.project?.name || 'Unknown Project',
+                        taskName: task.title,
+                        archivedBy: userName
                     })
                 ));
 
@@ -885,6 +890,64 @@ class TaskController {
                 statusCode = 422;
             } else if (error.message.includes('Only Manager, Admin')) {
                 statusCode = 403;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // Manual Time Logging: Update task time taken
+    async updateTaskTimeTaken(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { timeTaken } = req.body;
+
+            const task = await taskService.updateTaskTimeTaken(taskId, timeTaken);
+
+            res.status(200).json({
+                success: true,
+                message: 'Task time logged successfully',
+                data: task
+            });
+        } catch (error) {
+            console.error('❌ Error logging task time:', error);
+
+            let statusCode = 400;
+            if (error.message === 'Task not found') {
+                statusCode = 404;
+            } else if (error.message === 'Time taken cannot be blank') {
+                statusCode = 400;
+            } else if (error.message.includes('positive number')) {
+                statusCode = 400;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // Manual Time Logging: Get total time for task + all subtasks
+    async getTaskTotalTime(req, res) {
+        try {
+            const { taskId } = req.params;
+
+            const totalTimeData = await taskService.getTaskTotalTime(taskId);
+
+            res.status(200).json({
+                success: true,
+                data: totalTimeData
+            });
+        } catch (error) {
+            console.error('❌ Error getting task total time:', error);
+
+            let statusCode = 400;
+            if (error.message === 'Task not found') {
+                statusCode = 404;
             }
 
             res.status(statusCode).json({

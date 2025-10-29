@@ -45,7 +45,16 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             json: vi.fn().mockReturnThis()
         };
 
-        vi.clearAllMocks();
+        // ✅ ADD: Mock the populate chain
+		const mockPopulate = vi.fn().mockReturnThis();
+		const mockFindById = vi.fn().mockReturnValue({
+			populate: mockPopulate
+		});
+		
+		taskModel.findById = mockFindById;
+		
+		// Set default implementation
+		mockPopulate.mockResolvedValue(null);
     });
 
     afterEach(() => {
@@ -73,7 +82,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             };
 
             req.params = { taskId: '507f1f77bcf86cd799439011' };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
             notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439040' });
@@ -124,7 +133,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             };
 
             req.params = { taskId: '507f1f77bcf86cd799439022' };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
             notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439041' });
@@ -165,7 +174,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             mockUserSockets.set('507f1f77bcf86cd799439022', 'socket3');
 
             req.params = { taskId: '507f1f77bcf86cd799439023' };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
             notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439042' });
@@ -197,7 +206,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             };
 
             req.params = { taskId: '507f1f77bcf86cd799439024' };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
 
@@ -224,7 +233,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
                 title: 'Staff task',
                 assignee: ['507f1f77bcf86cd799439020']
             };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockRejectedValue(
                 new Error('You do not have permission to archive this task')
@@ -257,7 +266,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
 
             const mockArchivedTask = { ...mockTask, archived: true, archivedAt: new Date() };
 
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
 
             await taskController.archiveTask(req, res);
@@ -300,7 +309,7 @@ describe('Task Controller - Archival Notifications (TDD)', () => {
             mockUserSockets.set('507f1f77bcf86cd799439020', 'socketOnline');
 
             req.params = { taskId: '507f1f77bcf86cd799439028' };
-            taskModel.findById.mockResolvedValue(mockTask);
+            taskModel.findById().populate.mockResolvedValue(mockTask);;
             taskService.getTaskById.mockResolvedValue(mockTask);
             taskService.archiveTask.mockResolvedValue(mockArchivedTask);
             notificationModel.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439043' });
