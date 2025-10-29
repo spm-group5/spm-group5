@@ -312,6 +312,112 @@ class ReportController {
     }
 
     /**
+     * Generate logged time report for a specific department
+     * GET /api/reports/logged-time/department/:department
+     * Query parameters (REQUIRED):
+     * - format: 'pdf' or 'excel'
+     * NOTE: No date range needed - fetches all non-archived tasks for the department
+     */
+    generateDepartmentLoggedTimeReport = async (req, res) => {
+        try {
+            const { department } = req.params;
+            const { format } = req.query;
+
+            // Validate required parameters
+            if (!department) {
+                return res.status(400).json({
+                    error: 'Missing department',
+                    message: 'Department is required in the URL path'
+                });
+            }
+
+            if (!format) {
+                return res.status(400).json({
+                    error: 'Missing required parameters',
+                    message: 'format is a required parameter'
+                });
+            }
+
+            // Validate format parameter (only PDF and Excel supported)
+            if (!['pdf', 'excel'].includes(format.toLowerCase())) {
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
+                });
+            }
+
+            // Generate report data (no date range - fetches all non-archived tasks)
+            const reportData = await reportService.generateDepartmentLoggedTimeReportData(department);
+
+            // Check if no tasks found - return JSON message instead of generating files
+            if (reportData.aggregates.total === 0) {
+                return res.status(200).json({
+                    success: false,
+                    message: `No tasks found for this department. Please try a different department.`,
+                    type: 'NO_DATA_FOUND'
+                });
+            }
+
+            // Handle different formats
+            return await this.handleDepartmentLoggedTimeReportFormat(res, reportData, format, department);
+
+        } catch (error) {
+            return this.handleReportError(res, error);
+        }
+    }
+
+    /**
+     * Handle department logged time report formats (PDF, Excel)
+     * @param {Object} res - Express response object
+     * @param {Object} reportData - Report data
+     * @param {String} format - Format type (pdf or excel)
+     * @param {String} department - Department name for naming
+     */
+    handleDepartmentLoggedTimeReportFormat = async (res, reportData, format, department) => {
+        switch (format.toLowerCase()) {
+            case 'pdf':
+                try {
+                    const pdfBuffer = await reportService.generateDepartmentLoggedTimePdfReport(reportData);
+                    const filename = `logged-time-report-department-${department}-${new Date().toISOString().split('T')[0]}.pdf`;
+                    
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', pdfBuffer.length);
+                    
+                    return res.send(pdfBuffer);
+                } catch (pdfError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate PDF report',
+                        message: 'There was an error generating the PDF. Please try again or contact support.'
+                    });
+                }
+
+            case 'excel':
+                try {
+                    const excelBuffer = await reportService.generateDepartmentLoggedTimeExcelReport(reportData);
+                    const filename = `logged-time-report-department-${department}-${new Date().toISOString().split('T')[0]}.xlsx`;
+                    
+                    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    res.setHeader('Content-Length', excelBuffer.length);
+                    
+                    return res.send(excelBuffer);
+                } catch (excelError) {
+                    return res.status(500).json({
+                        error: 'Failed to generate Excel report',
+                        message: 'There was an error generating the Excel file. Please try again or contact support.'
+                    });
+                }
+
+            default:
+                return res.status(400).json({
+                    error: 'Invalid format parameter',
+                    message: 'Format must be either pdf or excel'
+                });
+        }
+    }
+
+    /**
      * Generate logged time report for a specific project
      * GET /api/reports/logged-time/project/:projectId
      * Query parameters (REQUIRED):
@@ -478,6 +584,14 @@ class ReportController {
         if (error.message === 'Project not found' || error.message === 'User not found') {
             return res.status(404).json({
                 error: 'Resource not found',
+                message: error.message
+            });
+        }
+        
+        // Handle invalid department error
+        if (error.message && error.message.includes('Invalid department')) {
+            return res.status(400).json({
+                error: 'Invalid department',
                 message: error.message
             });
         }

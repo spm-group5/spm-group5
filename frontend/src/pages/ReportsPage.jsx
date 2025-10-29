@@ -5,6 +5,7 @@ import Button from '../components/common/Button/Button';
 import Card from '../components/common/Card/Card';
 import Input from '../components/common/Input/Input';
 import Spinner from '../components/common/Spinner/Spinner';
+import SearchableSelect from '../components/common/SearchableSelect/SearchableSelect';
 import apiService from '../services/api';
 import { useNotifications } from '../hooks/useNotifications';
 import styles from './ReportsPage.module.css';
@@ -16,8 +17,19 @@ function ReportsPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [errorType, setErrorType] = useState('error'); // 'error' or 'warning'
-  const [searchTerm, setSearchTerm] = useState('');
   const { addNotification } = useNotifications();
+
+  // Department list from User model
+  const departments = [
+    { value: 'hr', label: 'HR' },
+    { value: 'it', label: 'IT' },
+    { value: 'sales', label: 'Sales' },
+    { value: 'consultancy', label: 'Consultancy' },
+    { value: 'systems', label: 'Systems' },
+    { value: 'engineering', label: 'Engineering' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'managing director', label: 'Managing Director' },
+  ];
 
   const {
     register,
@@ -29,6 +41,7 @@ function ReportsPage() {
     defaultValues: {
       reportType: 'user',
       targetId: '',
+      department: '',
       startDate: '',
       endDate: '',
       timeframe: 'week',
@@ -38,6 +51,7 @@ function ReportsPage() {
 
   const reportType = watch('reportType');
   const targetId = watch('targetId');
+  const department = watch('department');
 
   // Load users and projects on component mount
   useEffect(() => {
@@ -71,19 +85,8 @@ function ReportsPage() {
   // Reset target selection when report type changes
   useEffect(() => {
     setValue('targetId', '');
+    setValue('department', '');
   }, [reportType, setValue]);
-
-  const getFilteredOptions = () => {
-    const options = reportType === 'user' ? users : projects;
-    if (!searchTerm) return options;
-    
-    return options.filter(item => {
-      const searchableText = reportType === 'user' 
-        ? `${item.username} ${item.department}`.toLowerCase()
-        : item.name.toLowerCase();
-      return searchableText.includes(searchTerm.toLowerCase());
-    });
-  };
 
   const onSubmit = async (data) => {
     try {
@@ -102,9 +105,15 @@ function ReportsPage() {
           data.format
         );
       } else if (data.reportType === 'logged-time') {
-        // Logged Time Report - no date range needed
+        // Logged Time Report by Project - no date range needed
         result = await apiService.generateLoggedTimeReport(
           data.targetId,
+          data.format
+        );
+      } else if (data.reportType === 'logged-time-department') {
+        // Logged Time Report by Department - no date range needed
+        result = await apiService.generateDepartmentLoggedTimeReport(
+          data.department,
           data.format
         );
       } else {
@@ -230,56 +239,64 @@ function ReportsPage() {
                     />
                     <span className={styles.radioLabel}>Logged Time Report by Project</span>
                   </label>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      value="logged-time-department"
+                      {...register('reportType', { required: 'Please select a report type' })}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioLabel}>Logged Time Report by Department</span>
+                  </label>
                 </div>
                 {errors.reportType && (
                   <div className={styles.errorMessage}>{errors.reportType.message}</div>
                 )}
               </div>
 
-              {/* Target Selection */}
-              {reportType && (
+              {/* Target Selection (User/Project) */}
+              {reportType && reportType !== 'logged-time-department' && (
                 <div className={styles.targetSelection}>
                   <label className={styles.selectLabel}>
                     Select {reportType === 'user' ? 'User' : 'Project'} <span className={styles.required}>*</span>
                   </label>
                   
-                  {/* Search Input */}
-                  <div className={styles.searchContainer}>
-                    <Input
-                      type="text"
-                      placeholder={`Search ${reportType === 'user' ? 'users' : 'projects'}...`}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className={styles.searchInput}
-                    />
-                  </div>
-
-                  {/* Selection Dropdown */}
-                  <select
-                    className={styles.select}
-                    {...register('targetId', {
-                      required: `Please select a ${reportType === 'user' ? 'user' : 'project'}`
-                    })}
+                  <SearchableSelect
+                    options={reportType === 'user' ? users : projects}
                     value={targetId}
-                  >
-                    <option value="">Select {reportType === 'user' ? 'a user' : 'a project'}</option>
-                    {getFilteredOptions().map((item) => (
-                      <option key={item.id || item._id} value={item.id || item._id}>
-                        {reportType === 'user' 
-                          ? `${item.username} (${item.department})`
-                          : item.name
-                        }
-                      </option>
-                    ))}
-                  </select>
-                  
-                  {errors.targetId && (
-                    <div className={styles.errorMessage}>{errors.targetId.message}</div>
-                  )}
-                </div>
+                    onChange={(value) => setValue('targetId', value)}
+                    placeholder={`Select ${reportType === 'user' ? 'a user' : 'a project'}`}
+                    searchPlaceholder={`Search ${reportType === 'user' ? 'users' : 'projects'}...`}
+                    getOptionLabel={(item) => 
+                      reportType === 'user' 
+                        ? `${item.username} (${item.department})`
+                        : item.name
+                    }
+                    getOptionValue={(item) => item.id || item._id}
+                    error={errors.targetId?.message}
+                  />
+              </div>
               )}
 
-              {/* Timeframe Selection (Team Summary Only) */}
+              {/* Department Selection (for Department Logged Time Report) */}
+              {reportType === 'logged-time-department' && (
+                <div className={styles.targetSelection}>
+                  <label className={styles.selectLabel}>
+                    Select Department <span className={styles.required}>*</span>
+                  </label>
+                  
+                  <SearchableSelect
+                    options={departments}
+                    value={department}
+                    onChange={(value) => setValue('department', value)}
+                    placeholder="Select a department"
+                    searchPlaceholder="Search departments..."
+                    getOptionLabel={(dept) => dept.label}
+                    getOptionValue={(dept) => dept.value}
+                    error={errors.department?.message}
+                  />
+                </div>
+              )}              {/* Timeframe Selection (Team Summary Only) */}
               {reportType === 'team-summary' && (
                 <div className={styles.radioGroup}>
                   <label className={styles.radioGroupLabel}>
@@ -312,7 +329,7 @@ function ReportsPage() {
               )}
 
               {/* Date Range */}
-              {reportType !== 'team-summary' && reportType !== 'logged-time' ? (
+              {reportType !== 'team-summary' && reportType !== 'logged-time' && reportType !== 'logged-time-department' ? (
                 <div className={styles.dateRange}>
                   <Input
                     label="Start Date"

@@ -6,8 +6,7 @@
 frontend/CLAUDE.md
 
 # Test documentation
-backend/TEST_CASE_CARDS.html
-backend/TEST_CASE_CARDS_TEAM_SUMMARY.html
+backend/TEST_CASE_CARDS*.html
 
 .claude
 CLAUDE.md
