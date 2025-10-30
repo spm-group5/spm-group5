@@ -127,6 +127,12 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived, onRe
                 <span className={styles.value}>Every {subtask.recurrenceInterval} days</span>
               </div>
             )}
+            {subtask.tags && (
+              <div className={styles.infoItem}>
+                <span className={styles.label}>Tags:</span>
+                <span className={styles.value}>{subtask.tags}</span>
+              </div>
+            )}
             <div className={styles.infoItem}>
               <span className={styles.label}>Time Logged:</span>
               <TimeDisplayBadge
