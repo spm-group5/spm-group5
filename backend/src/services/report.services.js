@@ -7,6 +7,565 @@ import puppeteer from 'puppeteer';
 
 class ReportService {
     /**
+     * Generate logged time report data for a specific department
+     * @param {String} department - Department name to filter tasks
+     * @returns {Object} Report data grouped by status with total logged time
+     */
+    async generateDepartmentLoggedTimeReportData(department) {
+        // Valid departments from User model
+        const validDepartments = ['hr', 'it', 'sales', 'consultancy', 'systems', 'engineering', 'finance', 'managing director'];
+        
+        if (!validDepartments.includes(department.toLowerCase())) {
+            throw new Error(`Invalid department. Must be one of: ${validDepartments.join(', ')}`);
+        }
+
+        // Find all users in the specified department
+        const departmentUsers = await User.find({ department: department.toLowerCase() });
+        const departmentUserIds = departmentUsers.map(user => user._id);
+
+        if (departmentUserIds.length === 0) {
+            // No users in this department, return empty report
+            const reportMetadata = {
+                type: 'department-logged-time',
+                department: department.toLowerCase(),
+                generatedAt: this.formatDateTime(new Date())
+            };
+            return {
+                data: {
+                    'To Do': [],
+                    'In Progress': [],
+                    'Blocked': [],
+                    'Completed': []
+                },
+                aggregates: {
+                    'To Do': 0,
+                    'In Progress': 0,
+                    'Blocked': 0,
+                    'Completed': 0,
+                    total: 0,
+                    totalLoggedTime: '0 min'
+                },
+                metadata: reportMetadata
+            };
+        }
+
+        // Query for all non-archived tasks where owner OR any assignee is from the department
+        const taskQuery = {
+            archived: { $ne: true },
+            $or: [
+                { owner: { $in: departmentUserIds } },
+                { assignee: { $in: departmentUserIds } }
+            ]
+        };
+        const tasks = await Task.find(taskQuery)
+            .populate('owner', 'username department')
+            .populate('assignee', 'username department')
+            .populate('project', 'name')
+            .sort({ dueDate: 1, createdAt: 1 });
+
+        // Query for all non-archived subtasks where ownerId OR assigneeId is from the department
+        const subtaskQuery = {
+            archived: { $ne: true },
+            $or: [
+                { ownerId: { $in: departmentUserIds } },
+                { assigneeId: { $in: departmentUserIds } }
+            ]
+        };
+        const subtasks = await Subtask.find(subtaskQuery)
+            .populate('ownerId', 'username department')
+            .populate('assigneeId', 'username department')
+            .sort({ createdAt: 1 });
+
+        // For each subtask, manually fetch and attach the project
+        const populatedSubtasks = await Promise.all(subtasks.map(async (subtask) => {
+            if (subtask.projectId) {
+                const project = await Project.findById(subtask.projectId).select('name');
+                subtask.projectId = project;
+            }
+            return subtask;
+        }));
+
+        const mappedSubtasks = populatedSubtasks.map(subtask => ({
+            _id: subtask._id,
+            title: subtask.title,
+            dueDate: subtask.dueDate,
+            priority: subtask.priority,
+            tags: subtask.tags,
+            description: subtask.description,
+            owner: subtask.ownerId,
+            assignee: subtask.assigneeId ? [subtask.assigneeId] : [],
+            project: subtask.projectId,
+            createdAt: subtask.createdAt,
+            status: subtask.status,
+            loggedTime: subtask.timeTaken || 0
+        }));
+
+        const mappedTasks = tasks.map(task => ({
+            ...task.toObject(),
+            owner: task.owner,
+            assignee: Array.isArray(task.assignee) ? task.assignee : (task.assignee ? [task.assignee] : []),
+            project: task.project,
+            loggedTime: task.timeTaken || 0
+        }));
+
+        const combinedItems = [...mappedTasks, ...mappedSubtasks];
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        const grouped = {};
+        statuses.forEach(status => { grouped[status] = []; });
+
+        let totalLoggedTime = 0;
+
+        combinedItems.forEach(item => {
+            if (grouped[item.status]) {
+                const formatted = {
+                    id: item._id.toString(),
+                    title: item.title,
+                    deadline: item.dueDate ? this.formatDate(item.dueDate) : 'No deadline',
+                    priority: item.priority ? item.priority.toString() : 'Not set',
+                    tags: (item.tags && item.tags.trim()) || 'No tags',
+                    description: (item.description && item.description.trim()) || 'No description',
+                    owner: item.owner ? item.owner.username : 'No owner',
+                    assignee: (item.assignee && item.assignee.length > 0 && item.assignee[0] && item.assignee[0].username) ? item.assignee.map(a => a.username).join(', ') : 'Unassigned',
+                    project: item.project ? item.project.name : 'No project',
+                    createdAt: this.formatDate(item.createdAt),
+                    loggedTime: this.formatLoggedTime(item.loggedTime || 0)
+                };
+                grouped[item.status].push(formatted);
+                totalLoggedTime += item.loggedTime || 0;
+            }
+        });
+
+        const aggregateCounts = {
+            'To Do': grouped['To Do'].length,
+            'In Progress': grouped['In Progress'].length,
+            'Blocked': grouped['Blocked'].length,
+            'Completed': grouped['Completed'].length,
+            total: combinedItems.length,
+            totalLoggedTime: this.formatLoggedTime(totalLoggedTime)
+        };
+
+        const reportMetadata = {
+            type: 'department-logged-time',
+            department: department.toLowerCase(),
+            generatedAt: this.formatDateTime(new Date())
+        };
+
+        return {
+            data: grouped,
+            aggregates: aggregateCounts,
+            metadata: reportMetadata
+        };
+    }
+
+    /**
+     * Generate logged time report data for a specific project
+     * @param {String} projectId - Project ID to filter tasks
+     * @returns {Object} Report data grouped by status with total logged time
+     */
+    async generateProjectLoggedTimeReportData(projectId) {
+        const project = await Project.findById(projectId).populate('owner', 'username');
+        if (!project) throw new Error('Project not found');
+        
+        // Query for all non-archived tasks (no date filtering)
+        const taskQuery = {
+            project: projectId,
+            archived: { $ne: true }
+        };
+        const tasks = await Task.find(taskQuery)
+            .populate('owner', 'username')
+            .populate('assignee', 'username')
+            .populate('project', 'name')
+            .sort({ dueDate: 1, createdAt: 1 });
+        
+        // Query for all non-archived subtasks (no date filtering)
+        const subtaskQuery = {
+            projectId: projectId,
+            archived: { $ne: true }
+        };
+        const subtasks = await Subtask.find(subtaskQuery)
+            .populate('ownerId', 'username')
+            .populate('assigneeId', 'username')
+            .sort({ createdAt: 1 });
+        const mappedSubtasks = subtasks.map(subtask => ({
+            _id: subtask._id,
+            title: subtask.title,
+            dueDate: subtask.dueDate,
+            priority: subtask.priority,
+            tags: subtask.tags,
+            description: subtask.description,
+            owner: subtask.ownerId,
+            assignee: subtask.assigneeId ? [subtask.assigneeId] : [],
+            project: project,
+            createdAt: subtask.createdAt,
+            status: subtask.status,
+            loggedTime: subtask.timeTaken || 0
+        }));
+        const mappedTasks = tasks.map(task => ({
+            ...task.toObject(),
+            owner: task.owner,
+            assignee: Array.isArray(task.assignee) ? task.assignee : (task.assignee ? [task.assignee] : []),
+            project: task.project,
+            loggedTime: task.timeTaken || 0
+        }));
+        const combinedItems = [...mappedTasks, ...mappedSubtasks];
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        const grouped = {};
+        statuses.forEach(status => { grouped[status] = []; });
+        let totalLoggedTime = 0;
+        combinedItems.forEach(item => {
+            if (grouped[item.status]) {
+                const formatted = {
+                    id: item._id.toString(),
+                    title: item.title,
+                    deadline: item.dueDate ? this.formatDate(item.dueDate) : 'No deadline',
+                    priority: item.priority ? item.priority.toString() : 'Not set',
+                    tags: (item.tags && item.tags.trim()) || 'No tags',
+                    description: (item.description && item.description.trim()) || 'No description',
+                    owner: item.owner ? item.owner.username : 'No owner',
+                    assignee: (item.assignee && item.assignee.length > 0 && item.assignee[0] && item.assignee[0].username) ? item.assignee.map(a => a.username).join(', ') : 'Unassigned',
+                    project: item.project ? item.project.name : 'No project',
+                    createdAt: this.formatDate(item.createdAt),
+                    loggedTime: this.formatLoggedTime(item.loggedTime || 0)
+                };
+                grouped[item.status].push(formatted);
+                totalLoggedTime += item.loggedTime || 0;
+            }
+        });
+        const aggregateCounts = {
+            'To Do': grouped['To Do'].length,
+            'In Progress': grouped['In Progress'].length,
+            'Blocked': grouped['Blocked'].length,
+            'Completed': grouped['Completed'].length,
+            total: combinedItems.length,
+            totalLoggedTime: this.formatLoggedTime(totalLoggedTime)
+        };
+        const reportMetadata = {
+            type: 'project-logged-time',
+            projectId,
+            projectName: project.name,
+            projectOwner: project.owner.username,
+            generatedAt: this.formatDateTime(new Date())
+        };
+        return {
+            data: grouped,
+            aggregates: aggregateCounts,
+            metadata: reportMetadata
+        };
+    }
+
+    /**
+     * Format logged time in minutes to human readable string
+     * Displays as "X days Y hours Z minutes" for clarity
+     * @param {Number} minutes
+     * @returns {String}
+     */
+    formatLoggedTime(minutes) {
+        if (minutes === 0) return '0 min';
+        
+        const days = Math.floor(minutes / (60 * 24));
+        const hours = Math.floor((minutes % (60 * 24)) / 60);
+        const mins = Math.floor(minutes % 60);
+        
+        const parts = [];
+        if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
+        if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
+        if (mins > 0) parts.push(`${mins} min`);
+        
+        return parts.join(' ') || '0 min';
+    }
+
+    /**
+     * Generate Excel file for department logged time report
+     * @param {Object} reportData
+     * @returns {Buffer}
+     */
+    async generateDepartmentLoggedTimeExcelReport(reportData) {
+        const workbook = xlsx.utils.book_new();
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        
+        statuses.forEach(status => {
+            const tasks = reportData.data[status];
+            const worksheetData = [
+                ['Task ID', 'Task Name', 'Deadline', 'Priority', 'Tags', 'Owner', 'Assignee', 'Project', 'Created At', 'Description', 'Logged Time']
+            ];
+            tasks.forEach(task => {
+                worksheetData.push([
+                    task.id,
+                    task.title,
+                    task.deadline,
+                    task.priority,
+                    task.tags,
+                    task.owner,
+                    task.assignee,
+                    task.project,
+                    task.createdAt,
+                    task.description,
+                    task.loggedTime
+                ]);
+            });
+            const worksheet = xlsx.utils.aoa_to_sheet(worksheetData);
+            worksheet['!cols'] = [
+                { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 20 },
+                { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 12 }
+            ];
+            xlsx.utils.book_append_sheet(workbook, worksheet, status);
+        });
+        
+        const summaryData = [
+            ['Logged Time Report Summary - Department'],
+            ['Generated At', reportData.metadata.generatedAt],
+            ['Department', reportData.metadata.department],
+            [''],
+            ['Status', 'Count'],
+            ['To Do', reportData.aggregates['To Do']],
+            ['In Progress', reportData.aggregates['In Progress']],
+            ['Blocked', reportData.aggregates['Blocked']],
+            ['Completed', reportData.aggregates['Completed']],
+            ['Total Tasks', reportData.aggregates.total],
+            ['Total Logged Time', reportData.aggregates.totalLoggedTime]
+        ];
+        const summaryWorksheet = xlsx.utils.aoa_to_sheet(summaryData);
+        summaryWorksheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
+        xlsx.utils.book_append_sheet(workbook, summaryWorksheet, 'Summary', 0);
+        
+        return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    }
+
+    /**
+     * Generate PDF file for department logged time report
+     * @param {Object} reportData
+     * @returns {Buffer}
+     */
+    async generateDepartmentLoggedTimePdfReport(reportData) {
+        const html = this.generateDepartmentLoggedTimeReportHTML(reportData);
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        try {
+            const page = await browser.newPage();
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+                printBackground: true
+            });
+            return pdfBuffer;
+        } finally {
+            await browser.close();
+        }
+    }
+
+    /**
+     * Generate HTML for department logged time PDF report
+     * @param {Object} reportData
+     * @returns {string}
+     */
+    generateDepartmentLoggedTimeReportHTML(reportData) {
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        const reportTitle = `Logged Time Report - Department: ${reportData.metadata.department.toUpperCase()}`;
+        
+        let html = `<!DOCTYPE html>
+<html><head><meta charset=\"UTF-8\"><title>${reportTitle}</title><style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; }
+h1 { color: #333; text-align: center; margin-bottom: 20px; }
+.report-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+.summary { display: flex; justify-content: space-around; margin-bottom: 20px; background: #e8f4f8; padding: 10px; border-radius: 5px; }
+.summary-item { text-align: center; }
+.summary-item h3 { margin: 0; font-size: 18px; }
+.summary-item p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; }
+.status-section { margin-bottom: 30px; page-break-inside: avoid; }
+.status-header { background: #333; color: white; padding: 10px; font-size: 16px; font-weight: bold; }
+.task-card { border: 1px solid #ddd; margin: 10px 0; padding: 15px; background: white; border-radius: 3px; page-break-inside: avoid; }
+.task-field { margin: 5px 0; padding: 2px 0; }
+.field-label { font-weight: bold; display: inline-block; width: 90px; color: #555; }
+.no-tasks { text-align: center; padding: 20px; color: #666; font-style: italic; }
+@page { margin: 20mm; }
+@media print { body { font-size: 11px; } .status-section { page-break-before: auto; } }
+</style></head><body>
+<h1>${reportTitle}</h1>
+<div class=\"report-info\">
+<p><strong>Generated At:</strong> ${reportData.metadata.generatedAt}</p>
+<p><strong>Department:</strong> ${reportData.metadata.department.toUpperCase()}</p>
+<p><strong>Total Tasks:</strong> ${reportData.aggregates.total}</p>
+<p><strong>Total Logged Time:</strong> ${reportData.aggregates.totalLoggedTime}</p>
+</div>
+<div class=\"summary\">`;
+        
+        statuses.forEach(status => {
+            html += `<div class=\"summary-item\"><h3>${status}</h3><p>${reportData.aggregates[status]}</p></div>`;
+        });
+        html += `</div>`;
+        
+        statuses.forEach(status => {
+            const tasks = reportData.data[status];
+            html += `<div class=\"status-section\"><div class=\"status-header\">${status} (${tasks.length} tasks)</div>`;
+            if (tasks.length === 0) {
+                html += `<div class=\"no-tasks\">No tasks in this status</div>`;
+            } else {
+                tasks.forEach(task => {
+                    html += `<div class=\"task-card\">`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Task ID:</span> ${task.id}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Task Name:</span> ${task.title}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Deadline:</span> ${task.deadline}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Priority:</span> ${task.priority}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Tags:</span> ${task.tags}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Owner:</span> ${task.owner}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Assignee:</span> ${task.assignee}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Project:</span> ${task.project}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Created:</span> ${task.createdAt}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Description:</span> ${task.description || 'No description'}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Logged Time:</span> ${task.loggedTime}</div>`;
+                    html += `</div>`;
+                });
+            }
+            html += `</div>`;
+        });
+        html += `</body></html>`;
+        return html;
+    }
+
+    /**
+     * Generate Excel file for logged time report
+     * @param {Object} reportData
+     * @returns {Buffer}
+     */
+    async generateProjectLoggedTimeExcelReport(reportData) {
+        const workbook = xlsx.utils.book_new();
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        statuses.forEach(status => {
+            const tasks = reportData.data[status];
+            const worksheetData = [
+                ['Task ID', 'Task Name', 'Deadline', 'Priority', 'Tags', 'Owner', 'Assignee', 'Project', 'Created At', 'Description', 'Logged Time']
+            ];
+            tasks.forEach(task => {
+                worksheetData.push([
+                    task.id,
+                    task.title,
+                    task.deadline,
+                    task.priority,
+                    task.tags,
+                    task.owner,
+                    task.assignee,
+                    task.project,
+                    task.createdAt,
+                    task.description,
+                    task.loggedTime
+                ]);
+            });
+            const worksheet = xlsx.utils.aoa_to_sheet(worksheetData);
+            worksheet['!cols'] = [
+                { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 20 },
+                { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 12 }
+            ];
+            xlsx.utils.book_append_sheet(workbook, worksheet, status);
+        });
+        const summaryData = [
+            ['Logged Time Report Summary'],
+            ['Generated At', reportData.metadata.generatedAt],
+            ['Project Name', reportData.metadata.projectName],
+            ['Project Owner', reportData.metadata.projectOwner],
+            [''],
+            ['Status', 'Count'],
+            ['To Do', reportData.aggregates['To Do']],
+            ['In Progress', reportData.aggregates['In Progress']],
+            ['Blocked', reportData.aggregates['Blocked']],
+            ['Completed', reportData.aggregates['Completed']],
+            ['Total Tasks', reportData.aggregates.total],
+            ['Total Logged Time', reportData.aggregates.totalLoggedTime]
+        ];
+        const summaryWorksheet = xlsx.utils.aoa_to_sheet(summaryData);
+        summaryWorksheet['!cols'] = [{ wch: 25 }, { wch: 20 }];
+        xlsx.utils.book_append_sheet(workbook, summaryWorksheet, 'Summary', 0);
+        return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    }
+
+    /**
+     * Generate PDF file for logged time report
+     * @param {Object} reportData
+     * @returns {Buffer}
+     */
+    async generateProjectLoggedTimePdfReport(reportData) {
+        const html = this.generateProjectLoggedTimeReportHTML(reportData);
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        try {
+            const page = await browser.newPage();
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+                printBackground: true
+            });
+            return pdfBuffer;
+        } finally {
+            await browser.close();
+        }
+    }
+
+    /**
+     * Generate HTML for logged time PDF report
+     * @param {Object} reportData
+     * @returns {string}
+     */
+    generateProjectLoggedTimeReportHTML(reportData) {
+        const statuses = ['To Do', 'In Progress', 'Blocked', 'Completed'];
+        const reportTitle = `Logged Time Report - Project: ${reportData.metadata.projectName}`;
+        let html = `<!DOCTYPE html>
+<html><head><meta charset=\"UTF-8\"><title>${reportTitle}</title><style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; }
+h1 { color: #333; text-align: center; margin-bottom: 20px; }
+.report-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+.summary { display: flex; justify-content: space-around; margin-bottom: 20px; background: #e8f4f8; padding: 10px; border-radius: 5px; }
+.summary-item { text-align: center; }
+.summary-item h3 { margin: 0; font-size: 18px; }
+.summary-item p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; }
+.status-section { margin-bottom: 30px; page-break-inside: avoid; }
+.status-header { background: #333; color: white; padding: 10px; font-size: 16px; font-weight: bold; }
+.task-card { border: 1px solid #ddd; margin: 10px 0; padding: 15px; background: white; border-radius: 3px; page-break-inside: avoid; }
+.task-field { margin: 5px 0; padding: 2px 0; }
+.field-label { font-weight: bold; display: inline-block; width: 90px; color: #555; }
+.no-tasks { text-align: center; padding: 20px; color: #666; font-style: italic; }
+@page { margin: 20mm; }
+@media print { body { font-size: 11px; } .status-section { page-break-before: auto; } }
+</style></head><body>
+<h1>${reportTitle}</h1>
+<div class=\"report-info\">
+<p><strong>Generated At:</strong> ${reportData.metadata.generatedAt}</p>
+<p><strong>Project:</strong> ${reportData.metadata.projectName}</p>
+<p><strong>Project Owner:</strong> ${reportData.metadata.projectOwner}</p>
+<p><strong>Total Tasks:</strong> ${reportData.aggregates.total}</p>
+<p><strong>Total Logged Time:</strong> ${reportData.aggregates.totalLoggedTime}</p>
+</div>
+<div class=\"summary\">`;
+        statuses.forEach(status => {
+            html += `<div class=\"summary-item\"><h3>${status}</h3><p>${reportData.aggregates[status]}</p></div>`;
+        });
+        html += `</div>`;
+        statuses.forEach(status => {
+            const tasks = reportData.data[status];
+            html += `<div class=\"status-section\"><div class=\"status-header\">${status} (${tasks.length} tasks)</div>`;
+            if (tasks.length === 0) {
+                html += `<div class=\"no-tasks\">No tasks in this status</div>`;
+            } else {
+                tasks.forEach(task => {
+                    html += `<div class=\"task-card\">`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Task ID:</span> ${task.id}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Task Name:</span> ${task.title}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Deadline:</span> ${task.deadline}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Priority:</span> ${task.priority}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Tags:</span> ${task.tags}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Owner:</span> ${task.owner}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Assignee:</span> ${task.assignee}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Project:</span> ${task.project}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Created:</span> ${task.createdAt}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Description:</span> ${task.description || 'No description'}</div>`;
+                    html += `<div class=\"task-field\"><span class=\"field-label\">Logged Time:</span> ${task.loggedTime}</div>`;
+                    html += `</div>`;
+                });
+            }
+            html += `</div>`;
+        });
+        html += `</body></html>`;
+        return html;
+    }
+    /**
      * Generate task completion report data for a specific project
      * @param {String} projectId - Project ID to filter tasks
      * @param {Date} startDate - Start date for filtering tasks (based on createdAt)
