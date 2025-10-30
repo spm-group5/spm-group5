@@ -30,6 +30,7 @@ import TaskCard from '../components/tasks/TaskCard/TaskCard';
 import TaskForm from '../components/tasks/TaskForm/TaskForm';
 import Modal from '../components/common/Modal/Modal';
 import styles from './ProjectTasksPage.module.css';
+import ProjectScheduleTimeline from '../components/projects/ProjectScheduleTimeline/ProjectScheduleTimeline';
 
 function ProjectTasksPage() {
   const { projectId } = useParams();
@@ -409,8 +410,16 @@ function ProjectTasksPage() {
                   >
                     ▦ Grid View
                   </button>
+
+                  <button
+                    className={`${styles.viewButton} ${viewMode === 'timeline' ? styles.active : ''}`}
+                    onClick={() => setViewMode('timeline')}
+                  >
+                    📅 Project Schedule Timeline View
+                  </button>
                 </div>
 
+                {viewMode !== 'timeline' && (
                 <div className={styles.filterSection}>
                   <div className={styles.filterGroup}>
                     <label htmlFor="sortBy" className={styles.filterLabel}>Sort by:</label>
@@ -452,7 +461,8 @@ function ProjectTasksPage() {
                     </button>
                   )}
                 </div>
-              </>
+                )}
+                </>
             )}
 
             {tasks.length === 0 ? (
@@ -471,9 +481,13 @@ function ProjectTasksPage() {
                     <p>Try adjusting your filters or create a new task.</p>
                   </div>
                 ) : (
-                  <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
-                    {filteredAndSortedTasks.map((task) => (
-                      <TaskCard
+                  viewMode === 'timeline' ? (
+                    <ProjectScheduleTimeline tasks={filteredAndSortedTasks} members={project.members} />
+                  ) : (
+                    <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
+                      {filteredAndSortedTasks.map((task) => (
+                        // your existing TaskCard rendering
+                        <TaskCard
                         key={task._id}
                         task={task}
                         onEdit={handleEditTask}
@@ -482,9 +496,10 @@ function ProjectTasksPage() {
                         isArchived={task.archived}
                         onRefresh={loadProjectTasks}
                       />
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )
+                  )}
               </>
             )}
           </>
