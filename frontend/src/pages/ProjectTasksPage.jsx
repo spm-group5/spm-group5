@@ -18,7 +18,7 @@
  * - Backend enforces authorization and returns 403 if access is denied
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTasks } from '../context/TaskContext';
 import { useProjects } from '../context/ProjectContext';
@@ -54,7 +54,7 @@ function ProjectTasksPage() {
   const [taskToArchive, setTaskToArchive] = useState(null);
   const [assignmentView, setAssignmentView] = useState('all'); // 'my-tasks', 'team-tasks', 'all'
 
-  const loadProjectTasks = async () => {
+  const loadProjectTasks = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -91,11 +91,11 @@ function ProjectTasksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, getProjectById, fetchTasksByProject, userId, user?.role, user?.department]);
 
   useEffect(() => {
     loadProjectTasks();
-  }, [projectId, fetchTasksByProject, getProjectById, userId, user, loadProjectTasks]);
+  }, [loadProjectTasks]);
 
   const handleBackToProjects = () => {
     navigate('/projects');
