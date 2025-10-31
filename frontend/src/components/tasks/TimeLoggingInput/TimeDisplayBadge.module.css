@@ -1,0 +1,95 @@
+.timeBadgeWrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.timeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f5f9ff 100%);
+  border: 1.5px solid #3b82f6;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e40af;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.15);
+}
+
+.timeBadge:hover {
+  background: linear-gradient(135deg, #e0ebff 0%, #eff4ff 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.timeText {
+  letter-spacing: 0.3px;
+}
+
+.editButton {
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+  opacity: 0;
+  margin-left: 4px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.timeBadge:hover .editButton {
+  opacity: 1;
+}
+
+.editButton:hover {
+  transform: scale(1.2);
+}
+
+.editButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* States for different time ranges */
+.timeBadge.hasTime {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #0284c7;
+  color: #075985;
+}
+
+.timeBadge.hasTime:hover {
+  background: linear-gradient(135deg, #bfdbfe 0%, #7dd3fc 100%);
+}
+
+.timeBadge.noTime {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+.timeBadge.noTime:hover {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .timeBadge {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .icon {
+    font-size: 14px;
+  }
+
+  .editButton {
+    font-size: 12px;
+    padding: 0 2px;
+  }
+}

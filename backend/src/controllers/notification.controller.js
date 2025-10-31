@@ -7,7 +7,10 @@ export const getNotifications = async (req, res) => {
     const { unread } = req.query;
     const filter = { user: userId };
     if (unread === 'true') filter.read = false;
-    const notifications = await notificationModel.find(filter).sort({ createdAt: -1 });
+    const notifications = await notificationModel
+    .find(filter)
+    .sort({ createdAt: -1 });
+
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

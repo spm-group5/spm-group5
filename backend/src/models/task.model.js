@@ -137,6 +137,11 @@ const taskSchema = new Schema({
         type: Date,
         default: null
     },
+    timeTaken: {
+        type: Number,
+        default: 0,
+        min: [0, 'Time taken must be a non-negative number']
+    },
     createdAt: {
         type: Date,
         default: Date.now

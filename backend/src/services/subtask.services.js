@@ -43,7 +43,8 @@ class SubtaskService {
         dueDate: subtaskData.dueDate,
         isRecurring: subtaskData.isRecurring || false,
         recurrenceInterval: subtaskData.recurrenceInterval || null,
-        timeTaken: subtaskData.timeTaken || ''
+        timeTaken: subtaskData.timeTaken || '',
+        tags: subtaskData.tags || ''
       });
 
       await subtask.save();
@@ -133,6 +134,7 @@ class SubtaskService {
       if (updateData.isRecurring !== undefined) subtask.isRecurring = updateData.isRecurring;
       if (updateData.recurrenceInterval !== undefined) subtask.recurrenceInterval = updateData.recurrenceInterval;
       if (updateData.timeTaken !== undefined) subtask.timeTaken = updateData.timeTaken;
+      if (updateData.tags !== undefined) subtask.tags = updateData.tags;
 
       await subtask.save();
       
@@ -241,6 +243,37 @@ class SubtaskService {
 
       const newSubtask = new Subtask(newSubtaskData);
       return await newSubtask.save();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Manual Time Logging: Update subtask time taken
+   */
+  async updateSubtaskTimeTaken(subtaskId, timeTaken) {
+    try {
+      // Validate input
+      if (timeTaken === null || timeTaken === undefined || timeTaken === '') {
+        throw new Error('Time taken cannot be blank');
+      }
+
+      const numTimeTaken = Number(timeTaken);
+      if (isNaN(numTimeTaken) || numTimeTaken < 0) {
+        throw new Error('Time taken must be a positive number');
+      }
+
+      // Find and update subtask
+      const subtask = await Subtask.findById(subtaskId);
+      if (!subtask) {
+        throw new Error('Subtask not found');
+      }
+
+      subtask.timeTaken = numTimeTaken;
+      subtask.updatedAt = new Date();
+      await subtask.save();
+
+      return subtask;
     } catch (error) {
       throw error;
     }

@@ -53,14 +53,14 @@ describe('Email Notification Service - TDD', () => {
             expect(sendMailMock).toHaveBeenCalledTimes(1);
         });
 
-        it('should send email with correct mail options structure', async () => {
+        it('should send email with correct mail options structure including project name', async () => {
             sendMailMock.mockResolvedValue({ messageId: 'test-id' });
 
             await sendEmail(
                 'user@example.com',
                 'Welcome Email',
                 'Welcome to our platform',
-                '<h1>Welcome</h1>'
+                '<h1>Welcome</h1><p><strong>Project:</strong> Customer Portal</p>'
             );
 
             expect(sendMailMock).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe('Email Notification Service - TDD', () => {
                     to: 'user@example.com',
                     subject: 'Welcome Email',
                     text: 'Welcome to our platform',
-                    html: '<h1>Welcome</h1>'
+                    html: expect.stringContaining('Customer Portal')
                 })
             );
         });
@@ -235,7 +235,26 @@ describe('Email Notification Service - TDD', () => {
     });
 
     describe('Transporter Configuration', () => {
-        it('should create transporter with correct SMTP settings', () => {
+        it('should create transporter with correct SMTP settings when sendEmail is called', async () => {
+            // Clear any previous calls
+            vi.clearAllMocks();
+            
+            // Mock the transporter
+            const mockTransporter = {
+                sendMail: vi.fn().mockResolvedValue({ messageId: 'test-id' }),
+                verify: vi.fn()
+            };
+            nodemailer.createTransport.mockReturnValue(mockTransporter);
+            
+            // Call sendEmail to trigger transporter creation
+            await sendEmail(
+                'test@example.com',
+                'Test Subject',
+                'Test content',
+                '<p>Test HTML</p>'
+            );
+            
+            // Now verify createTransport was called with correct settings
             expect(nodemailer.createTransport).toHaveBeenCalledWith(
                 expect.objectContaining({
                     host: 'smtp-relay.brevo.com',
@@ -248,9 +267,11 @@ describe('Email Notification Service - TDD', () => {
                 })
             );
         });
-
-        it('should verify SMTP connection on initialization', () => {
-            expect(verifyMock).toHaveBeenCalled();
+    
+        it('should not verify SMTP connection on module initialization (lazy loading)', () => {
+            // With lazy loading, verify should not be called on module load
+            // It should only be called when sendEmail is actually used
+            expect(verifyMock).not.toHaveBeenCalled();
         });
     });
 

@@ -75,9 +75,19 @@ const subtaskSchema = new mongoose.Schema({
     }
   },
   timeTaken: {
+    type: Number,
+    default: 0,
+    min: [0, 'Time taken must be a non-negative number']
+  },
+  tags: {
     type: String,
-    trim: true,
-    maxlength: [100, 'Time taken cannot exceed 100 characters']
+    default: '',
+    validate: {
+      validator: function(v) {
+        return typeof v === 'string';
+      },
+      message: 'Tags must be a string'
+    }
   },
   comments: [{
     text: {

@@ -21,7 +21,7 @@ const SubtaskForm = ({
     assigneeId: '',
     isRecurring: false,
     recurrenceInterval: 1,
-    timeTaken: '',
+    tags: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -41,7 +41,7 @@ const SubtaskForm = ({
         assigneeId: initialData.assigneeId?._id || initialData.assigneeId || '',
         isRecurring: initialData.isRecurring || false,
         recurrenceInterval: initialData.recurrenceInterval || 1,
-        timeTaken: initialData.timeTaken || '',
+        tags: initialData.tags || ''
       });
 
       // Initialize selected assignees for edit mode
@@ -177,10 +177,6 @@ const SubtaskForm = ({
       }
     }
 
-    if (formData.timeTaken && formData.timeTaken.length > 100) {
-      newErrors.timeTaken = 'Time taken cannot exceed 100 characters';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -203,6 +199,7 @@ const SubtaskForm = ({
       // Ensure boolean values are properly formatted
       isRecurring: Boolean(formData.isRecurring),
       recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : undefined,
+      tags: formData.tags || ''
     };
 
     onSubmit(formattedData);
@@ -294,6 +291,14 @@ const SubtaskForm = ({
             type="date"
             value={formData.dueDate}
             onChange={handleChange}
+          />
+          
+          <Input
+            label="Tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleChange}
+            placeholder="e.g., bug#urgent#frontend"
           />
         </div>
 
@@ -428,17 +433,6 @@ const SubtaskForm = ({
               </div>
             )}
           </div>
-        </div>
-
-        <div className={styles.formRow}>
-          <Input
-            label="Time Taken"
-            name="timeTaken"
-            value={formData.timeTaken}
-            onChange={handleChange}
-            placeholder="e.g., 2 hours, 1 day, 30 minutes"
-            error={errors.timeTaken}
-          />
         </div>
 
         <div className={styles.formActions}>

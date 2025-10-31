@@ -7,6 +7,18 @@ const router = express.Router();
 // All routes require authentication
 router.use(requireAuth);
 
+// Manual Time Logging endpoints (MUST come before generic :subtaskId routes)
+router.patch('/subtasks/:subtaskId/time-taken', subtaskController.updateSubtaskTimeTaken);
+router.get('/subtasks/:subtaskId/total-time', subtaskController.getSubtaskTotalTime);
+
+// Archive/Unarchive endpoints (MUST come before generic :subtaskId routes)
+router.put('/subtasks/:subtaskId/archive', subtaskController.archiveSubtask);
+router.put('/subtasks/:subtaskId/unarchive', subtaskController.unarchiveSubtask);
+
+// Comment endpoints (MUST come before generic :subtaskId routes)
+router.post('/subtasks/:subtaskId/comments', subtaskController.addComment);
+router.delete('/subtasks/:subtaskId/comments/:commentId', subtaskController.deleteComment);
+
 // Create a new subtask
 router.post('/subtasks', subtaskController.createSubtask);
 
@@ -16,26 +28,15 @@ router.get('/tasks/:parentTaskId/subtasks', subtaskController.getSubtasksByParen
 // Get all subtasks for a project
 router.get('/projects/:projectId/subtasks', subtaskController.getSubtasksByProject);
 
+// Generic routes (MUST come LAST to avoid shadowing specific routes)
 // Get a subtask by ID
 router.get('/subtasks/:subtaskId', subtaskController.getSubtaskById);
 
 // Update a subtask
 router.put('/subtasks/:subtaskId', subtaskController.updateSubtask);
 
-// Archive a subtask
-router.put('/subtasks/:subtaskId/archive', subtaskController.archiveSubtask);
-
 // Get archived subtasks for a parent task
 router.get('/tasks/:parentTaskId/subtasks/archived', subtaskController.getArchivedSubtasksByParentTask);
-
-// Unarchive a subtask
-router.put('/subtasks/:subtaskId/unarchive', subtaskController.unarchiveSubtask);
-
-// Add a comment to a subtask
-router.post('/subtasks/:subtaskId/comments', subtaskController.addComment);
-
-// Delete a comment from a subtask
-router.delete('/subtasks/:subtaskId/comments/:commentId', subtaskController.deleteComment);
 
 export default router;
 

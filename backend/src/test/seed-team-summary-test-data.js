@@ -23,7 +23,7 @@ import User from '../models/user.model.js';
 import Project from '../models/project.model.js';
 import Task from '../models/task.model.js';
 import Subtask from '../models/subtask.model.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 /**
  * Seed test data for team summary report tests

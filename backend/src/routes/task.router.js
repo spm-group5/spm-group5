@@ -28,4 +28,8 @@ router.delete('/tasks/:id/assignees', requireAuth, taskController.removeAssignee
 // Project task viewing endpoint with authorization
 router.get('/projects/:projectId/tasks', requireAuth, taskController.getTasksByProject);
 
+// Manual Time Logging endpoints
+router.patch('/tasks/:taskId/time-taken', requireAuth, taskController.updateTaskTimeTaken);
+router.get('/tasks/:taskId/total-time', requireAuth, taskController.getTaskTotalTime);
+
 export default router;

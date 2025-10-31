@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '../../environments/.env.development') });
+dotenv.config({ path: path.join(__dirname, '../../environments/.env.test') });
 
 // Import your MongoDB connection
 import '../config/db.js'; // or whatever file initializes mongoose.connect()

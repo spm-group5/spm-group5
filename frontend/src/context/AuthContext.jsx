@@ -19,6 +19,12 @@ export function AuthProvider({ children }) {
       setUser(response.user || response.data || response);
     } catch (err) {
       setUser(null);
+      // Silently handle 401 errors - user is not authenticated yet
+      if (err.status === 401) {
+        // Expected behavior: user is not authenticated, don't set error state
+        return;
+      }
+      // Only set error for unexpected failures
       if (err.message !== 'Unauthorized') {
         setError(err.message);
       }

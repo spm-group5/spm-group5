@@ -70,21 +70,27 @@ export default function NotificationCard({ notification, onMarkRead, onDelete })
         </div>
 
         {/* Enhanced task information */}
-        {notification.task && (
-          <div className={styles.meta}>
-            <div>Task: {notification.task.title || notification.task}</div>
-            {notification.task.project && (
-              <div>Project: {notification.task.project.name || notification.task.project}</div>
-            )}
-          </div>
-        )}
-
-        {/* Show who performed the action if available */}
-        {notification.assignor && (
-          <div className={styles.assignor}>
-            By: {notification.assignor.username || notification.assignor}
-          </div>
-        )}
+        <div className={styles.meta}>
+          {/* Show taskName from notification (stored directly) */}
+          {notification.taskName && (
+            <div>Task: {notification.taskName}</div>
+          )}
+          
+          {/* Show projectName from notification (stored directly) */}
+          {notification.projectName && (
+            <div>Project: {notification.projectName}</div>
+          )}
+          
+          {/* Show archived by if available */}
+          {notification.archivedBy && (
+            <div>Archived by: {notification.archivedBy}</div>
+          )}
+          
+          {/* Show archived time from populated task */}
+          {notification.task?.archivedAt && (
+            <div>Archived at: {new Date(notification.task.archivedAt).toLocaleString()}</div>
+          )}
+        </div>
 
         <div className={styles.ts}>
           {new Date(notification.createdAt || Date.now()).toLocaleString()}

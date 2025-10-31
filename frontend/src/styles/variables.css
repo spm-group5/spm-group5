@@ -1,47 +1,48 @@
 :root {
-  /* Colors */
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-primary-light: #3b82f6;
+  /* Use light-dark() for automatic theme switching */
+  --color-primary: light-dark(#2563eb, #3b82f6);
+  --color-primary-dark: light-dark(#1d4ed8, #2563eb);
+  --color-primary-light: light-dark(#3b82f6, #60a5fa);
 
-  --color-secondary: #64748b;
-  --color-secondary-dark: #475569;
-  --color-secondary-light: #94a3b8;
+  --color-secondary: light-dark(#64748b, #94a3b8);
+  --color-secondary-dark: light-dark(#475569, #64748b);
+  --color-secondary-light: light-dark(#94a3b8, #cbd5e1);
 
-  --color-background: #ffffff;
-  --color-background-secondary: #f8fafc;
-  --color-background-tertiary: #f1f5f9;
+  --color-background: light-dark(#ffffff, #0f172a);
+  --color-background-secondary: light-dark(#f8fafc, #1e293b);
+  --color-background-tertiary: light-dark(#f1f5f9, #334155);
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #64748b;
-  --color-text-tertiary: #94a3b8;
+  --color-text-primary: light-dark(#0f172a, #f8fafc);
+  --color-text-secondary: light-dark(#64748b, #cbd5e1);
+  --color-text-tertiary: light-dark(#94a3b8, #1e293b);
 
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-border-dark: #cbd5e1;
+  --color-border: light-dark(#e2e8f0, #334155);
+  --color-border-light: light-dark(#f1f5f9, #475569);
+  --color-border-dark: light-dark(#cbd5e1, #1e293b);
 
   /* Status Colors */
-  --color-success: #059669;
-  --color-success-light: #10b981;
-  --color-success-bg: #ecfdf5;
+  --color-success: light-dark(#059669, #10b981);
+  --color-success-light: light-dark(#10b981, #34d399);
+  --color-success-bg: light-dark(#ecfdf5, #064e3b);
 
-  --color-warning: #d97706;
-  --color-warning-light: #f59e0b;
-  --color-warning-bg: #fffbeb;
+  --color-warning: light-dark(#d97706, #f59e0b);
+  --color-warning-light: light-dark(#f59e0b, #fbbf24);
+  --color-warning-bg: light-dark(#fffbeb, #451a03);
 
-  --color-error: #dc2626;
-  --color-error-light: #ef4444;
-  --color-error-bg: #fef2f2;
+  --color-error: light-dark(#dc2626, #ef4444);
+  --color-error-light: light-dark(#ef4444, #f87171);
+  --color-error-bg: light-dark(#fef2f2, #450a0a);
 
   /* Priority Colors */
-  --color-priority-low: #6b7280;
-  --color-priority-low-bg: #f9fafb;
+  --color-priority-low: light-dark(#6b7280, #9ca3af);
+  --color-priority-low-bg: light-dark(#f9fafb, #1f2937);
 
-  --color-priority-medium: #d97706;
-  --color-priority-medium-bg: #fffbeb;
+  --color-priority-medium: light-dark(#d97706, #f59e0b);
+  --color-priority-medium-bg: light-dark(#fffbeb, #451a03);
 
-  --color-priority-high: #dc2626;
-  --color-priority-high-bg: #fef2f2;
+  --color-priority-high: light-dark(#dc2626, #ef4444);
+  --color-priority-high-bg: light-dark(#fef2f2, #450a0a);
+
 
   /* Spacing (8px grid) */
   --spacing-xs: 0.25rem;
@@ -83,11 +84,11 @@
   --border-radius-full: 9999px;
 
   /* Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xs: light-dark(0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.3));
+  --shadow-sm: light-dark(0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.4));
+  --shadow-md: light-dark(0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+  --shadow-lg: light-dark(0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.4));
+  --shadow-xl: light-dark(0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.4));
 
   /* Transitions */
   --transition-fast: 150ms ease-in-out;

@@ -299,6 +299,124 @@ class ApiService {
         return { success: true, filename };
     }
 
+    async generateLoggedTimeReport(projectId, format = 'pdf') {
+        const params = new URLSearchParams({ format }).toString();
+        const endpoint = `/reports/logged-time/project/${projectId}?${params}`;
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            credentials: 'include',
+        });
+        
+        // Check if response is JSON (could be no-data case with 200 status)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.type === 'NO_DATA_FOUND') {
+                // This is a no-data scenario, not an error
+                const err = new Error(data.message);
+                err.type = 'NO_DATA_FOUND';
+                throw err;
+            } else if (!response.ok || !data.success) {
+                // This is an actual error
+                const err = new Error(data.message || 'Failed to generate logged time report');
+                err.type = data.type;
+                err.errorCode = data.error;
+                throw err;
+            }
+        }
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate logged time report');
+        }
+        
+        // Get filename from response headers or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        
+        // Fix file extension for excel format
+        const fileExtension = format === 'excel' ? 'xlsx' : format;
+        let filename = `logged_time_report_${projectId}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
+        
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        // Create blob and trigger download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        return { success: true, filename };
+    }
+
+    async generateDepartmentLoggedTimeReport(department, format = 'pdf') {
+        const params = new URLSearchParams({ format }).toString();
+        const endpoint = `/reports/logged-time/department/${department}?${params}`;
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            credentials: 'include',
+        });
+        
+        // Check if response is JSON (could be no-data case with 200 status)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.type === 'NO_DATA_FOUND') {
+                // This is a no-data scenario, not an error
+                const err = new Error(data.message);
+                err.type = 'NO_DATA_FOUND';
+                throw err;
+            } else if (!response.ok || !data.success) {
+                // This is an actual error
+                const err = new Error(data.message || 'Failed to generate department logged time report');
+                err.type = data.type;
+                err.errorCode = data.error;
+                throw err;
+            }
+        }
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate department logged time report');
+        }
+        
+        // Get filename from response headers or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        
+        // Fix file extension for excel format
+        const fileExtension = format === 'excel' ? 'xlsx' : format;
+        let filename = `logged_time_report_department_${department}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
+        
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        // Create blob and trigger download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        return { success: true, filename };
+    }
+
     async generateTeamSummaryReport(projectId, startDate, timeframe, format = 'pdf') {
         const params = new URLSearchParams({ startDate, timeframe, format }).toString();
         const endpoint = `/reports/team-summary/project/${projectId}?${params}`;
@@ -406,6 +524,33 @@ class ApiService {
     async deleteSubtaskComment(subtaskId, commentId) {
         return this.request(`/subtasks/${subtaskId}/comments/${commentId}`, {
             method: 'DELETE'
+        });
+    }
+
+    // Manual Time Logging API Methods
+    async updateTaskTimeTaken(taskId, timeTaken) {
+        return this.request(`/tasks/${taskId}/time-taken`, {
+            method: 'PATCH',
+            body: JSON.stringify({ timeTaken })
+        });
+    }
+
+    async getTaskTotalTime(taskId) {
+        return this.request(`/tasks/${taskId}/total-time`, {
+            method: 'GET'
+        });
+    }
+
+    async updateSubtaskTimeTaken(subtaskId, timeTaken) {
+        return this.request(`/subtasks/${subtaskId}/time-taken`, {
+            method: 'PATCH',
+            body: JSON.stringify({ timeTaken })
+        });
+    }
+
+    async getSubtaskTotalTime(subtaskId) {
+        return this.request(`/subtasks/${subtaskId}/total-time`, {
+            method: 'GET'
         });
     }
 }
