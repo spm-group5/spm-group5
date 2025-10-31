@@ -5,29 +5,29 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.3s ease-out;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: light-dark(white, #0f172a);
+  border: 1px solid var(--color-border);
   z-index: 10002;
   pointer-events: auto;
   position: relative;
 }
 
 .success {
-  background-color: #f0f9ff;
-  border-left: 4px solid #10b981;
-  color: #065f46;
+  background-color: light-dark(#f0f9ff, #0f172a);
+  border-left: 4px solid var(--color-success);
+  color: light-dark(#065f46, #f0f9ff);
 }
 
 .error {
-  background-color: #fef2f2;
-  border-left: 4px solid #ef4444;
-  color: #991b1b;
+  background-color: light-dark(#fef2f2, #0f172a);
+  border-left: 4px solid var(--color-error);
+  color: light-dark(#991b1b, #fef2f2);
 }
 
 .info {
-  background-color: #eff6ff;
-  border-left: 4px solid #3b82f6;
-  color: #1e40af;
+  background-color: light-dark(#eff6ff, #0f172a);
+  border-left: 4px solid var(--color-primary);
+  color: light-dark(#1e40af, #eff6ff);
 }
 
 .content {

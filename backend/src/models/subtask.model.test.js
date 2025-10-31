@@ -408,7 +408,7 @@ describe('Subtask Model', () => {
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.timeTaken).toBeUndefined();
+      expect(savedSubtask.timeTaken).toBe(0); // Default value is now 0
     });
 
     it('should save subtask with timeTaken', async () => {
@@ -417,37 +417,35 @@ describe('Subtask Model', () => {
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '2 hours'
+        timeTaken: 120 // 2 hours in minutes
       };
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.timeTaken).toBe('2 hours');
+      expect(savedSubtask.timeTaken).toBe(120);
     });
 
-    it('should trim whitespace from timeTaken', async () => {
+    it('should reject negative timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: '  2 hours  '
+        timeTaken: -10
       };
 
       const subtask = new Subtask(subtaskData);
-      const savedSubtask = await subtask.save();
-
-      expect(savedSubtask.timeTaken).toBe('2 hours');
+      await expect(subtask.save()).rejects.toThrow();
     });
 
-    it('should reject timeTaken exceeding max length', async () => {
+    it('should reject non-numeric timeTaken', async () => {
       const subtaskData = {
         title: 'Test Subtask',
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        timeTaken: 'a'.repeat(101)
+        timeTaken: 'invalid'
       };
 
       const subtask = new Subtask(subtaskData);
@@ -614,6 +612,114 @@ describe('Subtask Model', () => {
       expect(updatedSubtask.assigneeId).toHaveLength(2);
       expect(updatedSubtask.assigneeId[0].toString()).toBe(newAssignee1.toString());
       expect(updatedSubtask.assigneeId[1].toString()).toBe(newAssignee2.toString());
+    });
+  });
+
+  describe('Tags Field - STK-013, STK-014, STT-006', () => {
+    it('STK-013: should save subtask with tags as string', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('urgent#frontend');
+      expect(typeof savedSubtask.tags).toBe('string');
+    });
+
+    it('STK-014: should save subtask with single tag', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'api'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('api');
+    });
+
+    it('STT-006: should save subtask with hashtag-separated tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'bug#critical#release-blocker'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('bug#critical#release-blocker');
+    });
+
+    it('should save subtask without tags (optional field)', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId()
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('');
+    });
+
+    it('STK-015: should allow updating tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      });
+
+      subtask.tags = 'urgent'; // Update to remove 'frontend'
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toBe('urgent');
+    });
+
+    it('should allow removing all tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      });
+
+      subtask.tags = '';
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toBe('');
+    });
+
+    it('should accept tags as string type', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'test#tags#string'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(typeof savedSubtask.tags).toBe('string');
+      expect(savedSubtask.tags).toBe('test#tags#string');
     });
   });
 });

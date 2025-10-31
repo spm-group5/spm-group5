@@ -430,12 +430,12 @@ describe('Subtask Service', () => {
         parentTaskId: mockTaskId,
         projectId: mockProjectId,
         ownerId: mockOwnerId,
-        timeTaken: '2 hours'
+        timeTaken: 120
       };
 
       const subtask = await subtaskService.createSubtask(subtaskData);
 
-      expect(subtask.timeTaken).toBe('2 hours');
+      expect(subtask.timeTaken).toBe(120);
     });
 
     it('should update subtask timeTaken', async () => {
@@ -444,13 +444,13 @@ describe('Subtask Service', () => {
         parentTaskId: mockTaskId,
         projectId: mockProjectId,
         ownerId: mockOwnerId,
-        timeTaken: '1 hour'
+        timeTaken: 60
       });
 
-      const updateData = { timeTaken: '3 hours' };
+      const updateData = { timeTaken: 180 };
       const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
 
-      expect(updatedSubtask.timeTaken).toBe('3 hours');
+      expect(updatedSubtask.timeTaken).toBe(180);
     });
   });
 
@@ -922,6 +922,106 @@ describe('Subtask Service', () => {
         expect(subtask.assigneeId[1].toString()).toBe(assignee1.toString());
         expect(subtask.assigneeId[2].toString()).toBe(assignee2.toString());
       });
+  describe('Tags Functionality - STK-013, STK-014, STK-015, STT-006', () => {
+    it('STK-013: should create subtask with tags as string', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'urgent#frontend'
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toBe('urgent#frontend');
+      expect(typeof subtask.tags).toBe('string');
+    });
+
+    it('STK-014: should create subtask with single tag', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'api'
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toBe('api');
+    });
+
+    it('STT-006: should create subtask with hashtag-separated tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'bug#critical#release-blocker'
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toBe('bug#critical#release-blocker');
+    });
+
+    it('should create subtask without tags (optional)', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId
+      };
+
+      const subtask = await subtaskService.createSubtask(subtaskData);
+
+      expect(subtask.tags).toBe('');
+    });
+
+    it('STK-015: should update subtask tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'urgent#frontend'
+      });
+
+      const updateData = { tags: 'urgent' };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toBe('urgent');
+    });
+
+    it('should update subtask to add new tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'urgent'
+      });
+
+      const updateData = { tags: 'urgent#frontend#api' };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toBe('urgent#frontend#api');
+    });
+
+    it('should update subtask to remove all tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: mockTaskId,
+        projectId: mockProjectId,
+        ownerId: mockOwnerId,
+        tags: 'urgent#frontend'
+      });
+
+      const updateData = { tags: '' };
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+      expect(updatedSubtask.tags).toBe('');
     });
   });
 });

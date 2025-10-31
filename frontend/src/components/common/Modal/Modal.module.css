@@ -27,7 +27,7 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-background);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 500px;
@@ -72,21 +72,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .closeButton {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #666;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -99,8 +99,8 @@
 }
 
 .closeButton:hover {
-  background-color: #f3f4f6;
-  color: #333;
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
 }
 
 .content {
@@ -109,7 +109,7 @@
 
 .message {
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   font-size: 1rem;
 }
@@ -119,8 +119,8 @@
   gap: 12px;
   justify-content: flex-end;
   padding: 20px;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f9fafb;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-background-secondary);
   border-radius: 0 0 12px 12px;
 }
 

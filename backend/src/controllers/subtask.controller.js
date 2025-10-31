@@ -279,6 +279,71 @@ class SubtaskController {
       });
     }
   }
+
+  /**
+   * Manual Time Logging: Update subtask time taken
+   */
+  async updateSubtaskTimeTaken(req, res) {
+    try {
+      const { subtaskId } = req.params;
+      const { timeTaken } = req.body;
+
+      const subtask = await subtaskService.updateSubtaskTimeTaken(subtaskId, timeTaken);
+
+      res.status(200).json({
+        success: true,
+        message: 'Subtask time logged successfully',
+        data: subtask
+      });
+    } catch (error) {
+      console.error('❌ Error logging subtask time:', error);
+
+      let statusCode = 400;
+      if (error.message === 'Subtask not found') {
+        statusCode = 404;
+      } else if (error.message === 'Time taken cannot be blank') {
+        statusCode = 400;
+      } else if (error.message.includes('positive number')) {
+        statusCode = 400;
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Manual Time Logging: Get subtask total time
+   */
+  async getSubtaskTotalTime(req, res) {
+    try {
+      const { subtaskId } = req.params;
+
+      const subtask = await subtaskService.getSubtaskById(subtaskId);
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          subtaskId: subtaskId,
+          timeTaken: subtask.timeTaken || 0
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error getting subtask time:', error);
+
+      let statusCode = 400;
+      if (error.message === 'Subtask not found') {
+        statusCode = 404;
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 export default new SubtaskController();

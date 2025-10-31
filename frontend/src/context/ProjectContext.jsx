@@ -99,7 +99,7 @@ export function ProjectProvider({ children }) {
     }
   };
 
-  const getProjectById = async (projectId) => {
+  const getProjectById = useCallback(async (projectId) => {
     try {
       setError(null);
       const response = await apiService.getProjectById(projectId);
@@ -108,7 +108,7 @@ export function ProjectProvider({ children }) {
       setError(err.message);
       return { success: false, error: err.message };
     }
-  };
+  }, []);
 
   const value = {
     projects,
