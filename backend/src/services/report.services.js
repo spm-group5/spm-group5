@@ -59,7 +59,7 @@ class ReportService {
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: project, // Use the already fetched project
             createdAt: subtask.createdAt,
             status: subtask.status
@@ -114,7 +114,7 @@ class ReportService {
         const subtaskQuery = {
             $or: [
                 { ownerId: userId },
-                { assigneeId: userId }
+                { assigneeId: { $in: [userId] } } // Check if userId is in the assigneeId array
             ],
             createdAt: {
                 $gte: startDate,
@@ -146,7 +146,7 @@ class ReportService {
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: subtask.projectId, // Map projectId to project
             createdAt: subtask.createdAt,
             status: subtask.status
@@ -644,7 +644,7 @@ class ReportService {
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: project, // Use the already fetched project
             createdAt: subtask.createdAt,
             status: subtask.status

@@ -268,7 +268,8 @@ describe('Subtask Model', () => {
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.assigneeId).toBeUndefined();
+      // assigneeId is now an array, so it defaults to empty array
+      expect(savedSubtask.assigneeId).toEqual([]);
     });
 
     it('should save subtask with assigneeId', async () => {
@@ -278,13 +279,13 @@ describe('Subtask Model', () => {
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        assigneeId
+        assigneeId: [assigneeId] // assigneeId is now an array
       };
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.assigneeId).toEqual(assigneeId);
+      expect(savedSubtask.assigneeId).toEqual([assigneeId]);
     });
 
     it('should save subtask without dueDate', async () => {

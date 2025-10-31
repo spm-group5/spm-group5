@@ -73,11 +73,13 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived }) =>
               <span className={styles.label}>Due Date:</span>
               <span className={styles.value}>{formatDate(subtask.dueDate)}</span>
             </div>
-            {subtask.assigneeId && (
+            {subtask.assigneeId && subtask.assigneeId.length > 0 && (
               <div className={styles.infoItem}>
-                <span className={styles.label}>Assignee:</span>
+                <span className={styles.label}>Assignee{subtask.assigneeId.length > 1 ? 's' : ''}:</span>
                 <span className={styles.value}>
-                  {subtask.assigneeId.username}
+                  {Array.isArray(subtask.assigneeId)
+                    ? subtask.assigneeId.map(a => a.username || a).join(', ')
+                    : subtask.assigneeId.username}
                 </span>
               </div>
             )}

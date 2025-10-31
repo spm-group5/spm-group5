@@ -39,11 +39,10 @@ const subtaskSchema = new mongoose.Schema({
       message: 'Priority must be an integer'
     }
   },
-  assigneeId: {
+  assigneeId: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
-    required: false
-  },
+    ref: 'users'
+  }],
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'users',

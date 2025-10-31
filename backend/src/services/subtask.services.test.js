@@ -507,5 +507,421 @@ describe('Subtask Service', () => {
       await expect(subtaskService.unarchiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
     });
   });
+
+  describe('Manage Assignees Feature - Multiple Assignees', () => {
+    describe('createSubtask with multiple assignees', () => {
+      it('should create subtask with single assignee', async () => {
+        const assigneeId = new mongoose.Types.ObjectId();
+
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assigneeId]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toHaveLength(1);
+        expect(subtask.assigneeId[0].toString()).toBe(assigneeId.toString());
+      });
+
+      it('should create subtask with multiple assignees (up to 5)', async () => {
+        const assignees = [];
+        for (let i = 0; i < 5; i++) {
+          assignees.push(new mongoose.Types.ObjectId());
+        }
+
+        const subtaskData = {
+          title: 'Multi-Assignee Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: assignees
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toHaveLength(5);
+        assignees.forEach(assignee => {
+          expect(subtask.assigneeId.map(a => a.toString())).toContain(assignee.toString());
+        });
+      });
+
+      it('should create subtask with empty assigneeId array', async () => {
+        const subtaskData = {
+          title: 'No Assignee Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: []
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toEqual([]);
+      });
+
+      it('should create subtask without assigneeId field', async () => {
+        const subtaskData = {
+          title: 'No Assignee Field Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(Array.isArray(subtask.assigneeId)).toBe(true);
+        expect(subtask.assigneeId).toEqual([]);
+      });
+
+      it('should create subtask with exactly 3 assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+        const assignee3 = new mongoose.Types.ObjectId();
+
+        const subtaskData = {
+          title: 'Three Assignees Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2, assignee3]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toHaveLength(3);
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(assignee1.toString());
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(assignee2.toString());
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(assignee3.toString());
+      });
+    });
+
+    describe('updateSubtask with multiple assignees', () => {
+      it('should update subtask to add more assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+
+        // Create subtask with one assignee
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // Update to add another assignee
+        const updateData = {
+          assigneeId: [assignee1, assignee2]
+        };
+
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+        // Check the raw document (before populate filters out non-existent users)
+        const rawSubtask = await Subtask.findById(subtask._id).lean();
+        expect(rawSubtask.assigneeId).toHaveLength(2);
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee1.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee2.toString());
+      });
+
+      it('should update subtask to remove assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+        const assignee3 = new mongoose.Types.ObjectId();
+
+        // Create subtask with three assignees
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2, assignee3]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // Update to keep only one assignee
+        const updateData = {
+          assigneeId: [assignee1]
+        };
+
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+        // Check the raw document (before populate filters out non-existent users)
+        const rawSubtask = await Subtask.findById(subtask._id).lean();
+        expect(rawSubtask.assigneeId).toHaveLength(1);
+        expect(rawSubtask.assigneeId[0].toString()).toBe(assignee1.toString());
+      });
+
+      it('should update subtask to replace all assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+        const newAssignee1 = new mongoose.Types.ObjectId();
+        const newAssignee2 = new mongoose.Types.ObjectId();
+
+        // Create subtask with two assignees
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // Update to completely different assignees
+        const updateData = {
+          assigneeId: [newAssignee1, newAssignee2]
+        };
+
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+        // Check the raw document (before populate filters out non-existent users)
+        const rawSubtask = await Subtask.findById(subtask._id).lean();
+        expect(rawSubtask.assigneeId).toHaveLength(2);
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(newAssignee1.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(newAssignee2.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).not.toContain(assignee1.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).not.toContain(assignee2.toString());
+      });
+
+      it('should update subtask to clear all assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+
+        // Create subtask with one assignee
+        const subtaskData = {
+          title: 'Test Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // Update to empty assignees
+        const updateData = {
+          assigneeId: []
+        };
+
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+        expect(updatedSubtask.assigneeId).toEqual([]);
+      });
+
+      it('should update other fields without affecting assignees', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+
+        // Create subtask with assignees
+        const subtaskData = {
+          title: 'Original Title',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // Update title only
+        const updateData = {
+          title: 'Updated Title'
+        };
+
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+
+        expect(updatedSubtask.title).toBe('Updated Title');
+
+        // Check the raw document (before populate filters out non-existent users)
+        const rawSubtask = await Subtask.findById(subtask._id).lean();
+        expect(rawSubtask.assigneeId).toHaveLength(2);
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee1.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee2.toString());
+      });
+    });
+
+    describe('getSubtasksByParentTask with populated assignees', () => {
+      it('should populate multiple assignees when fetching subtasks', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+
+        // Create subtask with multiple assignees
+        const subtaskData = {
+          title: 'Multi-Assignee Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2]
+        };
+
+        const createdSubtask = await subtaskService.createSubtask(subtaskData);
+
+        // Check the raw document (populate will filter out non-existent users)
+        const rawSubtask = await Subtask.findById(createdSubtask._id).lean();
+        expect(rawSubtask.assigneeId).toHaveLength(2);
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee1.toString());
+        expect(rawSubtask.assigneeId.map(a => a.toString())).toContain(assignee2.toString());
+      });
+
+      it('should handle subtasks with no assignees', async () => {
+        const subtaskData = {
+          title: 'No Assignee Subtask',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: []
+        };
+
+        await subtaskService.createSubtask(subtaskData);
+
+        const subtasks = await subtaskService.getSubtasksByParentTask(mockTaskId);
+
+        expect(subtasks).toHaveLength(1);
+        expect(subtasks[0].assigneeId).toEqual([]);
+      });
+
+      it('should handle mix of subtasks with different assignee counts', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+        const assignee3 = new mongoose.Types.ObjectId();
+
+        // Create subtask with 1 assignee
+        await subtaskService.createSubtask({
+          title: 'One Assignee',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1]
+        });
+
+        // Create subtask with 3 assignees
+        await subtaskService.createSubtask({
+          title: 'Three Assignees',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee2, assignee3]
+        });
+
+        // Create subtask with no assignees
+        await subtaskService.createSubtask({
+          title: 'No Assignees',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: []
+        });
+
+        // Check the raw documents (populate will filter out non-existent users)
+        const rawSubtasks = await Subtask.find({ parentTaskId: mockTaskId }).lean();
+
+        expect(rawSubtasks).toHaveLength(3);
+        expect(rawSubtasks[0].assigneeId).toHaveLength(1);
+        expect(rawSubtasks[1].assigneeId).toHaveLength(3);
+        expect(rawSubtasks[2].assigneeId).toEqual([]);
+      });
+    });
+
+    describe('Assignee Restrictions - Parent Task Assignees Only', () => {
+      it('should allow assigning parent task assignees to subtask', async () => {
+        // This test documents the expected behavior where subtask assignees
+        // should be a subset of parent task assignees (enforced at frontend/controller level)
+        const parentAssignee1 = new mongoose.Types.ObjectId();
+        const parentAssignee2 = new mongoose.Types.ObjectId();
+
+        // Update parent task with assignees
+        const parentTask = await Task.findById(mockTaskId);
+        parentTask.assignee = [parentAssignee1, parentAssignee2];
+        await parentTask.save();
+
+        // Create subtask with one of the parent task assignees
+        const subtaskData = {
+          title: 'Subtask with Parent Assignee',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [parentAssignee1]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toHaveLength(1);
+        expect(subtask.assigneeId[0].toString()).toBe(parentAssignee1.toString());
+      });
+
+      it('should allow all parent task assignees on subtask', async () => {
+        const parentAssignee1 = new mongoose.Types.ObjectId();
+        const parentAssignee2 = new mongoose.Types.ObjectId();
+        const parentAssignee3 = new mongoose.Types.ObjectId();
+
+        // Update parent task with assignees
+        const parentTask = await Task.findById(mockTaskId);
+        parentTask.assignee = [parentAssignee1, parentAssignee2, parentAssignee3];
+        await parentTask.save();
+
+        // Create subtask with all parent task assignees
+        const subtaskData = {
+          title: 'Subtask with All Parent Assignees',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [parentAssignee1, parentAssignee2, parentAssignee3]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId).toHaveLength(3);
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(parentAssignee1.toString());
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(parentAssignee2.toString());
+        expect(subtask.assigneeId.map(a => a.toString())).toContain(parentAssignee3.toString());
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('should handle duplicate assignee IDs gracefully', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+
+        const subtaskData = {
+          title: 'Duplicate Assignees',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee1, assignee1, assignee1]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        // MongoDB should store all three, but they're duplicates
+        expect(subtask.assigneeId).toHaveLength(3);
+      });
+
+      it('should preserve assignee order', async () => {
+        const assignee1 = new mongoose.Types.ObjectId();
+        const assignee2 = new mongoose.Types.ObjectId();
+        const assignee3 = new mongoose.Types.ObjectId();
+
+        const subtaskData = {
+          title: 'Ordered Assignees',
+          parentTaskId: mockTaskId,
+          projectId: mockProjectId,
+          ownerId: mockOwnerId,
+          assigneeId: [assignee3, assignee1, assignee2]
+        };
+
+        const subtask = await subtaskService.createSubtask(subtaskData);
+
+        expect(subtask.assigneeId[0].toString()).toBe(assignee3.toString());
+        expect(subtask.assigneeId[1].toString()).toBe(assignee1.toString());
+        expect(subtask.assigneeId[2].toString()).toBe(assignee2.toString());
+      });
+    });
+  });
 });
 

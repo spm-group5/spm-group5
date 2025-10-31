@@ -605,6 +605,7 @@ function TaskCard({
             parentTaskId={task._id}
             projectId={task.project?._id || task.project}
             ownerId={user?._id || user?.id}
+            parentTaskAssignees={task.assignee || []}
           />
         </Modal>
       )}
