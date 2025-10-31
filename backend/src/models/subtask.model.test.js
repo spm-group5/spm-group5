@@ -485,5 +485,113 @@ describe('Subtask Model', () => {
       expect(savedSubtask.archivedAt).toBeInstanceOf(Date);
     });
   });
+
+  describe('Tags Field - STK-013, STK-014, STT-006', () => {
+    it('STK-013: should save subtask with tags as string', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('urgent#frontend');
+      expect(typeof savedSubtask.tags).toBe('string');
+    });
+
+    it('STK-014: should save subtask with single tag', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'api'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('api');
+    });
+
+    it('STT-006: should save subtask with hashtag-separated tags', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'bug#critical#release-blocker'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('bug#critical#release-blocker');
+    });
+
+    it('should save subtask without tags (optional field)', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId()
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.tags).toBe('');
+    });
+
+    it('STK-015: should allow updating tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      });
+
+      subtask.tags = 'urgent'; // Update to remove 'frontend'
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toBe('urgent');
+    });
+
+    it('should allow removing all tags', async () => {
+      const subtask = await Subtask.create({
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'urgent#frontend'
+      });
+
+      subtask.tags = '';
+      const updatedSubtask = await subtask.save();
+
+      expect(updatedSubtask.tags).toBe('');
+    });
+
+    it('should accept tags as string type', async () => {
+      const subtaskData = {
+        title: 'Test Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        tags: 'test#tags#string'
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+      
+      expect(typeof savedSubtask.tags).toBe('string');
+      expect(savedSubtask.tags).toBe('test#tags#string');
+    });
+  });
 });
 

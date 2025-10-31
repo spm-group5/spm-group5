@@ -43,7 +43,8 @@ class SubtaskService {
         dueDate: subtaskData.dueDate,
         isRecurring: subtaskData.isRecurring || false,
         recurrenceInterval: subtaskData.recurrenceInterval || null,
-        timeTaken: subtaskData.timeTaken || ''
+        timeTaken: subtaskData.timeTaken || '',
+        tags: subtaskData.tags || ''
       });
 
       await subtask.save();
@@ -133,6 +134,7 @@ class SubtaskService {
       if (updateData.isRecurring !== undefined) subtask.isRecurring = updateData.isRecurring;
       if (updateData.recurrenceInterval !== undefined) subtask.recurrenceInterval = updateData.recurrenceInterval;
       if (updateData.timeTaken !== undefined) subtask.timeTaken = updateData.timeTaken;
+      if (updateData.tags !== undefined) subtask.tags = updateData.tags;
 
       await subtask.save();
       

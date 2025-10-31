@@ -20,6 +20,7 @@ const SubtaskForm = ({
     assigneeId: '',
     isRecurring: false,
     recurrenceInterval: 1,
+    tags: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -35,6 +36,7 @@ const SubtaskForm = ({
         assigneeId: initialData.assigneeId?._id || initialData.assigneeId || '',
         isRecurring: initialData.isRecurring || false,
         recurrenceInterval: initialData.recurrenceInterval || 1,
+        tags: initialData.tags || ''
       });
     }
   }, [initialData]);
@@ -107,6 +109,7 @@ const SubtaskForm = ({
       // Ensure boolean values are properly formatted
       isRecurring: Boolean(formData.isRecurring),
       recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : undefined,
+      tags: formData.tags || ''
     };
 
     onSubmit(formattedData);
@@ -191,6 +194,14 @@ const SubtaskForm = ({
             type="date"
             value={formData.dueDate}
             onChange={handleChange}
+          />
+          
+          <Input
+            label="Tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleChange}
+            placeholder="e.g., bug#urgent#frontend"
           />
         </div>
 
