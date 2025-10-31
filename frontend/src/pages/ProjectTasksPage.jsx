@@ -151,14 +151,9 @@ function ProjectTasksPage() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      // Ensure the task is associated with this project
-      const taskDataWithProject = {
-        ...formData,
-        project: projectId,
-      };
-
       if (editingTask) {
-        const result = await updateTask(editingTask._id, taskDataWithProject);
+        // When editing, don't add project field (it can't be changed)
+        const result = await updateTask(editingTask._id, formData);
         if (result.success) {
           setTasks(prevTasks =>
             prevTasks.map(task =>
@@ -167,6 +162,11 @@ function ProjectTasksPage() {
           );
         }
       } else {
+        // When creating, ensure the task is associated with this project
+        const taskDataWithProject = {
+          ...formData,
+          project: projectId,
+        };
         const result = await createTask(taskDataWithProject);
         if (result.success) {
           setTasks(prevTasks => [...prevTasks, result.data]);
@@ -337,6 +337,7 @@ function ProjectTasksPage() {
             task={editingTask}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
+            initialProject={projectId}
           />
         ) : (
           <>

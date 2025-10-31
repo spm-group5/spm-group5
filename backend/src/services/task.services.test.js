@@ -1624,4 +1624,629 @@ describe('Task Service Test', () => {
             });
         });
     });
+
+    describe('Manage Assignees Feature', () => {
+        describe('getEligibleAssignees', () => {
+            it('should return all users for manager role', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const staff1 = await User.create({
+                    username: 'staff1@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const staff2 = await User.create({
+                    username: 'staff2@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password789'
+                });
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    manager
+                );
+
+                // Should return all users (manager, staff1, staff2, testUser)
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(4);
+                const usernames = eligibleAssignees.map(a => a.email);
+                expect(usernames).toContain('manager@example.com');
+                expect(usernames).toContain('staff1@example.com');
+                expect(usernames).toContain('staff2@example.com');
+                expect(usernames).toContain('testuser@example.com');
+            });
+
+            it('should return all users for admin role', async () => {
+                const admin = await User.create({
+                    username: 'admin@example.com',
+                    roles: ['admin'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const staff1 = await User.create({
+                    username: 'staff1@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: admin._id,
+                    assignee: [admin._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    admin
+                );
+
+                // Should return all users (admin, staff1, testUser)
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(3);
+                const usernames = eligibleAssignees.map(a => a.email);
+                expect(usernames).toContain('admin@example.com');
+                expect(usernames).toContain('staff1@example.com');
+                expect(usernames).toContain('testuser@example.com');
+            });
+
+            it('should return all users across all departments for manager when managing assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                // Create users in different departments
+                const itStaff = await User.create({
+                    username: 'it-staff@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password456'
+                });
+
+                const hrStaff = await User.create({
+                    username: 'hr-staff@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password789'
+                });
+
+                const salesStaff = await User.create({
+                    username: 'sales-staff@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password101'
+                });
+
+                const financeStaff = await User.create({
+                    username: 'finance-staff@example.com',
+                    roles: ['staff'],
+                    department: 'finance',
+                    hashed_password: 'password102'
+                });
+
+                // Create another manager in different department
+                const hrManager = await User.create({
+                    username: 'hr-manager@example.com',
+                    roles: ['manager'],
+                    department: 'hr',
+                    hashed_password: 'password103'
+                });
+
+                const task = await Task.create({
+                    title: 'Cross-Department Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    manager
+                );
+
+                // Manager should see ALL users regardless of department
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(7);
+
+                const usernames = eligibleAssignees.map(a => a.email);
+
+                // Verify manager can see users from all departments
+                expect(usernames).toContain('manager@example.com');
+                expect(usernames).toContain('it-staff@example.com');
+                expect(usernames).toContain('hr-staff@example.com');
+                expect(usernames).toContain('sales-staff@example.com');
+                expect(usernames).toContain('finance-staff@example.com');
+                expect(usernames).toContain('hr-manager@example.com');
+                expect(usernames).toContain('testuser@example.com');
+
+                // Verify users from different departments are included
+                const departments = new Set(eligibleAssignees.map(a => a.department));
+                expect(departments.has('it')).toBe(true);
+                expect(departments.has('hr')).toBe(true);
+                expect(departments.has('sales')).toBe(true);
+                expect(departments.has('finance')).toBe(true);
+            });
+
+            it('should return all users across all departments for admin when managing assignees', async () => {
+                const admin = await User.create({
+                    username: 'admin@example.com',
+                    roles: ['admin'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                // Create users in different departments
+                const itStaff = await User.create({
+                    username: 'it-staff@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password456'
+                });
+
+                const hrStaff = await User.create({
+                    username: 'hr-staff@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password789'
+                });
+
+                const salesManager = await User.create({
+                    username: 'sales-manager@example.com',
+                    roles: ['manager'],
+                    department: 'sales',
+                    hashed_password: 'password101'
+                });
+
+                const financeStaff = await User.create({
+                    username: 'finance-staff@example.com',
+                    roles: ['staff'],
+                    department: 'finance',
+                    hashed_password: 'password102'
+                });
+
+                const task = await Task.create({
+                    title: 'Admin Cross-Department Task',
+                    project: testProject._id,
+                    owner: admin._id,
+                    assignee: [admin._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    admin
+                );
+
+                // Admin should see ALL users regardless of department or role
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(6);
+
+                const usernames = eligibleAssignees.map(a => a.email);
+
+                // Verify admin can see all users
+                expect(usernames).toContain('admin@example.com');
+                expect(usernames).toContain('it-staff@example.com');
+                expect(usernames).toContain('hr-staff@example.com');
+                expect(usernames).toContain('sales-manager@example.com');
+                expect(usernames).toContain('finance-staff@example.com');
+                expect(usernames).toContain('testuser@example.com');
+
+                // Verify all roles are included
+                const roles = eligibleAssignees.map(a => a.role);
+                expect(roles).toContain('admin');
+                expect(roles).toContain('manager');
+                expect(roles).toContain('staff');
+            });
+
+            it('should return all users for staff role who is task owner', async () => {
+                const staff = await User.create({
+                    username: 'staff@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const projectMember = await User.create({
+                    username: 'projectmember@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const nonProjectMember = await User.create({
+                    username: 'outsider@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password789'
+                });
+
+                // Update project to include staff and projectMember
+                testProject.members = [staff._id, projectMember._id];
+                await testProject.save();
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: staff._id,
+                    assignee: [staff._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    staff
+                );
+
+                // Task owner gets all users (not just project members)
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(4);
+                const usernames = eligibleAssignees.map(a => a.email);
+                expect(usernames).toContain('staff@example.com');
+                expect(usernames).toContain('projectmember@example.com');
+                expect(usernames).toContain('outsider@example.com');
+                expect(usernames).toContain('testuser@example.com');
+            });
+
+            it('should return all users for staff role who is current assignee', async () => {
+                const owner = await User.create({
+                    username: 'owner@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const assignee = await User.create({
+                    username: 'assignee@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const projectMember = await User.create({
+                    username: 'projectmember@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password789'
+                });
+
+                // Update project to include all members
+                testProject.members = [owner._id, assignee._id, projectMember._id];
+                await testProject.save();
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: owner._id,
+                    assignee: [owner._id, assignee._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    assignee
+                );
+
+                // Current assignee gets all users (not just project members)
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(4);
+                const usernames = eligibleAssignees.map(a => a.email);
+                expect(usernames).toContain('owner@example.com');
+                expect(usernames).toContain('assignee@example.com');
+                expect(usernames).toContain('projectmember@example.com');
+                expect(usernames).toContain('testuser@example.com');
+            });
+
+            it('should throw error for non-existent task', async () => {
+                const fakeTaskId = new mongoose.Types.ObjectId();
+
+                await expect(
+                    taskService.getEligibleAssignees(fakeTaskId, testUser)
+                ).rejects.toThrow('Task not found');
+            });
+
+            it('should return only project members for unauthorized user (not owner, assignee, manager, or admin)', async () => {
+                const owner = await User.create({
+                    username: 'owner@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const unauthorized = await User.create({
+                    username: 'unauthorized@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const outsider = await User.create({
+                    username: 'outsider@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password789'
+                });
+
+                // Set project owner and members (unauthorized is not in members)
+                testProject.owner = testUser._id;
+                testProject.members = [owner._id];
+                await testProject.save();
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: owner._id,
+                    assignee: [owner._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    unauthorized
+                );
+
+                // Should return only project owner and members
+                const usernames = eligibleAssignees.map(a => a.email);
+                expect(usernames).toContain('owner@example.com');
+                expect(usernames).toContain('testuser@example.com'); // project owner
+                expect(usernames).not.toContain('unauthorized@example.com');
+                expect(usernames).not.toContain('outsider@example.com');
+            });
+        });
+
+        describe('Multiple Assignees - Create Task', () => {
+            it('should create task with multiple assignees (up to 5)', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const users = [];
+                for (let i = 1; i <= 4; i++) {
+                    const user = await User.create({
+                        username: `user${i}@example.com`,
+                        roles: ['staff'],
+                        department: 'hr',
+                        hashed_password: 'password456'
+                    });
+                    users.push(user);
+                }
+
+                const taskData = {
+                    title: 'Multi-Assignee Task',
+                    project: testProject._id,
+                    assignee: users.map(u => u._id)
+                };
+
+                const task = await taskService.createTask(taskData, manager._id);
+
+                // Should have 5 assignees (4 specified + manager as creator)
+                expect(task.assignee).toHaveLength(5);
+                expect(task.assignee.map(a => a.toString())).toContain(manager._id.toString());
+                users.forEach(user => {
+                    expect(task.assignee.map(a => a.toString())).toContain(user._id.toString());
+                });
+            });
+
+            it('should prevent creating task with more than 5 assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const users = [];
+                for (let i = 1; i <= 5; i++) {
+                    const user = await User.create({
+                        username: `user${i}@example.com`,
+                        roles: ['staff'],
+                        department: 'hr',
+                        hashed_password: 'password456'
+                    });
+                    users.push(user);
+                }
+
+                const taskData = {
+                    title: 'Too Many Assignees Task',
+                    project: testProject._id,
+                    assignee: users.map(u => u._id)
+                };
+
+                // Should fail because 5 users + creator = 6 assignees
+                await expect(
+                    taskService.createTask(taskData, manager._id)
+                ).rejects.toThrow('Maximum of 5 assignees allowed');
+            });
+
+            it('should allow task with exactly 5 assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const users = [];
+                for (let i = 1; i <= 4; i++) {
+                    const user = await User.create({
+                        username: `user${i}@example.com`,
+                        roles: ['staff'],
+                        department: 'hr',
+                        hashed_password: 'password456'
+                    });
+                    users.push(user);
+                }
+
+                const taskData = {
+                    title: 'Five Assignees Task',
+                    project: testProject._id,
+                    assignee: users.map(u => u._id)
+                };
+
+                const task = await taskService.createTask(taskData, manager._id);
+
+                expect(task.assignee).toHaveLength(5);
+            });
+        });
+
+        describe('Multiple Assignees - Update Task', () => {
+            it('should update task with new assignees (within limit)', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const user1 = await User.create({
+                    username: 'user1@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const user2 = await User.create({
+                    username: 'user2@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password789'
+                });
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const updateData = {
+                    assignee: [manager._id, user1._id, user2._id]
+                };
+
+                const updatedTask = await taskService.updateTask(
+                    task._id,
+                    updateData,
+                    manager._id.toString()
+                );
+
+                expect(updatedTask.assignee).toHaveLength(3);
+                const assigneeIds = updatedTask.assignee.map(a => {
+                    const id = a._id || a;
+                    return typeof id === 'object' ? id.toString() : String(id);
+                });
+                expect(assigneeIds).toContain(manager._id.toString());
+                expect(assigneeIds).toContain(user1._id.toString());
+                expect(assigneeIds).toContain(user2._id.toString());
+            });
+
+            it('should prevent updating task with more than 5 assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const users = [];
+                for (let i = 1; i <= 6; i++) {
+                    const user = await User.create({
+                        username: `user${i}@example.com`,
+                        roles: ['staff'],
+                        department: 'hr',
+                        hashed_password: 'password456'
+                    });
+                    users.push(user);
+                }
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const updateData = {
+                    assignee: users.map(u => u._id)
+                };
+
+                await expect(
+                    taskService.updateTask(task._id, updateData, manager._id.toString())
+                ).rejects.toThrow('Maximum of 5 assignees allowed');
+            });
+
+            it('should allow removing assignees (minimum 1)', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const user1 = await User.create({
+                    username: 'user1@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password456'
+                });
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id, user1._id]
+                });
+
+                const updateData = {
+                    assignee: [manager._id]
+                };
+
+                const updatedTask = await taskService.updateTask(
+                    task._id,
+                    updateData,
+                    manager._id.toString()
+                );
+
+                expect(updatedTask.assignee).toHaveLength(1);
+                const assigneeId = updatedTask.assignee[0]._id || updatedTask.assignee[0];
+                const assigneeIdString = typeof assigneeId === 'object' ? assigneeId.toString() : String(assigneeId);
+                expect(assigneeIdString).toBe(manager._id.toString());
+            });
+
+            it('should prevent removing all assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                const task = await Task.create({
+                    title: 'Test Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const updateData = {
+                    assignee: []
+                };
+
+                await expect(
+                    taskService.updateTask(task._id, updateData, manager._id.toString())
+                ).rejects.toThrow('At least one assignee is required');
+            });
+        });
+    });
 });

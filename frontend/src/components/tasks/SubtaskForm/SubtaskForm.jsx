@@ -3,13 +3,14 @@ import Button from '../../common/Button/Button';
 import Input from '../../common/Input/Input';
 import styles from './SubtaskForm.module.css';
 
-const SubtaskForm = ({ 
-  onSubmit, 
-  onCancel, 
-  initialData = null, 
-  parentTaskId, 
+const SubtaskForm = ({
+  onSubmit,
+  onCancel,
+  initialData = null,
+  parentTaskId,
   projectId,
-  ownerId 
+  ownerId,
+  parentTaskAssignees = [] // Array of parent task assignees
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -25,6 +26,10 @@ const SubtaskForm = ({
 
   const [errors, setErrors] = useState({});
 
+  // State for managing assignees (similar to TaskForm)
+  const [selectedAssignees, setSelectedAssignees] = useState([]);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -38,8 +43,87 @@ const SubtaskForm = ({
         recurrenceInterval: initialData.recurrenceInterval || 1,
         tags: initialData.tags || ''
       });
+
+      // Initialize selected assignees for edit mode
+      if (initialData.assigneeId) {
+        // Handle both array and single assignee
+        const assignees = Array.isArray(initialData.assigneeId)
+          ? initialData.assigneeId
+          : [initialData.assigneeId];
+
+        setSelectedAssignees(assignees.map(assignee => ({
+          _id: assignee._id || assignee,
+          username: assignee.username || assignee.name || assignee,
+          email: assignee.email || assignee.username || assignee,
+          role: assignee.role
+        })));
+      }
+    } else {
+      // In create mode, default to first parent task assignee
+      if (parentTaskAssignees.length > 0 && selectedAssignees.length === 0) {
+        const firstAssignee = parentTaskAssignees[0];
+        setSelectedAssignees([{
+          _id: firstAssignee._id,
+          username: firstAssignee.username || firstAssignee.name,
+          email: firstAssignee.email || firstAssignee.username,
+          role: firstAssignee.role
+        }]);
+      }
     }
-  }, [initialData]);
+  }, [initialData, parentTaskAssignees]);
+
+  // Handler to add an assignee
+  const handleAddAssignee = () => {
+    if (!selectedAssignee || selectedAssignee.trim() === '') {
+      return;
+    }
+
+    // Check if already at max capacity (5 assignees for subtasks)
+    if (selectedAssignees.length >= 5) {
+      alert('Subtasks can have a maximum of 5 assignees');
+      return;
+    }
+
+    // Find the assignee from parent task assignees
+    const assigneeToAdd = parentTaskAssignees.find(a => String(a._id) === String(selectedAssignee));
+
+    if (!assigneeToAdd) {
+      alert('Could not find the selected user');
+      return;
+    }
+
+    // Check if already assigned
+    if (selectedAssignees.some(a => String(a._id) === String(assigneeToAdd._id))) {
+      alert('This user is already assigned');
+      return;
+    }
+
+    // Add to selected assignees
+    setSelectedAssignees([...selectedAssignees, {
+      _id: assigneeToAdd._id,
+      username: assigneeToAdd.username || assigneeToAdd.name,
+      email: assigneeToAdd.email || assigneeToAdd.username,
+      role: assigneeToAdd.role
+    }]);
+
+    // Clear selection
+    setSelectedAssignee('');
+  };
+
+  // Handler to remove an assignee
+  const handleRemoveAssignee = (assigneeId) => {
+    // Must have at least 1 assignee
+    if (selectedAssignees.length <= 1) {
+      alert('Subtask must have at least one assignee');
+      return;
+    }
+
+    if (!window.confirm('Remove this assignee?')) {
+      return;
+    }
+
+    setSelectedAssignees(selectedAssignees.filter(a => a._id !== assigneeId));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -70,7 +154,12 @@ const SubtaskForm = ({
       newErrors.description = 'Description cannot exceed 1000 characters';
     }
 
-    if (!formData.priority || formData.priority < 1 || formData.priority > 10) {
+    const priorityNum = Number(formData.priority);
+    if (!formData.priority) {
+      newErrors.priority = 'Priority is required';
+    } else if (!Number.isInteger(priorityNum)) {
+      newErrors.priority = 'Priority must be a whole number';
+    } else if (priorityNum < 1 || priorityNum > 10) {
       newErrors.priority = 'Priority must be between 1 and 10';
     }
 
@@ -94,7 +183,7 @@ const SubtaskForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -105,7 +194,8 @@ const SubtaskForm = ({
       projectId,
       ownerId,
       dueDate: formData.dueDate || undefined,
-      assigneeId: formData.assigneeId || undefined,
+      // Send all selected assignees as an array
+      assigneeId: selectedAssignees.map(a => a._id),
       // Ensure boolean values are properly formatted
       isRecurring: Boolean(formData.isRecurring),
       recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : undefined,
@@ -179,8 +269,15 @@ const SubtaskForm = ({
               type="number"
               min="1"
               max="10"
+              step="1"
               value={formData.priority}
               onChange={handleChange}
+              onKeyDown={(e) => {
+                // Prevent decimal point, 'e', 'E', '+', '-' characters
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+                  e.preventDefault();
+                }
+              }}
               error={errors.priority}
               required
             />
@@ -203,6 +300,109 @@ const SubtaskForm = ({
             onChange={handleChange}
             placeholder="e.g., bug#urgent#frontend"
           />
+        </div>
+
+        {/* Manage Assignees Section */}
+        <div style={{ marginBottom: '20px', marginTop: '20px' }}>
+          <h4 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+            Assignees <span style={{ color: '#e74c3c' }}>*</span> ({selectedAssignees.length}/5)
+          </h4>
+
+          {/* Current Assignees */}
+          {selectedAssignees.length > 0 ? (
+            <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '8px', marginBottom: '16px', backgroundColor: '#f9f9f9' }}>
+              {selectedAssignees.map((assignee) => (
+                <div
+                  key={assignee._id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px',
+                    borderBottom: '1px solid #f0f0f0'
+                  }}
+                >
+                  <span>
+                    {assignee.username || assignee.email}
+                    {assignee.role && (
+                      <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                        ({assignee.role})
+                      </span>
+                    )}
+                  </span>
+                  {selectedAssignees.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="small"
+                      onClick={() => handleRemoveAssignee(assignee._id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>No assignees selected</p>
+          )}
+
+          {/* Add Assignee Section */}
+          {selectedAssignees.length < 5 && parentTaskAssignees.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <h5 style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
+                Assign to Task Member
+              </h5>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label htmlFor="assignee-select" style={{ display: 'block', marginBottom: '8px' }}>
+                    Select from Parent Task Assignees:
+                  </label>
+                  <select
+                    id="assignee-select"
+                    value={selectedAssignee}
+                    onChange={(e) => setSelectedAssignee(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      fontSize: '14px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <option value="">-- Select assignee --</option>
+                    {parentTaskAssignees
+                      .filter(ea => !selectedAssignees.some(sa => sa._id === ea._id))
+                      .map((assignee) => (
+                        <option key={assignee._id} value={assignee._id}>
+                          {assignee.username || assignee.name} ({assignee.role || 'staff'})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleAddAssignee}
+                  disabled={!selectedAssignee}
+                >
+                  Assign
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {selectedAssignees.length >= 5 && (
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+              Maximum of 5 assignees reached
+            </p>
+          )}
+
+          {parentTaskAssignees.length === 0 && (
+            <p style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '16px' }}>
+              No assignees available. The parent task must have assignees first.
+            </p>
+          )}
         </div>
 
         <div className={styles.recurringSection}>

@@ -268,7 +268,8 @@ describe('Subtask Model', () => {
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.assigneeId).toBeUndefined();
+      // assigneeId is now an array, so it defaults to empty array
+      expect(savedSubtask.assigneeId).toEqual([]);
     });
 
     it('should save subtask with assigneeId', async () => {
@@ -278,13 +279,13 @@ describe('Subtask Model', () => {
         parentTaskId: new mongoose.Types.ObjectId(),
         projectId: new mongoose.Types.ObjectId(),
         ownerId: new mongoose.Types.ObjectId(),
-        assigneeId
+        assigneeId: [assigneeId] // assigneeId is now an array
       };
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
 
-      expect(savedSubtask.assigneeId).toEqual(assigneeId);
+      expect(savedSubtask.assigneeId).toEqual([assigneeId]);
     });
 
     it('should save subtask without dueDate', async () => {
@@ -486,6 +487,134 @@ describe('Subtask Model', () => {
     });
   });
 
+  describe('Multiple Assignees Support', () => {
+    it('should save subtask with multiple assignees (up to 5)', async () => {
+      const assignees = [
+        new mongoose.Types.ObjectId(),
+        new mongoose.Types.ObjectId(),
+        new mongoose.Types.ObjectId(),
+        new mongoose.Types.ObjectId(),
+        new mongoose.Types.ObjectId()
+      ];
+
+      const subtaskData = {
+        title: 'Multi-Assignee Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: assignees
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toHaveLength(5);
+      expect(savedSubtask.assigneeId).toEqual(assignees);
+    });
+
+    it('should save subtask with single assignee in array', async () => {
+      const assigneeId = new mongoose.Types.ObjectId();
+      const subtaskData = {
+        title: 'Single Assignee Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: [assigneeId]
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toHaveLength(1);
+      expect(savedSubtask.assigneeId[0].toString()).toBe(assigneeId.toString());
+    });
+
+    it('should handle empty assigneeId array', async () => {
+      const subtaskData = {
+        title: 'No Assignee Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: []
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toEqual([]);
+      expect(Array.isArray(savedSubtask.assigneeId)).toBe(true);
+    });
+
+    it('should preserve order of assignees', async () => {
+      const assignee1 = new mongoose.Types.ObjectId();
+      const assignee2 = new mongoose.Types.ObjectId();
+      const assignee3 = new mongoose.Types.ObjectId();
+
+      const subtaskData = {
+        title: 'Ordered Assignees Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: [assignee1, assignee2, assignee3]
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toHaveLength(3);
+      expect(savedSubtask.assigneeId[0].toString()).toBe(assignee1.toString());
+      expect(savedSubtask.assigneeId[1].toString()).toBe(assignee2.toString());
+      expect(savedSubtask.assigneeId[2].toString()).toBe(assignee3.toString());
+    });
+
+    it('should validate assigneeId contains valid ObjectIds', async () => {
+      const subtaskData = {
+        title: 'Valid ObjectId Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: [
+          new mongoose.Types.ObjectId(),
+          new mongoose.Types.ObjectId()
+        ]
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toHaveLength(2);
+      savedSubtask.assigneeId.forEach(id => {
+        expect(mongoose.Types.ObjectId.isValid(id)).toBe(true);
+      });
+    });
+
+    it('should allow updating assigneeId array', async () => {
+      const initialAssignee = new mongoose.Types.ObjectId();
+      const subtaskData = {
+        title: 'Updatable Assignees Subtask',
+        parentTaskId: new mongoose.Types.ObjectId(),
+        projectId: new mongoose.Types.ObjectId(),
+        ownerId: new mongoose.Types.ObjectId(),
+        assigneeId: [initialAssignee]
+      };
+
+      const subtask = new Subtask(subtaskData);
+      const savedSubtask = await subtask.save();
+
+      expect(savedSubtask.assigneeId).toHaveLength(1);
+
+      // Update assignees
+      const newAssignee1 = new mongoose.Types.ObjectId();
+      const newAssignee2 = new mongoose.Types.ObjectId();
+      savedSubtask.assigneeId = [newAssignee1, newAssignee2];
+      const updatedSubtask = await savedSubtask.save();
+
+      expect(updatedSubtask.assigneeId).toHaveLength(2);
+      expect(updatedSubtask.assigneeId[0].toString()).toBe(newAssignee1.toString());
+      expect(updatedSubtask.assigneeId[1].toString()).toBe(newAssignee2.toString());
+    });
+  });
+
   describe('Tags Field - STK-013, STK-014, STT-006', () => {
     it('STK-013: should save subtask with tags as string', async () => {
       const subtaskData = {
@@ -588,7 +717,7 @@ describe('Subtask Model', () => {
 
       const subtask = new Subtask(subtaskData);
       const savedSubtask = await subtask.save();
-      
+
       expect(typeof savedSubtask.tags).toBe('string');
       expect(savedSubtask.tags).toBe('test#tags#string');
     });

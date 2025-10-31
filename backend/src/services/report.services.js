@@ -618,7 +618,7 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: project, // Use the already fetched project
             createdAt: subtask.createdAt,
             status: subtask.status
@@ -673,7 +673,7 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
         const subtaskQuery = {
             $or: [
                 { ownerId: userId },
-                { assigneeId: userId }
+                { assigneeId: { $in: [userId] } } // Check if userId is in the assigneeId array
             ],
             createdAt: {
                 $gte: startDate,
@@ -705,7 +705,7 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: subtask.projectId, // Map projectId to project
             createdAt: subtask.createdAt,
             status: subtask.status
@@ -1203,7 +1203,7 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
             tags: subtask.tags,
             description: subtask.description,
             owner: subtask.ownerId, // Map ownerId to owner
-            assignee: subtask.assigneeId ? [subtask.assigneeId] : [], // Map single assigneeId to array format, handle null
+            assignee: subtask.assigneeId || [], // assigneeId is already an array
             project: project, // Use the already fetched project
             createdAt: subtask.createdAt,
             status: subtask.status
