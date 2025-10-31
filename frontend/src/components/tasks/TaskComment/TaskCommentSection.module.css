@@ -1,13 +1,13 @@
 .commentSection {
     margin-top: 1.5rem;
     padding: 1rem;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--color-border);
 }
 
 .commentSection h4 {
     margin-bottom: 1rem;
     font-size: 1.1rem;
-    color: #333;
+    color: var(--color-text-primary);
 }
 
 .commentsList {
@@ -19,9 +19,9 @@
 .comment {
     padding: 0.75rem;
     margin-bottom: 0.75rem;
-    background: #f5f5f5;
+    background: var(--color-background-secondary);
     border-radius: 8px;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid var(--color-primary);
 }
 
 .commentHeader {
@@ -32,14 +32,14 @@
 }
 
 .comment strong {
-    color: #007bff;
+    color: var(--color-primary);
     font-size: 0.9rem;
 }
 
 .deleteButton {
     background: transparent;
     border: none;
-    color: #999;
+    color: var(--color-text-secondary);
     cursor: pointer;
     padding: 4px;
     width: 28px;
@@ -52,8 +52,8 @@
 }
 
 .deleteButton:hover {
-    background: #fee;
-    color: #dc3545;
+    background: var(--color-error-bg);
+    color: var(--color-error);
 }
 
 .deleteButton:active {
@@ -67,19 +67,19 @@
 
 .comment p {
     margin: 0.5rem 0;
-    color: #333;
+    color: var(--color-text-primary);
     line-height: 1.5;
 }
 
 .comment small {
-    color: #666;
+    color: var(--color-text-secondary);
     font-size: 0.85rem;
 }
 
 .noComments {
     text-align: center;
     padding: 2rem;
-    color: #999;
+    color: var(--color-text-secondary);
     font-style: italic;
 }
 
@@ -92,28 +92,30 @@
 .commentForm textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     font-family: inherit;
     font-size: 0.95rem;
     resize: vertical;
     transition: border-color 0.2s;
+    background: var(--color-background);
+    color: var(--color-text-primary);
 }
 
 .commentForm textarea:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--color-primary);
 }
 
 .commentForm textarea:disabled {
-    background: #f5f5f5;
+    background: var(--color-background-secondary);
     cursor: not-allowed;
 }
 
 .commentForm button {
     align-self: flex-end;
     padding: 0.6rem 1.5rem;
-    background: #007bff;
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 6px;
@@ -123,10 +125,10 @@
 }
 
 .commentForm button:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--color-primary-dark);
 }
 
 .commentForm button:disabled {
-    background: #ccc;
+    background: var(--color-secondary);
     cursor: not-allowed;
 }
