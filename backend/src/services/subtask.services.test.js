@@ -922,6 +922,9 @@ describe('Subtask Service', () => {
         expect(subtask.assigneeId[1].toString()).toBe(assignee1.toString());
         expect(subtask.assigneeId[2].toString()).toBe(assignee2.toString());
       });
+    });
+  });
+
   describe('Tags Functionality - STK-013, STK-014, STK-015, STT-006', () => {
     it('STK-013: should create subtask with tags as string', async () => {
       const subtaskData = {
