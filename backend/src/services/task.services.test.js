@@ -1705,6 +1705,154 @@ describe('Task Service Test', () => {
                 expect(usernames).toContain('testuser@example.com');
             });
 
+            it('should return all users across all departments for manager when managing assignees', async () => {
+                const manager = await User.create({
+                    username: 'manager@example.com',
+                    roles: ['manager'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                // Create users in different departments
+                const itStaff = await User.create({
+                    username: 'it-staff@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password456'
+                });
+
+                const hrStaff = await User.create({
+                    username: 'hr-staff@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password789'
+                });
+
+                const salesStaff = await User.create({
+                    username: 'sales-staff@example.com',
+                    roles: ['staff'],
+                    department: 'sales',
+                    hashed_password: 'password101'
+                });
+
+                const financeStaff = await User.create({
+                    username: 'finance-staff@example.com',
+                    roles: ['staff'],
+                    department: 'finance',
+                    hashed_password: 'password102'
+                });
+
+                // Create another manager in different department
+                const hrManager = await User.create({
+                    username: 'hr-manager@example.com',
+                    roles: ['manager'],
+                    department: 'hr',
+                    hashed_password: 'password103'
+                });
+
+                const task = await Task.create({
+                    title: 'Cross-Department Task',
+                    project: testProject._id,
+                    owner: manager._id,
+                    assignee: [manager._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    manager
+                );
+
+                // Manager should see ALL users regardless of department
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(7);
+
+                const usernames = eligibleAssignees.map(a => a.email);
+
+                // Verify manager can see users from all departments
+                expect(usernames).toContain('manager@example.com');
+                expect(usernames).toContain('it-staff@example.com');
+                expect(usernames).toContain('hr-staff@example.com');
+                expect(usernames).toContain('sales-staff@example.com');
+                expect(usernames).toContain('finance-staff@example.com');
+                expect(usernames).toContain('hr-manager@example.com');
+                expect(usernames).toContain('testuser@example.com');
+
+                // Verify users from different departments are included
+                const departments = new Set(eligibleAssignees.map(a => a.department));
+                expect(departments.has('it')).toBe(true);
+                expect(departments.has('hr')).toBe(true);
+                expect(departments.has('sales')).toBe(true);
+                expect(departments.has('finance')).toBe(true);
+            });
+
+            it('should return all users across all departments for admin when managing assignees', async () => {
+                const admin = await User.create({
+                    username: 'admin@example.com',
+                    roles: ['admin'],
+                    department: 'it',
+                    hashed_password: 'password123'
+                });
+
+                // Create users in different departments
+                const itStaff = await User.create({
+                    username: 'it-staff@example.com',
+                    roles: ['staff'],
+                    department: 'it',
+                    hashed_password: 'password456'
+                });
+
+                const hrStaff = await User.create({
+                    username: 'hr-staff@example.com',
+                    roles: ['staff'],
+                    department: 'hr',
+                    hashed_password: 'password789'
+                });
+
+                const salesManager = await User.create({
+                    username: 'sales-manager@example.com',
+                    roles: ['manager'],
+                    department: 'sales',
+                    hashed_password: 'password101'
+                });
+
+                const financeStaff = await User.create({
+                    username: 'finance-staff@example.com',
+                    roles: ['staff'],
+                    department: 'finance',
+                    hashed_password: 'password102'
+                });
+
+                const task = await Task.create({
+                    title: 'Admin Cross-Department Task',
+                    project: testProject._id,
+                    owner: admin._id,
+                    assignee: [admin._id]
+                });
+
+                const eligibleAssignees = await taskService.getEligibleAssignees(
+                    task._id,
+                    admin
+                );
+
+                // Admin should see ALL users regardless of department or role
+                expect(eligibleAssignees.length).toBeGreaterThanOrEqual(6);
+
+                const usernames = eligibleAssignees.map(a => a.email);
+
+                // Verify admin can see all users
+                expect(usernames).toContain('admin@example.com');
+                expect(usernames).toContain('it-staff@example.com');
+                expect(usernames).toContain('hr-staff@example.com');
+                expect(usernames).toContain('sales-manager@example.com');
+                expect(usernames).toContain('finance-staff@example.com');
+                expect(usernames).toContain('testuser@example.com');
+
+                // Verify all roles are included
+                const roles = eligibleAssignees.map(a => a.role);
+                expect(roles).toContain('admin');
+                expect(roles).toContain('manager');
+                expect(roles).toContain('staff');
+            });
+
             it('should return all users for staff role who is task owner', async () => {
                 const staff = await User.create({
                     username: 'staff@example.com',
