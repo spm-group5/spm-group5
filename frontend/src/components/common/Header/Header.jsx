@@ -24,7 +24,7 @@ function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link to="/dashboard" className={styles.logoLink}>
-            <img src="All-In-One-favicon.png" alt="All-In-One Logo" className={styles.logoIcon} />
+            <img src="/All-In-One-favicon.png" alt="All-In-One Logo" className={styles.logoIcon} />
             <h2 className={styles.logoText}>All-In-One Task Management System</h2>
           </Link>
         </div>

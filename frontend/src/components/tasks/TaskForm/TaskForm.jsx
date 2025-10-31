@@ -484,34 +484,28 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
           </div>
 
           {/* Manage Assignees Section */}
-          <div style={{ marginBottom: '20px', marginTop: '20px' }}>
-            <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
+          <div className={styles.assigneesSection}>
+            <h3 className={styles.assigneesTitle}>
               Assignees <span className={styles.required}>*</span> ({selectedAssignees.length}/5)
             </h3>
 
             {/* Current Assignees List */}
             {selectedAssignees.length > 0 ? (
-              <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '8px', marginBottom: '16px', backgroundColor: '#f9f9f9' }}>
+              <div className={styles.assigneesList}>
                 {selectedAssignees.map((assignee) => (
                   <div
                     key={assignee._id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '8px',
-                      borderBottom: '1px solid #f0f0f0'
-                    }}
+                    className={styles.assigneeItem}
                   >
-                    <span>
+                    <span className={styles.assigneeInfo}>
                       {assignee.username || assignee.email}
                       {assignee.isCreator && !isEditing && (
-                        <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                        <span className={styles.assigneeLabel}>
                           (You - Creator)
                         </span>
                       )}
                       {assignee.isOwner && isEditing && (
-                        <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                        <span className={styles.assigneeLabel}>
                           (Owner)
                         </span>
                       )}
@@ -530,31 +524,25 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
                 ))}
               </div>
             ) : (
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>No assignees selected</p>
+              <p className={styles.noAssignees}>No assignees selected</p>
             )}
 
             {/* Add Assignee Section */}
             {selectedAssignees.length < 5 && watchedProject && (
-              <div style={{ marginBottom: '16px' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
+              <div className={styles.addAssigneeSection}>
+                <h4 className={styles.addAssigneeTitle}>
                   Add Assignee
                 </h4>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <label htmlFor="assignee-select" style={{ display: 'block', marginBottom: '8px' }}>
+                <div className={styles.addAssigneeRow}>
+                  <div className={styles.addAssigneeSelectWrapper}>
+                    <label htmlFor="assignee-select" className={styles.addAssigneeLabel}>
                       Select User:
                     </label>
                     <select
                       id="assignee-select"
                       value={selectedAssignee}
                       onChange={(e) => setSelectedAssignee(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        fontSize: '14px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px'
-                      }}
+                      className={styles.addAssigneeSelect}
                     >
                       <option value="">-- Select user --</option>
                       {eligibleAssignees
@@ -579,13 +567,13 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
             )}
 
             {selectedAssignees.length >= 5 && (
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+              <p className={styles.maxAssigneesMessage}>
                 Maximum of 5 assignees reached
               </p>
             )}
 
             {!watchedProject && (
-              <p style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '16px' }}>
+              <p className={styles.projectWarning}>
                 Please select a project first to assign users
               </p>
             )}

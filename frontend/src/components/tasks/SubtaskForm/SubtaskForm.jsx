@@ -303,29 +303,23 @@ const SubtaskForm = ({
         </div>
 
         {/* Manage Assignees Section */}
-        <div style={{ marginBottom: '20px', marginTop: '20px' }}>
-          <h4 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: 'bold' }}>
-            Assignees <span style={{ color: '#e74c3c' }}>*</span> ({selectedAssignees.length}/5)
+        <div className={styles.assigneesSection}>
+          <h4 className={styles.assigneesTitle}>
+            Assignees <span className={styles.required}>*</span> ({selectedAssignees.length}/5)
           </h4>
 
           {/* Current Assignees */}
           {selectedAssignees.length > 0 ? (
-            <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '8px', marginBottom: '16px', backgroundColor: '#f9f9f9' }}>
+            <div className={styles.assigneesList}>
               {selectedAssignees.map((assignee) => (
                 <div
                   key={assignee._id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #f0f0f0'
-                  }}
+                  className={styles.assigneeItem}
                 >
-                  <span>
+                  <span className={styles.assigneeInfo}>
                     {assignee.username || assignee.email}
                     {assignee.role && (
-                      <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>
+                      <span className={styles.assigneeLabel}>
                         ({assignee.role})
                       </span>
                     )}
@@ -344,31 +338,25 @@ const SubtaskForm = ({
               ))}
             </div>
           ) : (
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>No assignees selected</p>
+            <p className={styles.noAssignees}>No assignees selected</p>
           )}
 
           {/* Add Assignee Section */}
           {selectedAssignees.length < 5 && parentTaskAssignees.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
+            <div className={styles.addAssigneeSection}>
+              <h5 className={styles.addAssigneeTitle}>
                 Assign to Task Member
               </h5>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="assignee-select" style={{ display: 'block', marginBottom: '8px' }}>
+              <div className={styles.addAssigneeRow}>
+                <div className={styles.addAssigneeSelectWrapper}>
+                  <label htmlFor="assignee-select" className={styles.addAssigneeLabel}>
                     Select from Parent Task Assignees:
                   </label>
                   <select
                     id="assignee-select"
                     value={selectedAssignee}
                     onChange={(e) => setSelectedAssignee(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      fontSize: '14px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px'
-                    }}
+                    className={styles.addAssigneeSelect}
                   >
                     <option value="">-- Select assignee --</option>
                     {parentTaskAssignees
@@ -393,13 +381,13 @@ const SubtaskForm = ({
           )}
 
           {selectedAssignees.length >= 5 && (
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+            <p className={styles.maxAssigneesMessage}>
               Maximum of 5 assignees reached
             </p>
           )}
 
           {parentTaskAssignees.length === 0 && (
-            <p style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '16px' }}>
+            <p className={styles.parentTaskWarning}>
               No assignees available. The parent task must have assignees first.
             </p>
           )}

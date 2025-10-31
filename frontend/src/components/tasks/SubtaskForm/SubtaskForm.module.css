@@ -1,7 +1,7 @@
 /* SubtaskForm.module.css - Clean, simple styling */
 
 .formCard {
-  background: white;
+  background: var(--color-background);
   border-radius: 8px;
   padding: 24px;
   width: 100%;
@@ -20,7 +20,7 @@
   margin: 0 0 20px 0;
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: center;
 }
 
@@ -44,11 +44,11 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .required {
-  color: #f44336;
+  color: var(--color-error);
   margin-left: 4px;
 }
 
@@ -59,53 +59,53 @@
 
 .recurringSection {
   padding: 16px;
-  background-color: #f8f9fa;
+  background-color: var(--color-background-secondary);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--color-border);
 }
 
 .textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
-  background-color: white;
-  color: #333;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   box-sizing: border-box;
   min-height: 80px;
 }
 
 .textarea:focus {
   outline: none;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px light-dark(rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.2));
 }
 
 .select {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  background-color: white;
-  color: #333;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   cursor: pointer;
   box-sizing: border-box;
 }
 
 .select:focus {
   outline: none;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px light-dark(rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.2));
 }
 
 .error {
   display: block;
-  color: #f44336;
+  color: var(--color-error);
   font-size: 12px;
   margin-top: 4px;
 }
@@ -116,7 +116,105 @@
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Assignees Section */
+.assigneesSection {
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+.assigneesTitle {
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: var(--color-text-primary);
+}
+
+.assigneesList {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 16px;
+  background-color: var(--color-background-secondary);
+}
+
+.assigneeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.assigneeItem:last-child {
+  border-bottom: none;
+}
+
+.assigneeInfo {
+  color: var(--color-text-primary);
+}
+
+.assigneeLabel {
+  margin-left: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.noAssignees {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.addAssigneeSection {
+  margin-bottom: 16px;
+}
+
+.addAssigneeTitle {
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--color-text-primary);
+}
+
+.addAssigneeRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.addAssigneeSelectWrapper {
+  flex: 1;
+}
+
+.addAssigneeLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-text-primary);
+}
+
+.addAssigneeSelect {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.maxAssigneesMessage {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.parentTaskWarning {
+  color: var(--color-error);
+  font-size: 14px;
+  margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {

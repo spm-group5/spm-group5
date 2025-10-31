@@ -8,19 +8,19 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: linear-gradient(135deg, #f0f4ff 0%, #f5f9ff 100%);
-  border: 1.5px solid #3b82f6;
+  background: var(--color-background-secondary);
+  border: 1.5px solid var(--color-primary);
   border-radius: 20px;
   font-weight: 600;
   font-size: 13px;
-  color: #1e40af;
+  color: var(--color-primary);
   transition: all 0.2s ease;
-  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .timeBadge:hover {
-  background: linear-gradient(135deg, #e0ebff 0%, #eff4ff 100%);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  background: var(--color-background-tertiary);
+  box-shadow: var(--shadow-md);
 }
 
 .timeText {
@@ -38,7 +38,7 @@
   opacity: 0;
   margin-left: 4px;
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--color-primary);
 }
 
 .timeBadge:hover .editButton {
@@ -57,23 +57,23 @@
 
 /* States for different time ranges */
 .timeBadge.hasTime {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-color: #0284c7;
-  color: #075985;
+  background: var(--color-background-tertiary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .timeBadge.hasTime:hover {
-  background: linear-gradient(135deg, #bfdbfe 0%, #7dd3fc 100%);
+  background: var(--color-border);
 }
 
 .timeBadge.noTime {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-color: #d1d5db;
-  color: #6b7280;
+  background: var(--color-background-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .timeBadge.noTime:hover {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  background: var(--color-background-tertiary);
 }
 
 /* Responsive Design */
