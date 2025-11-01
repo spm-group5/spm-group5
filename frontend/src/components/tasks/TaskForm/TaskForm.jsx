@@ -349,10 +349,6 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
             label="Title"
             {...register('title', {
               required: 'Title is required',
-              minLength: {
-                value: 3,
-                message: 'Title must be at least 3 characters long',
-              },
             })}
             error={errors.title?.message}
             required

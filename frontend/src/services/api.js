@@ -508,6 +508,13 @@ class ApiService {
         });
     }
 
+    async editTaskComment(taskId, commentId, text) {
+        return this.request(`/tasks/${taskId}/comments/${commentId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ text })
+        });
+    }
+
     async deleteTaskComment(taskId, commentId) {
         return this.request(`/tasks/${taskId}/comments/${commentId}`, {
             method: 'DELETE'
@@ -517,6 +524,13 @@ class ApiService {
     async addSubtaskComment(subtaskId, text) {
         return this.request(`/subtasks/${subtaskId}/comments`, {
             method: 'POST',
+            body: JSON.stringify({ text })
+        });
+    }
+
+    async editSubtaskComment(subtaskId, commentId, text) {
+        return this.request(`/subtasks/${subtaskId}/comments/${commentId}`, {
+            method: 'PUT',
             body: JSON.stringify({ text })
         });
     }

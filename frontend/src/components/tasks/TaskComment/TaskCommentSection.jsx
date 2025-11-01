@@ -11,6 +11,8 @@ export default function CommentSection({ task, subtask, onCommentAdded, type = '
     const [comments, setComments] = useState(item?.comments || []);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [commentToDelete, setCommentToDelete] = useState(null);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editText, setEditText] = useState('');
     const { user } = useAuth();
 
     // Update local comments when task/subtask prop changes
@@ -134,6 +136,44 @@ export default function CommentSection({ task, subtask, onCommentAdded, type = '
         setCommentToDelete(null);
     };
 
+    const handleEditClick = (comment) => {
+        setEditingCommentId(comment._id);
+        setEditText(comment.text);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+        setEditText('');
+    };
+
+    const handleSaveEdit = async (commentId) => {
+        if (!editText.trim()) return;
+
+        try {
+            const response = type === 'subtask'
+                ? await api.editSubtaskComment(item._id, commentId, editText)
+                : await api.editTaskComment(item._id, commentId, editText);
+
+            // Get the updated item from the response
+            const updatedItem = response.data || response;
+
+            // Update local comments state immediately for seamless UI
+            if (updatedItem.comments) {
+                setComments(updatedItem.comments);
+            }
+
+            // Reset edit state
+            setEditingCommentId(null);
+            setEditText('');
+
+            // Optionally notify parent component
+            onCommentAdded?.(updatedItem);
+        } catch (error) {
+            console.error('Error editing comment:', error);
+            alert(error.response?.data?.message || 'Failed to edit comment');
+        }
+    };
+
     return (
         <div className={styles.commentSection}>
             <h4>Comments</h4>
@@ -145,31 +185,76 @@ export default function CommentSection({ task, subtask, onCommentAdded, type = '
                         const userId = user?.id || user?._id;
                         const commentAuthorId = comment.author?._id || comment.author;
                         const isOwnComment = userId && commentAuthorId && commentAuthorId.toString() === userId.toString();
+                        const isEditing = editingCommentId === comment._id;
 
                         return (
                             <div key={comment._id} className={styles.comment}>
                                 <div className={styles.commentHeader}>
                                     <strong>{comment.authorName}</strong>
-                                    {isOwnComment && (
-                                        <button
-                                            className={styles.deleteButton}
-                                            onClick={() => handleDeleteClick(comment._id)}
-                                            title="Delete comment"
-                                        >
-                                            <svg
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 16 16"
-                                                fill="currentColor"
+                                    {isOwnComment && !isEditing && (
+                                        <div className={styles.commentActions}>
+                                            <button
+                                                className={styles.editButton}
+                                                onClick={() => handleEditClick(comment)}
+                                                title="Edit comment"
                                             >
-                                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                                                <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                                            </svg>
-                                        </button>
+                                                <svg
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 16 16"
+                                                    fill="currentColor"
+                                                >
+                                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                className={styles.deleteButton}
+                                                onClick={() => handleDeleteClick(comment._id)}
+                                                title="Delete comment"
+                                            >
+                                                <svg
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 16 16"
+                                                    fill="currentColor"
+                                                >
+                                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                                    <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
-                                <p>{comment.text}</p>
-                                <small>{new Date(comment.createdAt).toLocaleString()}</small>
+                                {isEditing ? (
+                                    <div className={styles.editForm}>
+                                        <textarea
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            rows={3}
+                                            className={styles.editTextarea}
+                                        />
+                                        <div className={styles.editActions}>
+                                            <button
+                                                className={styles.saveButton}
+                                                onClick={() => handleSaveEdit(comment._id)}
+                                                disabled={!editText.trim()}
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                className={styles.cancelButton}
+                                                onClick={handleCancelEdit}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p>{comment.text}</p>
+                                        <small>{new Date(comment.createdAt).toLocaleString()}</small>
+                                    </>
+                                )}
                             </div>
                         );
                     })

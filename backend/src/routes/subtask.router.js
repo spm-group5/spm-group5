@@ -17,6 +17,7 @@ router.put('/subtasks/:subtaskId/unarchive', subtaskController.unarchiveSubtask)
 
 // Comment endpoints (MUST come before generic :subtaskId routes)
 router.post('/subtasks/:subtaskId/comments', subtaskController.addComment);
+router.put('/subtasks/:subtaskId/comments/:commentId', subtaskController.editComment);
 router.delete('/subtasks/:subtaskId/comments/:commentId', subtaskController.deleteComment);
 
 // Create a new subtask

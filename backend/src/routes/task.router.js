@@ -14,6 +14,7 @@ router.get('/tasks/:taskId/total-time', requireAuth, taskController.getTaskTotal
 router.patch('/tasks/:taskId/archive', requireAuth, taskController.archiveTask);
 router.patch('/tasks/:taskId/unarchive', requireAuth, taskController.unarchiveTask);
 router.post('/tasks/:taskId/comments', requireAuth, taskController.addComment);
+router.put('/tasks/:taskId/comments/:commentId', requireAuth, taskController.editComment);
 router.delete('/tasks/:taskId/comments/:commentId', requireAuth, taskController.deleteComment);
 
 // Generic routes (MUST come after specific routes)

@@ -500,7 +500,7 @@ describe('Subtask Service', () => {
     it('should unarchive a subtask', async () => {
       // First archive the subtask
       await subtaskService.archiveSubtask(mockSubtaskId);
-      
+
       // Then unarchive it
       const unarchivedSubtask = await subtaskService.unarchiveSubtask(mockSubtaskId);
 
@@ -518,6 +518,58 @@ describe('Subtask Service', () => {
       const nonExistentId = new mongoose.Types.ObjectId();
 
       await expect(subtaskService.unarchiveSubtask(nonExistentId)).rejects.toThrow('Subtask not found');
+    });
+
+    it('should reject unarchival when parent task is archived', async () => {
+      // Archive the parent task
+      const archivedTask = await Task.findById(mockTaskId);
+      archivedTask.archived = true;
+      archivedTask.archivedAt = new Date();
+      await archivedTask.save();
+
+      // Archive the subtask
+      await subtaskService.archiveSubtask(mockSubtaskId);
+
+      // Try to unarchive subtask - should fail
+      await expect(
+        subtaskService.unarchiveSubtask(mockSubtaskId)
+      ).rejects.toThrow('Cannot unarchive subtask while its parent task is archived');
+    });
+
+    it('should reject unarchival when parent project is archived', async () => {
+      // Archive the parent project
+      const archivedProject = await Project.findById(mockProjectId);
+      archivedProject.archived = true;
+      archivedProject.archivedAt = new Date();
+      await archivedProject.save();
+
+      // Archive the subtask
+      await subtaskService.archiveSubtask(mockSubtaskId);
+
+      // Try to unarchive subtask - should fail
+      await expect(
+        subtaskService.unarchiveSubtask(mockSubtaskId)
+      ).rejects.toThrow('Cannot unarchive subtask while its project is archived');
+    });
+
+    it('should allow unarchival when both parent task and project are not archived', async () => {
+      // Ensure both task and project are not archived
+      const task = await Task.findById(mockTaskId);
+      task.archived = false;
+      await task.save();
+
+      const project = await Project.findById(mockProjectId);
+      project.archived = false;
+      await project.save();
+
+      // Archive the subtask
+      await subtaskService.archiveSubtask(mockSubtaskId);
+
+      // Unarchive should succeed
+      const unarchivedSubtask = await subtaskService.unarchiveSubtask(mockSubtaskId);
+
+      expect(unarchivedSubtask.archived).toBe(false);
+      expect(unarchivedSubtask.archivedAt).toBeNull();
     });
   });
 

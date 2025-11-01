@@ -234,16 +234,28 @@ class SubtaskService {
   async unarchiveSubtask(subtaskId) {
     try {
       const subtask = await Subtask.findById(subtaskId);
-      
+
       if (!subtask) {
         throw new Error('Subtask not found');
+      }
+
+      // Check if the parent task is archived
+      const parentTask = await Task.findById(subtask.parentTaskId);
+      if (parentTask && parentTask.archived === true) {
+        throw new Error('Cannot unarchive subtask while its parent task is archived');
+      }
+
+      // Check if the parent project is archived
+      const project = await Project.findById(subtask.projectId);
+      if (project && project.archived === true) {
+        throw new Error('Cannot unarchive subtask while its project is archived');
       }
 
       // Unarchive the subtask
       subtask.archived = false;
       subtask.archivedAt = null;
       await subtask.save();
-      
+
       return subtask;
     } catch (error) {
       throw error;

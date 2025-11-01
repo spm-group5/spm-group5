@@ -415,10 +415,15 @@ class TaskService {
     }
 
     async unarchiveTask(taskId, userId) {
-        const task = await Task.findById(taskId);
+        const task = await Task.findById(taskId).populate('project');
 
         if (!task) {
             throw new Error('Task not found');
+        }
+
+        // Check if the parent project is archived
+        if (task.project && task.project.archived === true) {
+            throw new Error('Cannot unarchive task while its project is archived');
         }
 
         // Check permissions
