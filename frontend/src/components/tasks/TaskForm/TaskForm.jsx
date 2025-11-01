@@ -444,11 +444,13 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
                   disabled={isEditing}
                 >
                   <option value="">Select Project</option>
-                  {projects.map((project) => (
-                    <option key={project._id} value={project._id}>
-                      {project.name}
-                    </option>
-                  ))}
+                  {projects
+                    .filter((project) => project.canViewTasks !== false)
+                    .map((project) => (
+                      <option key={project._id} value={project._id}>
+                        {project.name}
+                      </option>
+                    ))}
                 </select>
                 {errors.project && (
                   <div className={styles.errorMessage}>{errors.project.message}</div>
