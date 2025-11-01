@@ -3,7 +3,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow: visible;
   transition: all var(--transition-normal);
 }
 
