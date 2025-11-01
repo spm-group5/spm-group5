@@ -191,7 +191,8 @@ describe('Subtask Controller - Edit Comment', () => {
                 title: 'Test Subtask',
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
-                }
+                },
+                save: vi.fn() // Ensure save is a spy even if not called
             };
 
             req.body = { text: 'Trying to edit someone else\'s comment' };
