@@ -36,6 +36,12 @@
     font-size: 0.9rem;
 }
 
+.commentActions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.editButton,
 .deleteButton {
     background: transparent;
     border: none;
@@ -51,15 +57,22 @@
     transition: all 0.2s;
 }
 
+.editButton:hover {
+    background: var(--color-primary-light, #e3f2fd);
+    color: var(--color-primary);
+}
+
 .deleteButton:hover {
     background: var(--color-error-bg);
     color: var(--color-error);
 }
 
+.editButton:active,
 .deleteButton:active {
     transform: scale(0.95);
 }
 
+.editButton svg,
 .deleteButton svg {
     width: 16px;
     height: 16px;
@@ -131,4 +144,69 @@
 .commentForm button:disabled {
     background: var(--color-secondary);
     cursor: not-allowed;
+}
+
+.editForm {
+    margin-top: 0.5rem;
+}
+
+.editTextarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.editTextarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.editActions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.saveButton,
+.cancelButton {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.saveButton {
+    background: var(--color-primary);
+    color: white;
+}
+
+.saveButton:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+}
+
+.saveButton:disabled {
+    background: var(--color-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.cancelButton {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.cancelButton:hover {
+    background: var(--color-background);
 }

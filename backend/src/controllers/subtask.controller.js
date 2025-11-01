@@ -94,13 +94,14 @@ class SubtaskController {
     try {
       const { subtaskId } = req.params;
       const updateData = req.body;
-      
+      const userId = req.user._id; // Get userId from authenticated user
+
       // Get original subtask to check recurrence
       const originalSubtask = await subtaskService.getSubtaskById(subtaskId);
       const originalStatus = originalSubtask.status;
-      
-      const subtask = await subtaskService.updateSubtask(subtaskId, updateData);
-      
+
+      const subtask = await subtaskService.updateSubtask(subtaskId, updateData, userId);
+
       // Check if subtask was just marked as Completed and is recurring
       if (originalStatus !== 'Completed' && subtask.status === 'Completed' && subtask.isRecurring) {
         console.log('Creating recurring subtask instance...');
@@ -109,13 +110,21 @@ class SubtaskController {
           console.log(`✅ New recurring subtask created: ${newRecurringSubtask._id}`);
         }
       }
-      
+
       res.status(200).json({
         success: true,
         message: 'Subtask updated successfully',
         data: subtask
       });
     } catch (error) {
+      // Check if it's a permission error
+      if (error.message === 'You do not have permission to modify this subtask') {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      }
+
       res.status(400).json({
         success: false,
         message: error.message || 'Failed to update subtask'
@@ -221,6 +230,64 @@ class SubtaskController {
       res.status(200).json({
         success: true,
         message: 'Comment added successfully',
+        data: subtask
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async editComment(req, res) {
+    try {
+      const { subtaskId, commentId } = req.params;
+      const { text } = req.body;
+      const userId = req.user._id;
+
+      // Validate comment text
+      if (!text || text.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Comment text is required'
+        });
+      }
+
+      const subtask = await Subtask.findById(subtaskId);
+
+      if (!subtask) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subtask not found'
+        });
+      }
+
+      // Find the comment
+      const comment = subtask.comments.id(commentId);
+
+      if (!comment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Comment not found'
+        });
+      }
+
+      // Check if the user is the author of the comment
+      if (comment.author.toString() !== userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only edit your own comments'
+        });
+      }
+
+      // Update the comment text
+      comment.text = text.trim();
+      await subtask.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Comment updated successfully',
         data: subtask
       });
     } catch (error) {

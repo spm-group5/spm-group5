@@ -213,5 +213,47 @@ describe('Task Service - Archival with Notifications (TDD)', () => {
                 taskService.unarchiveTask(task._id, unauthorizedUser._id)
             ).rejects.toThrow('permission');
         });
+
+        it('should reject unarchival when parent project is archived', async () => {
+            const archivedProject = await Project.create({
+                name: 'Archived Project',
+                owner: testManager._id,
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            const task = await Task.create({
+                title: 'Task in archived project',
+                owner: testManager._id,
+                project: archivedProject._id,
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            await expect(
+                taskService.unarchiveTask(task._id, testManager._id)
+            ).rejects.toThrow('Cannot unarchive task while its project is archived');
+        });
+
+        it('should allow unarchival when parent project is not archived', async () => {
+            const activeProject = await Project.create({
+                name: 'Active Project',
+                owner: testManager._id,
+                archived: false
+            });
+
+            const task = await Task.create({
+                title: 'Task in active project',
+                owner: testManager._id,
+                project: activeProject._id,
+                archived: true,
+                archivedAt: new Date()
+            });
+
+            const unarchivedTask = await taskService.unarchiveTask(task._id, testManager._id);
+
+            expect(unarchivedTask.archived).toBe(false);
+            expect(unarchivedTask.archivedAt).toBeNull();
+        });
     });
 });

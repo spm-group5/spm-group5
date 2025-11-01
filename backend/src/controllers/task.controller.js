@@ -573,6 +573,65 @@ class TaskController {
     }
 }
 
+    async editComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const { text } = req.body;
+            const userId = req.user._id;
+
+            // Validate comment text
+            if (!text || text.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Comment text is required'
+                });
+            }
+
+            // Get the task
+            const task = await taskModel.findById(taskId);
+
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Task not found'
+                });
+            }
+
+            // Find the comment
+            const comment = task.comments.id(commentId);
+
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Comment not found'
+                });
+            }
+
+            // Check if the user is the author of the comment
+            if (comment.author.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only edit your own comments'
+                });
+            }
+
+            // Update the comment text
+            comment.text = text.trim();
+            await task.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Comment updated successfully',
+                data: task
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
     async deleteComment(req, res) {
         try {
             const { taskId, commentId } = req.params;

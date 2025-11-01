@@ -1,22 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useSubtasks } from '../../../context/SubtaskContext';
+import { useAuth } from '../../../context/AuthContext';
 import SubtaskCard from '../SubtaskCard/SubtaskCard';
 import Button from '../../common/Button/Button';
 import Modal from '../../common/Modal/Modal';
 import styles from './SubtaskList.module.css';
 
-const SubtaskList = ({ 
-  parentTaskId, 
+const SubtaskList = ({
+  parentTask,
+  parentTaskId,
   onShowSubtaskForm,
   onArchiveSubtask,
   onUnarchiveSubtask,
   onTotalTimeUpdate
 }) => {
-  const { 
-    subtasks, 
-    fetchSubtasksByParentTask, 
-    loading 
+  const {
+    subtasks,
+    fetchSubtasksByParentTask,
+    loading
   } = useSubtasks();
+  const { user } = useAuth();
+
+  // Check if current user is assigned to the parent task
+  const isAssignedToTask = () => {
+    if (!user || !parentTask) return false;
+    const userId = user.id || user._id;
+
+    return parentTask.assignee?.some(assignee => {
+      const assigneeId = assignee._id || assignee;
+      return assigneeId === userId;
+    });
+  };
+
+  // Staff can create subtasks if assigned to the parent task
+  // Admin and Manager can always create subtasks
+  const canCreateSubtask = user?.roles?.includes('admin') ||
+                           user?.roles?.includes('manager') ||
+                           isAssignedToTask();
 
   const [activeSubtasks, setActiveSubtasks] = useState([]);
   const [archivedSubtasks, setArchivedSubtasks] = useState([]);
@@ -93,12 +113,14 @@ const SubtaskList = ({
             <span className={styles.stat}>Blocked: {stats['Blocked']}</span>
           </div>
         </div>
-        <Button 
-          onClick={() => onShowSubtaskForm(null)}
-          variant="primary"
-        >
-          Add Subtask
-        </Button>
+        {canCreateSubtask && (
+          <Button
+            onClick={() => onShowSubtaskForm(null)}
+            variant="primary"
+          >
+            Add Subtask
+          </Button>
+        )}
       </div>
 
       {activeSubtasks.length === 0 ? (
