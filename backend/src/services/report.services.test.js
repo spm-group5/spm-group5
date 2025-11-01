@@ -93,7 +93,7 @@ describe('Report Service Test', () => {
                 description: 'First task to do',
                 status: 'To Do',
                 priority: 8, // High priority (was 'High')
-                tags: 'feature,frontend',
+                tags: 'feature#frontend',
                 owner: testUser1._id,
                 assignee: [testUser2._id],
                 project: testProject._id,
@@ -105,7 +105,7 @@ describe('Report Service Test', () => {
                 description: 'Second task in progress',
                 status: 'In Progress',
                 priority: 5, // Medium priority (was 'Medium')
-                tags: 'backend,api',
+                tags: 'backend#api',
                 owner: testUser1._id,
                 assignee: [testUser1._id],
                 project: testProject._id,
@@ -201,7 +201,7 @@ describe('Report Service Test', () => {
             expect(todoTask).toHaveProperty('title', 'Task 1 - To Do');
             expect(todoTask).toHaveProperty('deadline');
             expect(todoTask).toHaveProperty('priority', '8'); // Priority is formatted as string in report
-            expect(todoTask).toHaveProperty('tags', 'feature,frontend');
+            expect(todoTask).toHaveProperty('tags', 'feature, frontend');
             expect(todoTask).toHaveProperty('owner', 'testuser1@example.com');
             expect(todoTask).toHaveProperty('assignee', 'testuser2@example.com');
             expect(todoTask).toHaveProperty('project', 'Test Project');

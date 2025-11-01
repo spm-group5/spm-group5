@@ -122,7 +122,7 @@ class ReportService {
                     title: item.title,
                     deadline: item.dueDate ? this.formatDate(item.dueDate) : 'No deadline',
                     priority: item.priority ? item.priority.toString() : 'Not set',
-                    tags: (item.tags && item.tags.trim()) || 'No tags',
+                    tags: this.formatTags(item.tags),
                     description: (item.description && item.description.trim()) || 'No description',
                     owner: item.owner ? item.owner.username : 'No owner',
                     assignee: (item.assignee && item.assignee.length > 0 && item.assignee[0] && item.assignee[0].username) ? item.assignee.map(a => a.username).join(', ') : 'Unassigned',
@@ -219,7 +219,7 @@ class ReportService {
                     title: item.title,
                     deadline: item.dueDate ? this.formatDate(item.dueDate) : 'No deadline',
                     priority: item.priority ? item.priority.toString() : 'Not set',
-                    tags: (item.tags && item.tags.trim()) || 'No tags',
+                    tags: this.formatTags(item.tags),
                     description: (item.description && item.description.trim()) || 'No description',
                     owner: item.owner ? item.owner.username : 'No owner',
                     assignee: (item.assignee && item.assignee.length > 0 && item.assignee[0] && item.assignee[0].username) ? item.assignee.map(a => a.username).join(', ') : 'Unassigned',
@@ -272,6 +272,30 @@ class ReportService {
         if (mins > 0) parts.push(`${mins} min`);
         
         return parts.join(' ') || '0 min';
+    }
+
+    /**
+     * Format tags from hash-delimited string to comma-space separated for display
+     * @param {String} tags - Tags string (hash-delimited: 'tag1#tag2#tag3')
+     * @returns {String} Formatted tags ('tag1, tag2, tag3') or 'No tags'
+     */
+    formatTags(tags) {
+        if (!tags || (typeof tags === 'string' && tags.trim().length === 0)) {
+            return 'No tags';
+        }
+        
+        if (typeof tags === 'string') {
+            // Split by hash delimiter and format
+            const tagArray = tags.split('#').map(tag => tag.trim()).filter(Boolean);
+            return tagArray.length > 0 ? tagArray.join(', ') : 'No tags';
+        }
+        
+        // Handle unexpected array format (for robustness)
+        if (Array.isArray(tags)) {
+            return tags.length > 0 ? tags.join(', ') : 'No tags';
+        }
+        
+        return 'No tags';
     }
 
     /**
@@ -755,7 +779,7 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
                 title: task.title,
                 deadline: task.dueDate ? this.formatDate(task.dueDate) : 'No deadline',
                 priority: task.priority ? task.priority.toString() : 'Not set',
-                tags: (task.tags && task.tags.trim()) || 'No tags',
+                tags: this.formatTags(task.tags),
                 description: (task.description && task.description.trim()) || 'No description',
                 owner: task.owner ? task.owner.username : 'No owner',
                 assignee: assigneeStr,
@@ -1326,15 +1350,8 @@ h1 { color: #333; text-align: center; margin-bottom: 20px; }
                 if (task.assignee && task.assignee.length > 0) {
                     assigneeStr = task.assignee.map(a => `${a.username} (${a.department || 'Not set'}, ${a.roles && a.roles.length > 0 ? a.roles[0] : 'Not set'})`).join('; ');
                 }
-                // Format tags as comma-separated string
-                let tagsStr = 'No tags';
-                if (task.tags) {
-                    if (Array.isArray(task.tags)) {
-                        tagsStr = task.tags.length > 0 ? task.tags.join(', ') : 'No tags';
-                    } else if (typeof task.tags === 'string' && task.tags.trim().length > 0) {
-                        tagsStr = task.tags;
-                    }
-                }
+                // Format tags using helper function
+                const tagsStr = this.formatTags(task.tags);
                 // Format priority
                 let priorityStr = 'Not set';
                 if (task.priority !== undefined && task.priority !== null) {

@@ -22,7 +22,7 @@ function ReportsPage() {
   // Department list from User model
   const departments = [
     { value: 'hr', label: 'HR' },
-    { value: 'it', label: 'IT' },
+    // { value: 'it', label: 'IT' },
     { value: 'sales', label: 'Sales' },
     { value: 'consultancy', label: 'Consultancy' },
     { value: 'systems', label: 'Systems' },
