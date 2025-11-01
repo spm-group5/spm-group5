@@ -33,10 +33,6 @@ function TaskCard({
   const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
-  // OWNERSHIP-TRANSFER: Change owner modal state
-  const [showChangeOwnerModal, setShowChangeOwnerModal] = useState(false);
-  const [selectedNewOwner, setSelectedNewOwner] = useState('');
-  const [isChangingOwner, setIsChangingOwner] = useState(false);
   // Status update popup state
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [statusPopupPosition, setStatusPopupPosition] = useState({ top: 0, left: 0 });
@@ -55,8 +51,6 @@ function TaskCard({
   const canArchive = user?.roles?.includes('manager') || user?.roles?.includes('admin');
   // ASSIGNEE-SCOPE: Only managers/admins can assign
   const canAssign = user?.roles?.includes('manager') || user?.roles?.includes('admin');
-  // OWNERSHIP-TRANSFER: Only managers/admins can transfer ownership
-  const canTransferOwnership = user?.roles?.includes('manager') || user?.roles?.includes('admin');
 
   const canEdit = () => {
     if (!user) return false;
@@ -287,70 +281,6 @@ function TaskCard({
     }
   };
 
-  // OWNERSHIP-TRANSFER: Change owner handlers
-  const handleShowChangeOwnerModal = async (e) => {
-    e?.stopPropagation();
-    setShowChangeOwnerModal(true);
-
-    // Reuse the same eligible assignees list
-    if (eligibleAssignees.length === 0) {
-      setIsLoadingAssignees(true);
-      try {
-        const data = await apiService.request(`/tasks/${task._id}/assignees`);
-        setEligibleAssignees(data.data || []);
-      } catch (error) {
-        addNotification(error.message || 'Failed to load eligible members', 'error');
-      } finally {
-        setIsLoadingAssignees(false);
-      }
-    }
-  };
-
-  const handleCloseChangeOwnerModal = () => {
-    setShowChangeOwnerModal(false);
-    setSelectedNewOwner('');
-  };
-
-  const handleChangeOwner = async () => {
-    if (!selectedNewOwner) {
-      addNotification('Please select a new owner', 'error');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to transfer ownership of this task? The current owner will become a collaborator.`)) {
-      return;
-    }
-
-    setIsChangingOwner(true);
-
-    try {
-      // const data = await apiService.request(`/tasks/${task._id}/assign`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ assignee: selectedNewOwner })
-      // });
-
-      addNotification('Task ownership transferred successfully', 'success');
-      handleCloseChangeOwnerModal();
-
-      // Refresh task data
-      if (onRefresh) {
-        await onRefresh();
-      }
-    } catch (error) {
-      // Provide more specific error messages
-      if (error.status === 401) {
-        addNotification('Session expired. Please log in again.', 'error');
-      } else if (error.status === 403) {
-        addNotification('You do not have permission to transfer task ownership. Only managers and admins can perform this action.', 'error');
-      } else if (error.status === 422) {
-        addNotification('Invalid request. Please select a valid user.', 'error');
-      } else {
-        addNotification(error.message || 'Failed to transfer ownership', 'error');
-      }
-    } finally {
-      setIsChangingOwner(false);
-    }
-  };
 
   const handleArchiveSubtask = async (subtask) => {
     try {
@@ -555,17 +485,6 @@ function TaskCard({
                   aria-label="Manage Assignees"
                 >
                   Manage Assignees
-                </Button>
-              )}
-              {/* OWNERSHIP-TRANSFER: Change Owner button visible only to managers/admins */}
-              {!isArchived && canTransferOwnership && (
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={handleShowChangeOwnerModal}
-                  aria-label="Change Owner"
-                >
-                  Change Owner
                 </Button>
               )}
               {canArchive && (
@@ -862,93 +781,6 @@ function TaskCard({
         </Modal>
       )}
 
-      {/* OWNERSHIP-TRANSFER: Change Owner Modal */}
-      {showChangeOwnerModal && (
-        <Modal
-          isOpen={showChangeOwnerModal}
-          onClose={handleCloseChangeOwnerModal}
-          size="medium"
-        >
-          <div style={{ padding: '20px' }}>
-            <h2 style={{ marginBottom: '20px' }}>Transfer Task Ownership</h2>
-
-            {isLoadingAssignees ? (
-              <p>Loading...</p>
-            ) : (
-              <>
-                <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#856404' }}>
-                    <strong>Note:</strong> When you transfer ownership, the current owner will automatically become a collaborator on this task.
-                  </p>
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <p style={{ marginBottom: '8px', fontSize: '14px' }}>
-                    <strong>Current Owner:</strong> {task.owner?.username || task.owner?.name || 'Unknown'}
-                  </p>
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label htmlFor="new-owner-select" style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-                    Select New Owner:
-                  </label>
-                  <select
-                    id="new-owner-select"
-                    value={selectedNewOwner}
-                    onChange={(e) => setSelectedNewOwner(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      fontSize: '14px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    <option value="">-- Select new owner --</option>
-                    {eligibleAssignees
-                      .filter(member => {
-                        const currentOwnerId = task.owner?._id || task.owner;
-                        const memberId = member._id;
-                        return String(memberId) !== String(currentOwnerId);
-                      })
-                      .map((member) => (
-                        <option key={member._id} value={member.email}>
-                          {member.email} ({member.role})
-                        </option>
-                      ))}
-                  </select>
-                  <small style={{ display: 'block', marginTop: '8px', color: '#666', fontSize: '12px' }}>
-                    Only project members can own tasks
-                  </small>
-                </div>
-
-                {eligibleAssignees.length === 0 && (
-                  <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-                    No eligible members found. Users must be project members to own tasks.
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="secondary"
-                    onClick={handleCloseChangeOwnerModal}
-                    disabled={isChangingOwner}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleChangeOwner}
-                    disabled={isChangingOwner || !selectedNewOwner}
-                  >
-                    {isChangingOwner ? 'Transferring...' : 'Transfer Ownership'}
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </Modal>
-      )}
 
       {/* Status Update Popup */}
       {showStatusPopup && (
