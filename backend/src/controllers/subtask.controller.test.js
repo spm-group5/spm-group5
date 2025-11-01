@@ -4,6 +4,164 @@ import subtaskService from '../services/subtask.services.js';
 
 vi.mock('../services/subtask.services.js');
 
+describe('Subtask Controller - Update Permissions', () => {
+  let req, res;
+
+  beforeEach(() => {
+    req = {
+      user: { _id: 'userId123' },
+      body: {},
+      params: {},
+      query: {}
+    };
+    res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis()
+    };
+    vi.clearAllMocks();
+  });
+
+  describe('updateSubtask - Permission Checks', () => {
+    it('should allow admin user to edit any subtask', async () => {
+      const mockOriginalSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        status: 'To Do'
+      };
+      const mockUpdatedSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        title: 'Updated Subtask',
+        status: 'In Progress'
+      };
+
+      req.params = { subtaskId: '507f1f77bcf86cd799439020' };
+      req.body = { title: 'Updated Subtask', status: 'In Progress' };
+      req.user = { _id: 'adminUserId' };
+
+      subtaskService.getSubtaskById.mockResolvedValue(mockOriginalSubtask);
+      subtaskService.updateSubtask.mockResolvedValue(mockUpdatedSubtask);
+
+      await subtaskController.updateSubtask(req, res);
+
+      expect(subtaskService.updateSubtask).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439020',
+        { title: 'Updated Subtask', status: 'In Progress' },
+        'adminUserId'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Subtask updated successfully',
+        data: mockUpdatedSubtask
+      });
+    });
+
+    it('should allow manager user to edit subtask they are assigned to', async () => {
+      const mockOriginalSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        status: 'To Do'
+      };
+      const mockUpdatedSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        title: 'Updated by Manager',
+        status: 'In Progress'
+      };
+
+      req.params = { subtaskId: '507f1f77bcf86cd799439020' };
+      req.body = { title: 'Updated by Manager', status: 'In Progress' };
+      req.user = { _id: 'managerUserId' };
+
+      subtaskService.getSubtaskById.mockResolvedValue(mockOriginalSubtask);
+      subtaskService.updateSubtask.mockResolvedValue(mockUpdatedSubtask);
+
+      await subtaskController.updateSubtask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Subtask updated successfully',
+        data: mockUpdatedSubtask
+      });
+    });
+
+    it('should reject staff user even if they are the owner', async () => {
+      const mockOriginalSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        status: 'To Do',
+        ownerId: 'staffUserId'
+      };
+
+      req.params = { subtaskId: '507f1f77bcf86cd799439020' };
+      req.body = { title: 'Attempted Update by Owner' };
+      req.user = { _id: 'staffUserId' };
+
+      subtaskService.getSubtaskById.mockResolvedValue(mockOriginalSubtask);
+      subtaskService.updateSubtask.mockRejectedValue(
+        new Error('You do not have permission to modify this subtask')
+      );
+
+      await subtaskController.updateSubtask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'You do not have permission to modify this subtask'
+      });
+    });
+
+    it('should reject staff user even if they are an assignee', async () => {
+      const mockOriginalSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        status: 'To Do',
+        ownerId: 'ownerUserId',
+        assigneeId: ['staffUserId', 'otherUserId']
+      };
+
+      req.params = { subtaskId: '507f1f77bcf86cd799439020' };
+      req.body = { title: 'Attempted Update by Assignee' };
+      req.user = { _id: 'staffUserId' };
+
+      subtaskService.getSubtaskById.mockResolvedValue(mockOriginalSubtask);
+      subtaskService.updateSubtask.mockRejectedValue(
+        new Error('You do not have permission to modify this subtask')
+      );
+
+      await subtaskController.updateSubtask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'You do not have permission to modify this subtask'
+      });
+    });
+
+    it('should reject staff user who is neither owner nor assignee', async () => {
+      const mockOriginalSubtask = {
+        _id: '507f1f77bcf86cd799439020',
+        status: 'To Do',
+        ownerId: 'ownerUserId',
+        assigneeId: ['assignee1', 'assignee2']
+      };
+
+      req.params = { subtaskId: '507f1f77bcf86cd799439020' };
+      req.body = { title: 'Unauthorized Update' };
+      req.user = { _id: 'staffUserId' };
+
+      subtaskService.getSubtaskById.mockResolvedValue(mockOriginalSubtask);
+      subtaskService.updateSubtask.mockRejectedValue(
+        new Error('You do not have permission to modify this subtask')
+      );
+
+      await subtaskController.updateSubtask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'You do not have permission to modify this subtask'
+      });
+    });
+  });
+});
+
 describe('Subtask Controller - Manual Time Logging', () => {
   let req, res;
 

@@ -3,6 +3,7 @@ import CommentSection from '../TaskComment/TaskCommentSection';
 import TimeDisplayBadge from '../TimeLoggingInput/TimeDisplayBadge';
 import apiService from '../../../services/api';
 import { useNotifications } from '../../../hooks/useNotifications';
+import { useAuth } from '../../../context/AuthContext';
 import styles from './SubtaskCard.module.css';
 
 const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived, onRefresh, onTotalTimeUpdate }) => {
@@ -10,6 +11,10 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived, onRe
   const [isUpdatingTime, setIsUpdatingTime] = useState(false);
   const [currentTimeTaken, setCurrentTimeTaken] = useState(subtask.timeTaken || 0);
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
+
+  // Only Admin and Manager can edit/archive subtasks
+  const canEditSubtask = user?.roles?.includes('admin') || user?.roles?.includes('manager');
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -147,31 +152,33 @@ const SubtaskCard = ({ subtask, onEdit, onArchive, onUnarchive, isArchived, onRe
             </div>
           </div>
 
-          <div className={styles.actions}>
-            {!isArchived && (
-              <button
-                className={`${styles.button} ${styles.editButton}`}
-                onClick={() => onEdit(subtask)}
-              >
-                Edit
-              </button>
-            )}
-            {isArchived ? (
-              <button
-                className={`${styles.button} ${styles.unarchiveButton}`}
-                onClick={() => onUnarchive(subtask)}
-              >
-                Unarchive
-              </button>
-            ) : (
-              <button
-                className={`${styles.button} ${styles.archiveButton}`}
-                onClick={() => onArchive(subtask)}
-              >
-                Archive
-              </button>
-            )}
-          </div>
+          {canEditSubtask && (
+            <div className={styles.actions}>
+              {!isArchived && (
+                <button
+                  className={`${styles.button} ${styles.editButton}`}
+                  onClick={() => onEdit(subtask)}
+                >
+                  Edit
+                </button>
+              )}
+              {isArchived ? (
+                <button
+                  className={`${styles.button} ${styles.unarchiveButton}`}
+                  onClick={() => onUnarchive(subtask)}
+                >
+                  Unarchive
+                </button>
+              ) : (
+                <button
+                  className={`${styles.button} ${styles.archiveButton}`}
+                  onClick={() => onArchive(subtask)}
+                >
+                  Archive
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Comments Section */}
           <CommentSection

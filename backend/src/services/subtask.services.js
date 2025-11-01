@@ -116,12 +116,50 @@ class SubtaskService {
   /**
    * Update a subtask
    */
-  async updateSubtask(subtaskId, updateData) {
+  async updateSubtask(subtaskId, updateData, userId) {
     try {
+      // First get subtask without populate to access raw IDs
       const subtask = await Subtask.findById(subtaskId);
-      
+
       if (!subtask) {
         throw new Error('Subtask not found');
+      }
+
+      // Check permissions - get user to check roles
+      const user = await User.findById(userId);
+      const isAdmin = user && user.roles && user.roles.includes('admin');
+      const isManager = user && user.roles && user.roles.includes('manager');
+
+      // Only Admin and Manager can edit subtasks
+      // Staff users cannot edit subtasks even if they are owner or assignee
+      if (!isAdmin && !isManager) {
+        throw new Error('You do not have permission to modify this subtask');
+      }
+
+      // For Managers, check if they have permission to edit this specific subtask
+      if (isManager && !isAdmin) {
+        const isOwner = subtask.ownerId.toString() === userId.toString();
+        const isAssignee = subtask.assigneeId && subtask.assigneeId.some(
+          assignee => {
+            return assignee.toString() === userId.toString();
+          }
+        );
+
+        // Manager can edit if they are owner, assigned, or if any assignee is from their department
+        let hasManagerPermission = false;
+        if (!isOwner && !isAssignee) {
+          // Need to populate assignees to check their departments
+          await subtask.populate('assigneeId', 'username department');
+          hasManagerPermission = subtask.assigneeId.some(assignee =>
+            assignee && assignee.department === user.department
+          );
+        }
+
+        const hasPermission = isOwner || isAssignee || hasManagerPermission;
+
+        if (!hasPermission) {
+          throw new Error('You do not have permission to modify this subtask');
+        }
       }
 
       // Update fields
@@ -137,12 +175,12 @@ class SubtaskService {
       if (updateData.tags !== undefined) subtask.tags = updateData.tags;
 
       await subtask.save();
-      
+
       // Populate before returning
       await subtask.populate('assigneeId', 'username department');
       await subtask.populate('ownerId', 'username department');
       await subtask.populate('parentTaskId', 'title');
-      
+
       return subtask;
     } catch (error) {
       throw error;

@@ -5,20 +5,31 @@ import subtaskService from './subtask.services.js';
 import Subtask from '../models/subtask.model.js';
 import Task from '../models/task.model.js';
 import Project from '../models/project.model.js';
+import User from '../models/user.model.js';
 
 describe('Subtask Service', () => {
   let mockTaskId;
   let mockProjectId;
   let mockOwnerId;
   let mockSubtaskId;
+  let mockAdminUserId;
 
   beforeEach(async () => {
     await Subtask.deleteMany({});
     await Task.deleteMany({});
     await Project.deleteMany({});
+    await User.deleteMany({});
 
-    // Create owner ID
-    mockOwnerId = new mongoose.Types.ObjectId();
+    // Create a mock admin user for tests that require updateSubtask
+    const mockAdminUser = new User({
+      username: 'admin@test.com',
+      hashed_password: 'testpassword123',
+      roles: ['admin'],
+      department: 'it'
+    });
+    await mockAdminUser.save();
+    mockAdminUserId = mockAdminUser._id;
+    mockOwnerId = mockAdminUserId; // Use admin as owner for simplicity
 
     // ✅ Create project FIRST
     const mockProject = new Project({
@@ -46,6 +57,7 @@ describe('Subtask Service', () => {
     await Subtask.deleteMany({});
     await Task.deleteMany({});
     await Project.deleteMany({});
+    await User.deleteMany({});
   });
 
   describe('createSubtask', () => {
@@ -247,7 +259,7 @@ describe('Subtask Service', () => {
 
     it('should update subtask title', async () => {
       const updateData = { title: 'Updated Title' };
-      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData, mockOwnerId);
 
       expect(updatedSubtask.title).toBe('Updated Title');
       expect(updatedSubtask.description).toBe('Original Description'); // Unchanged
@@ -255,7 +267,7 @@ describe('Subtask Service', () => {
 
     it('should update subtask status', async () => {
       const updateData = { status: 'Completed' };
-      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData, mockOwnerId);
 
       expect(updatedSubtask.status).toBe('Completed');
     });
@@ -267,7 +279,7 @@ describe('Subtask Service', () => {
         status: 'In Progress',
         priority: 8
       };
-      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(mockSubtaskId, updateData, mockOwnerId);
 
       expect(updatedSubtask.title).toBe('New Title');
       expect(updatedSubtask.description).toBe('New Description');
@@ -279,7 +291,7 @@ describe('Subtask Service', () => {
       const nonExistentId = new mongoose.Types.ObjectId();
       const updateData = { title: 'New Title' };
 
-      await expect(subtaskService.updateSubtask(nonExistentId, updateData)).rejects.toThrow('Subtask not found');
+      await expect(subtaskService.updateSubtask(nonExistentId, updateData, mockOwnerId)).rejects.toThrow('Subtask not found');
     });
   });
 
@@ -448,7 +460,7 @@ describe('Subtask Service', () => {
       });
 
       const updateData = { timeTaken: 180 };
-      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
       expect(updatedSubtask.timeTaken).toBe(180);
     });
@@ -621,7 +633,7 @@ describe('Subtask Service', () => {
           assigneeId: [assignee1, assignee2]
         };
 
-        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
         // Check the raw document (before populate filters out non-existent users)
         const rawSubtask = await Subtask.findById(subtask._id).lean();
@@ -651,7 +663,7 @@ describe('Subtask Service', () => {
           assigneeId: [assignee1]
         };
 
-        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
         // Check the raw document (before populate filters out non-existent users)
         const rawSubtask = await Subtask.findById(subtask._id).lean();
@@ -681,7 +693,7 @@ describe('Subtask Service', () => {
           assigneeId: [newAssignee1, newAssignee2]
         };
 
-        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
         // Check the raw document (before populate filters out non-existent users)
         const rawSubtask = await Subtask.findById(subtask._id).lean();
@@ -711,7 +723,7 @@ describe('Subtask Service', () => {
           assigneeId: []
         };
 
-        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
         expect(updatedSubtask.assigneeId).toEqual([]);
       });
@@ -736,7 +748,7 @@ describe('Subtask Service', () => {
           title: 'Updated Title'
         };
 
-        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+        const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
         expect(updatedSubtask.title).toBe('Updated Title');
 
@@ -992,7 +1004,7 @@ describe('Subtask Service', () => {
       });
 
       const updateData = { tags: 'urgent' };
-      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
       expect(updatedSubtask.tags).toBe('urgent');
     });
@@ -1007,7 +1019,7 @@ describe('Subtask Service', () => {
       });
 
       const updateData = { tags: 'urgent#frontend#api' };
-      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
       expect(updatedSubtask.tags).toBe('urgent#frontend#api');
     });
@@ -1022,7 +1034,7 @@ describe('Subtask Service', () => {
       });
 
       const updateData = { tags: '' };
-      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData);
+      const updatedSubtask = await subtaskService.updateSubtask(subtask._id, updateData, mockOwnerId);
 
       expect(updatedSubtask.tags).toBe('');
     });
