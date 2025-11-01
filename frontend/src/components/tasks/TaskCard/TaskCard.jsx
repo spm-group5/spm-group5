@@ -546,10 +546,8 @@ function TaskCard({
                   Edit
                 </Button>
               )}
-              {/* ASSIGNEE-SCOPE: Manage Assignees button visible to all assignees, Manager, Admin, Owner */}
-              {!isArchived && (user?.roles?.includes('manager') || user?.roles?.includes('admin') ||
-                task.assignee?.some(a => (a._id || a) === (user?._id || user?.id)) ||
-                (task.owner?._id || task.owner) === (user?._id || user?.id)) && (
+              {/* ASSIGNEE-SCOPE: Manage Assignees button visible only to Manager and Admin */}
+              {!isArchived && (user?.roles?.includes('manager') || user?.roles?.includes('admin')) && (
                 <Button
                   variant="primary"
                   size="small"

@@ -42,15 +42,8 @@ class TaskService {
         let assigneeList = [userId];
 
         // Add additional assignees if provided
-        // Only Manager or Admin can assign additional users during task creation
+        // All users (Staff, Manager, Admin) can assign users during task creation
         if (assignee && assignee.length > 0) {
-            const user = await User.findById(userId);
-            const isManagerOrAdmin = user && user.roles && (user.roles.includes('manager') || user.roles.includes('admin'));
-
-            if (!isManagerOrAdmin) {
-                throw new Error('Only Manager or Admin can assign additional users to tasks');
-            }
-
             const additionalAssignees = assignee.filter(id => id.toString() !== userId.toString());
             assigneeList = [...assigneeList, ...additionalAssignees];
         }

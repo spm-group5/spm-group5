@@ -13,6 +13,9 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
   const { user } = useAuth();
   const isEditing = !!task;
 
+  // Check if user is manager or admin (needed for UI rendering)
+  const isManagerOrAdmin = user?.roles?.includes('manager') || user?.roles?.includes('admin');
+
   // Debug logging for edit mode
   if (isEditing) {
     console.log('📝 TaskForm in EDIT mode');
@@ -65,15 +68,13 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
         return;
       }
 
-      // Check if user is manager or admin
-      const isManagerOrAdmin = user?.roles?.includes('manager') || user?.roles?.includes('admin');
       console.log('👤 User role check:', { isManagerOrAdmin, roles: user?.roles });
 
       let fetchedUsers = [];
 
       try {
-        // In create mode with manager/admin: fetch all users
-        if (!isEditing && isManagerOrAdmin) {
+        // In create mode: fetch all users for everyone (Staff, Manager, Admin)
+        if (!isEditing) {
           try {
             console.log('📡 Fetching all users from /users endpoint...');
             const response = await apiService.request('/users');
@@ -111,10 +112,8 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
             setEligibleAssignees(fetchedUsers);
           }
         } else {
-          // For non-admin/manager in create mode, use project members
-          console.log('📋 Using project members:', project.members);
-          fetchedUsers = project.members || [];
-          setEligibleAssignees(fetchedUsers);
+          // For edit mode, we fetch task-specific assignees later
+          console.log('📝 Edit mode - will fetch task-specific assignees');
         }
       } catch (error) {
         console.error('❌ Error fetching eligible assignees:', error);
@@ -267,8 +266,13 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
 
   // Handler to remove an assignee
   const handleRemoveAssignee = (assigneeId) => {
-    // Prevent removing the creator in create mode
+    // In create mode, only Manager/Admin can remove assignees (Staff cannot remove)
     if (!isEditing) {
+      if (!isManagerOrAdmin) {
+        alert('Only Managers and Admins can remove assignees during task creation');
+        return;
+      }
+
       const assigneeToRemove = selectedAssignees.find(a => a._id === assigneeId);
       if (assigneeToRemove?.isCreator) {
         alert('Cannot remove the creator from the task');
@@ -510,7 +514,10 @@ function TaskForm({ task, onSubmit, onCancel, initialProject }) {
                         </span>
                       )}
                     </span>
-                    {selectedAssignees.length > 1 && (!assignee.isCreator || isEditing) && (
+                    {/* Show remove button only if:
+                        - In edit mode, OR
+                        - In create mode AND user is Manager/Admin AND not the creator AND more than 1 assignee */}
+                    {(isEditing || (isManagerOrAdmin && !assignee.isCreator)) && selectedAssignees.length > 1 && (
                       <Button
                         type="button"
                         variant="danger"

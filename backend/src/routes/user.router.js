@@ -11,7 +11,8 @@ router.post('/logout', userController.logout); //route for user logout
 // Protected routes (authentication required)
 router.get('/profile', requireAuth, userController.getProfile); //route for getting user profile
 
-// Admin-only routes
-router.get('/users', requireAuth, requireRole(['admin']), userController.getAllUsers); //route for getting all users (admin only)
+// Get all users - available to all authenticated users (Staff, Manager, Admin)
+// This allows Staff to assign tasks to anyone in the organization
+router.get('/users', requireAuth, userController.getAllUsers); //route for getting all users
 
 export default router; //export the router for use in other modules
