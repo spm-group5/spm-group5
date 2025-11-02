@@ -1,5 +1,7 @@
 import subtaskService from '../services/subtask.services.js';
 import Subtask from '../models/subtask.model.js';
+import notificationModel from '../models/notification.model.js';
+import User from '../models/user.model.js';
 
 class SubtaskController {
   /**
@@ -95,12 +97,49 @@ class SubtaskController {
       const { subtaskId } = req.params;
       const updateData = req.body;
       const userId = req.user._id; // Get userId from authenticated user
+      const actingUser = req.user; // Store user object for notifications
 
-      // Get original subtask to check recurrence
+      // Get original subtask to check recurrence AND track assignee changes
       const originalSubtask = await subtaskService.getSubtaskById(subtaskId);
       const originalStatus = originalSubtask.status;
 
+      // Track old assignees for notification logic
+      const oldAssignees = originalSubtask.assigneeId
+        ? originalSubtask.assigneeId.map(id => id.toString())
+        : [];
+
       const subtask = await subtaskService.updateSubtask(subtaskId, updateData, userId);
+
+      // Detect newly added assignees and create notifications
+      if (updateData.assigneeId !== undefined) {
+        const newAssignees = Array.isArray(updateData.assigneeId)
+          ? updateData.assigneeId.map(id => id.toString())
+          : [];
+
+        // Find assignees who weren't previously assigned
+        const addedAssignees = newAssignees.filter(assigneeId =>
+          !oldAssignees.includes(assigneeId)
+        );
+
+        // Create in-app notifications for newly added assignees
+        if (addedAssignees.length > 0) {
+          try {
+            await Promise.all(
+              addedAssignees.map(assigneeId =>
+                notificationModel.create({
+                  user: assigneeId,
+                  message: `You have been assigned to subtask: "${subtask.title}"`,
+                  assignor: actingUser._id,
+                  deadline: subtask.dueDate
+                })
+              )
+            );
+          } catch (notifError) {
+            console.error('Failed to create subtask assignment notifications:', notifError);
+            // Don't fail the update if notification fails
+          }
+        }
+      }
 
       // Check if subtask was just marked as Completed and is recurring
       if (originalStatus !== 'Completed' && subtask.status === 'Completed' && subtask.isRecurring) {
