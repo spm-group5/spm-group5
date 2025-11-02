@@ -285,12 +285,16 @@ class SubtaskController {
       comment.text = text.trim();
       await subtask.save();
 
+      // Fetch the updated subtask without populated fields to avoid circular references
+      const updatedSubtask = await Subtask.findById(subtaskId).lean();
+
       res.status(200).json({
         success: true,
         message: 'Comment updated successfully',
-        data: subtask
+        data: updatedSubtask
       });
     } catch (error) {
+      console.error('Error editing comment:', error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -302,6 +306,15 @@ class SubtaskController {
     try {
       const { subtaskId, commentId } = req.params;
       const userId = req.user._id;
+      const userRoles = req.user.roles || [];
+
+      // Check if user is an admin - only admins can delete comments
+      if (!userRoles.includes('admin')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can delete comments'
+        });
+      }
 
       const subtask = await Subtask.findById(subtaskId);
 
@@ -322,14 +335,7 @@ class SubtaskController {
         });
       }
 
-      // Check if the user is the author of the comment
-      if (comment.author.toString() !== userId.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only delete your own comments'
-        });
-      }
-
+      // Admin can delete any comment (no ownership check needed)
       // Remove the comment
       comment.deleteOne();
       await subtask.save();
