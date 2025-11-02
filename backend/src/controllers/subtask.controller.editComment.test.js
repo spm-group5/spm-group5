@@ -44,14 +44,25 @@ describe('Subtask Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockSubtaskPlain = {
+                _id: 'subtask123',
+                title: 'Test Subtask',
+                comments: [mockComment]
+            };
             const mockSubtask = {
                 _id: 'subtask123',
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            Subtask.findById.mockResolvedValue(mockSubtask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            Subtask.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockSubtask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockSubtaskPlain)
+            });
             req.body = { text: 'Updated comment text' };
             await subtaskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment text');
@@ -68,14 +79,25 @@ describe('Subtask Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockSubtaskPlain = {
+                _id: 'subtask123',
+                title: 'Test Subtask',
+                comments: [mockComment]
+            };
             const mockSubtask = {
                 _id: 'subtask123',
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            Subtask.findById.mockResolvedValue(mockSubtask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            Subtask.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockSubtask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockSubtaskPlain)
+            });
             req.body = { text: '  Updated comment with spaces  ' };
             await subtaskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment with spaces');
@@ -205,14 +227,25 @@ describe('Subtask Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockSubtaskPlain = {
+                _id: 'subtask123',
+                title: 'Test Subtask',
+                comments: [mockComment]
+            };
             const mockSubtask = {
                 _id: 'subtask123',
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            Subtask.findById.mockResolvedValue(mockSubtask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            Subtask.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockSubtask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockSubtaskPlain)
+            });
             req.body = { text: 'Updated my comment' };
             await subtaskController.editComment(req, res);
             expect(res.status).toHaveBeenCalledWith(200);

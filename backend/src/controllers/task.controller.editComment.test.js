@@ -44,14 +44,25 @@ describe('Task Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockTaskPlain = {
+                _id: 'task123',
+                title: 'Test Task',
+                comments: [mockComment]
+            };
             const mockTask = {
                 _id: 'task123',
                 title: 'Test Task',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            taskModel.findById.mockResolvedValue(mockTask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            taskModel.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockTask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockTaskPlain)
+            });
             req.body = { text: 'Updated comment text' };
             await taskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment text');
@@ -68,14 +79,25 @@ describe('Task Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockTaskPlain = {
+                _id: 'task123',
+                title: 'Test Task',
+                comments: [mockComment]
+            };
             const mockTask = {
                 _id: 'task123',
                 title: 'Test Task',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            taskModel.findById.mockResolvedValue(mockTask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            taskModel.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockTask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockTaskPlain)
+            });
             req.body = { text: '  Updated comment with spaces  ' };
             await taskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment with spaces');
@@ -205,14 +227,25 @@ describe('Task Controller - Edit Comment', () => {
             };
             const mockCommentsArray = [mockComment];
             mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            const mockTaskPlain = {
+                _id: 'task123',
+                title: 'Test Task',
+                comments: [mockComment]
+            };
             const mockTask = {
                 _id: 'task123',
                 title: 'Test Task',
                 comments: mockCommentsArray,
-                save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnThis()
+                save: vi.fn().mockResolvedValue(true)
             };
-            taskModel.findById.mockResolvedValue(mockTask);
+
+            // Mock findById to handle both direct await and chained .lean()
+            taskModel.findById.mockReturnValue({
+                // First call awaits directly
+                then: (resolve) => resolve(mockTask),
+                // Second call chains .lean()
+                lean: vi.fn().mockResolvedValue(mockTaskPlain)
+            });
             req.body = { text: 'Updated my comment' };
             await taskController.editComment(req, res);
             expect(res.status).toHaveBeenCalledWith(200);
