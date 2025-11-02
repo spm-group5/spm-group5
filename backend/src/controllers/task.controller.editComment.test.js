@@ -49,11 +49,9 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockTask.lean.mockReturnValue(mockTask);
-            // BOTH calls now mimic async promise mongoose:
-            taskModel.findById.mockResolvedValueOnce(mockTask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockTask)});
+            taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Updated comment text' };
             await taskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment text');
@@ -75,10 +73,9 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockTask.lean.mockReturnValue(mockTask);
-            taskModel.findById.mockResolvedValueOnce(mockTask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockTask)});
+            taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: '  Updated comment with spaces  ' };
             await taskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment with spaces');
@@ -150,15 +147,14 @@ describe('Task Controller - Edit Comment', () => {
                 createdAt: new Date()
             };
             const mockCommentsArray = [mockComment];
-            mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            mockCommentsArray.id = vi.fn().mockReturnValue(undefined); // Correct: Not found
             const mockTask = {
                 _id: 'task123',
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockTask.lean.mockReturnValue(mockTask);
             taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Valid comment' };
             await taskController.editComment(req, res);
@@ -214,10 +210,9 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockTask.lean.mockReturnValue(mockTask);
-            taskModel.findById.mockResolvedValueOnce(mockTask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockTask)});
+            taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Updated my comment' };
             await taskController.editComment(req, res);
             expect(res.status).toHaveBeenCalledWith(200);

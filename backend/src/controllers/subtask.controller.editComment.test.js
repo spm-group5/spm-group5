@@ -49,11 +49,9 @@ describe('Subtask Controller - Edit Comment', () => {
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockSubtask.lean.mockReturnValue(mockSubtask);
-            // BOTH calls now mimic async promise mongoose:
-            Subtask.findById.mockResolvedValueOnce(mockSubtask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockSubtask)});
+            Subtask.findById.mockResolvedValue(mockSubtask);
             req.body = { text: 'Updated comment text' };
             await subtaskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment text');
@@ -75,10 +73,9 @@ describe('Subtask Controller - Edit Comment', () => {
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockSubtask.lean.mockReturnValue(mockSubtask);
-            Subtask.findById.mockResolvedValueOnce(mockSubtask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockSubtask)});
+            Subtask.findById.mockResolvedValue(mockSubtask);
             req.body = { text: '  Updated comment with spaces  ' };
             await subtaskController.editComment(req, res);
             expect(mockComment.text).toBe('Updated comment with spaces');
@@ -150,15 +147,14 @@ describe('Subtask Controller - Edit Comment', () => {
                 createdAt: new Date()
             };
             const mockCommentsArray = [mockComment];
-            mockCommentsArray.id = vi.fn().mockReturnValue(mockComment);
+            mockCommentsArray.id = vi.fn().mockReturnValue(undefined); // Correct: Not found
             const mockSubtask = {
                 _id: 'subtask123',
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockSubtask.lean.mockReturnValue(mockSubtask);
             Subtask.findById.mockResolvedValue(mockSubtask);
             req.body = { text: 'Valid comment' };
             await subtaskController.editComment(req, res);
@@ -214,10 +210,9 @@ describe('Subtask Controller - Edit Comment', () => {
                 title: 'Test Subtask',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn()
+                lean: vi.fn().mockReturnValueThis()
             };
-            mockSubtask.lean.mockReturnValue(mockSubtask);
-            Subtask.findById.mockResolvedValueOnce(mockSubtask).mockResolvedValueOnce({lean: vi.fn().mockResolvedValue(mockSubtask)});
+            Subtask.findById.mockResolvedValue(mockSubtask);
             req.body = { text: 'Updated my comment' };
             await subtaskController.editComment(req, res);
             expect(res.status).toHaveBeenCalledWith(200);
