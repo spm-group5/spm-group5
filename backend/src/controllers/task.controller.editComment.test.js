@@ -50,8 +50,8 @@ describe('Task Controller - Edit Comment', () => {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: 'Updated comment text' };
             taskModel.findById.mockResolvedValue(mockTask);
@@ -91,8 +91,8 @@ describe('Task Controller - Edit Comment', () => {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: '  Updated comment with spaces  ' };
             taskModel.findById.mockResolvedValue(mockTask);
@@ -165,13 +165,22 @@ describe('Task Controller - Edit Comment', () => {
         });
 
         it('should return 404 when comment not found', async () => {
+            const mockComment = {
+                _id: 'comment123',
+                text: 'Someone else\'s comment',
+                author: 'otherUserId456',
+                authorName: 'other@example.com',
+                createdAt: new Date()
+            };
+
             const mockTask = {
                 _id: 'task123',
                 title: 'Test Task',
                 comments: {
-                    id: vi.fn().mockReturnValue(null)
-                }
+                    id: vi.fn().mockReturnValue(mockComment)
+                },
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: 'Valid comment' };
             taskModel.findById.mockResolvedValue(mockTask);
@@ -204,6 +213,7 @@ describe('Task Controller - Edit Comment', () => {
                 },
                 save: vi.fn() // Ensure save is a spy even if not called
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: 'Trying to edit someone else\'s comment' };
             taskModel.findById.mockResolvedValue(mockTask);
@@ -234,8 +244,8 @@ describe('Task Controller - Edit Comment', () => {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: 'Updated my comment' };
             taskModel.findById.mockResolvedValue(mockTask);
@@ -283,6 +293,7 @@ describe('Task Controller - Edit Comment', () => {
                 },
                 save: vi.fn().mockRejectedValue(new Error('Save failed'))
             };
+            mockTask.lean = vi.fn().mockReturnValue(mockTask);
 
             req.body = { text: 'Updated comment' };
             taskModel.findById.mockResolvedValue(mockTask);

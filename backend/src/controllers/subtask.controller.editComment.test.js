@@ -50,8 +50,8 @@ describe('Subtask Controller - Edit Comment', () => {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: 'Updated comment text' };
             Subtask.findById.mockResolvedValue(mockSubtask);
@@ -91,8 +91,8 @@ describe('Subtask Controller - Edit Comment', () => {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: '  Updated comment with spaces  ' };
             Subtask.findById.mockResolvedValue(mockSubtask);
@@ -165,13 +165,22 @@ describe('Subtask Controller - Edit Comment', () => {
         });
 
         it('should return 404 when comment not found', async () => {
+            const mockComment = {
+                _id: 'comment123',
+                text: 'Someone else\'s comment',
+                author: 'otherUserId456',
+                authorName: 'other@example.com',
+                createdAt: new Date()
+            };
+
             const mockSubtask = {
                 _id: 'subtask123',
                 title: 'Test Subtask',
                 comments: {
-                    id: vi.fn().mockReturnValue(null)
+                    id: vi.fn().mockReturnValue(mockComment)
                 }
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: 'Valid comment' };
             Subtask.findById.mockResolvedValue(mockSubtask);
@@ -204,6 +213,7 @@ describe('Subtask Controller - Edit Comment', () => {
                 },
                 save: vi.fn() // Ensure save is a spy even if not called
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: 'Trying to edit someone else\'s comment' };
             Subtask.findById.mockResolvedValue(mockSubtask);
@@ -235,6 +245,7 @@ describe('Subtask Controller - Edit Comment', () => {
                 },
                 save: vi.fn().mockResolvedValue(true)
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: 'Updated my comment' };
             Subtask.findById.mockResolvedValue(mockSubtask);
@@ -278,6 +289,7 @@ describe('Subtask Controller - Edit Comment', () => {
                 },
                 save: vi.fn().mockRejectedValue(new Error('Save failed'))
             };
+            mockSubtask.lean = vi.fn().mockReturnValue(mockSubtask);
 
             req.body = { text: 'Updated comment' };
             Subtask.findById.mockResolvedValue(mockSubtask);
