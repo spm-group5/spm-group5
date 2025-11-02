@@ -4,9 +4,16 @@
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   overflow: hidden;
   position: relative;
+}
+
+[data-theme="dark"] .taskCard {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .taskCard::before {
@@ -27,6 +34,11 @@
   transform: translateY(-4px);
 }
 
+[data-theme="dark"] .taskCard:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
 .taskCard:hover::before {
   opacity: 1;
 }
@@ -39,6 +51,11 @@
   min-height: auto;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1);
   border-color: rgba(59, 130, 246, 0.6);
+}
+
+[data-theme="dark"] .expanded {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(59, 130, 246, 0.8);
 }
 
 .expanded::before {
@@ -378,9 +395,19 @@
   transition: all 0.3s ease;
 }
 
+[data-theme="dark"] .timeSummarySection {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(59, 130, 246, 0.2) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
 .timeSummarySection:hover {
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .timeSummarySection:hover {
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
 }
 
 .timeSummaryTitle {

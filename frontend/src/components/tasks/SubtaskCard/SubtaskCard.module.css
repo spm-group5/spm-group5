@@ -190,3 +190,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dark Mode Support */
+[data-theme="dark"] .subtaskCard {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+[data-theme="dark"] .subtaskCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .details {
+  border-top: 1px solid rgba(51, 65, 85, 0.8);
+}

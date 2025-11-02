@@ -401,7 +401,7 @@ function ProjectsPage() {
                 </button>
               </div>
             ) : (
-              <div className={viewMode === 'grid' ? styles.projectGrid : styles.projectList}>
+              <div className={viewMode === 'grid' ? styles.projectsGrid : styles.projectsList}>
                 {filteredAndSortedProjects.map((project, index) => (
                   <div
                     key={project._id}

@@ -137,3 +137,26 @@
     width: 100%;
   }
 }
+
+/* Dark Mode Support */
+[data-theme="dark"] .overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .modal {
+  background: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .header {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+[data-theme="dark"] .actions {
+  border-top: 1px solid rgba(51, 65, 85, 0.8);
+  background-color: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] .closeButton:hover {
+  background-color: rgba(51, 65, 85, 0.6);
+}

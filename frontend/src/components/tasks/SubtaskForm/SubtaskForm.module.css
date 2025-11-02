@@ -239,3 +239,54 @@
     width: 100%;
   }
 }
+
+/* Dark Mode Support */
+[data-theme="dark"] .formCard {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+[data-theme="dark"] .recurringSection {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.8);
+}
+
+[data-theme="dark"] .textarea {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.8);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .select {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.8);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .select option {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .assigneesList {
+  background-color: rgba(51, 65, 85, 0.5);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .assigneeItem {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+[data-theme="dark"] .addAssigneeSelect {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.8);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .addAssigneeSelect option {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .formActions {
+  border-top: 1px solid rgba(51, 65, 85, 0.8);
+}
