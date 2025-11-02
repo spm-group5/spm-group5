@@ -11,7 +11,7 @@ beforeAll(async () => {
     // Start an in-memory MongoDB instance
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     // Connect to the in-memory database
     await mongoose.connect(mongoUri);
     isConnected = true;
@@ -25,12 +25,24 @@ afterAll(async () => {
     await mongoose.disconnect();
     isConnected = false;
   }
-  
+
   // Stop the in-memory MongoDB instance
   if (mongoServer) {
     await mongoServer.stop();
   }
 }, 30000); // 30 second timeout for cleanup
+
+// Utility function to clear database manually if needed
+export const clearDatabase = async () => {
+  const collections = mongoose.connection.collections;
+  for (const key in collections) {
+    const collection = collections[key];
+    await collection.deleteMany({});
+  }
+};
+
+// Utility function to get test database connection
+export const getTestDatabase = () => mongoServer;
 
 // Export connection state for other test files
 export { mongoServer, isConnected };
