@@ -49,11 +49,16 @@ describe('Task Controller - Edit Comment', () => {
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
-                save: vi.fn().mockResolvedValue(true)
+                save: vi.fn().mockResolvedValue(true),
+                lean: vi.fn().mockReturnValueThis()
             };
 
             req.body = { text: 'Updated comment text' };
             taskModel.findById.mockResolvedValue(mockTask);
+            // Additionally, to mock chained findById(...).lean()
+            taskModel.findById.mockReturnValue({
+                lean: vi.fn().mockReturnValue(mockTask)
+            });
 
             await taskController.editComment(req, res);
 
@@ -85,11 +90,16 @@ describe('Task Controller - Edit Comment', () => {
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
-                save: vi.fn().mockResolvedValue(true)
+                save: vi.fn().mockResolvedValue(true),
+                lean: vi.fn().mockReturnValueThis()
             };
 
             req.body = { text: '  Updated comment with spaces  ' };
             taskModel.findById.mockResolvedValue(mockTask);
+            // Additionally, to mock chained findById(...).lean()
+            taskModel.findById.mockReturnValue({
+                lean: vi.fn().mockReturnValue(mockTask)
+            });
 
             await taskController.editComment(req, res);
 
@@ -223,11 +233,16 @@ describe('Task Controller - Edit Comment', () => {
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
-                save: vi.fn().mockResolvedValue(true)
+                save: vi.fn().mockResolvedValue(true),
+                lean: vi.fn().mockReturnValueThis()
             };
 
             req.body = { text: 'Updated my comment' };
             taskModel.findById.mockResolvedValue(mockTask);
+            // Additionally, to mock chained findById(...).lean()
+            taskModel.findById.mockReturnValue({
+                lean: vi.fn().mockReturnValue(mockTask)
+            });
 
             await taskController.editComment(req, res);
 

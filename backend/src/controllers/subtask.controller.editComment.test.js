@@ -49,11 +49,16 @@ describe('Subtask Controller - Edit Comment', () => {
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
-                save: vi.fn().mockResolvedValue(true)
+                save: vi.fn().mockResolvedValue(true),
+                lean: vi.fn().mockReturnValueThis()
             };
 
             req.body = { text: 'Updated comment text' };
             Subtask.findById.mockResolvedValue(mockSubtask);
+            // Mock .lean() on Subtask
+            Subtask.findById.mockReturnValue({
+                lean: vi.fn().mockReturnValue(mockSubtask)
+            });
 
             await subtaskController.editComment(req, res);
 
@@ -85,11 +90,16 @@ describe('Subtask Controller - Edit Comment', () => {
                 comments: {
                     id: vi.fn().mockReturnValue(mockComment)
                 },
-                save: vi.fn().mockResolvedValue(true)
+                save: vi.fn().mockResolvedValue(true),
+                lean: vi.fn().mockReturnValueThis()
             };
 
             req.body = { text: '  Updated comment with spaces  ' };
             Subtask.findById.mockResolvedValue(mockSubtask);
+            // Mock .lean() on Subtask
+            Subtask.findById.mockReturnValue({
+                lean: vi.fn().mockReturnValue(mockSubtask)
+            });
 
             await subtaskController.editComment(req, res);
 
