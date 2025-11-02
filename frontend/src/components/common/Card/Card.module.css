@@ -43,3 +43,24 @@
 .footer:first-child {
   border-top: none;
 }
+
+/* Dark Mode Support */
+[data-theme="dark"] .card {
+  background-color: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .hoverable:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .header {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+  background-color: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] .footer {
+  border-top: 1px solid rgba(51, 65, 85, 0.8);
+  background-color: rgba(51, 65, 85, 0.5);
+}

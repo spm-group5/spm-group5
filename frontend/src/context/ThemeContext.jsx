@@ -29,9 +29,12 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     // Save to localStorage
     localStorage.setItem('theme', theme);
-    
+
     // Set color-scheme on body - this is the key part!
     document.body.style.colorScheme = theme;
+
+    // Set data-theme attribute for CSS selectors
+    document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   return (

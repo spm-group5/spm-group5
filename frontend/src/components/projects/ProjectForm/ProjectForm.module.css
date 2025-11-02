@@ -84,3 +84,21 @@
   justify-content: flex-end;
   margin-top: var(--spacing-lg);
 }
+
+/* Dark Mode Support */
+[data-theme="dark"] .textarea {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.8);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .select {
+  background-color: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.8);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .select option {
+  background: #1e293b;
+  color: #f1f5f9;
+}

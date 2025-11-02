@@ -201,169 +201,293 @@ function TasksPage() {
   }
 
   return (
-    <div>
+    <div className={styles.pageWrapper}>
       <Header />
+
+      {/* Animated background elements */}
+      <div className={styles.backgroundShapes}>
+        <div className={styles.shape1}></div>
+        <div className={styles.shape2}></div>
+        <div className={styles.shape3}></div>
+      </div>
+
       <div className={`container ${styles.page}`}>
         {showForm ? (
-          <TaskForm
-            task={editingTask}
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
-          />
+          <div className={styles.formContainer}>
+            <TaskForm
+              task={editingTask}
+              onSubmit={handleFormSubmit}
+              onCancel={handleFormCancel}
+            />
+          </div>
         ) : (
           <>
+            {/* Modern Header with Icon */}
             <div className={styles.header}>
-              <h1>Tasks</h1>
-              <Button variant="primary" onClick={handleCreateTask}>
+              <div className={styles.headerContent}>
+                <div className={styles.headerIcon}>
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className={styles.headerText}>
+                  <h1>Task Management</h1>
+                  <p className={styles.headerSubtitle}>
+                    Organize and track your work efficiently
+                  </p>
+                </div>
+              </div>
+              <Button variant="primary" onClick={handleCreateTask} className={styles.createButton}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 New Task
               </Button>
             </div>
 
             {error && (
               <div className={styles.error}>
-                Error: {error}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {error}
               </div>
             )}
 
             {tasks.length > 0 && (
               <>
+                {/* Modern Tabs with Icons */}
                 <div className={styles.tabs}>
                   <button
                     className={`${styles.tab} ${activeTab === 'active' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('active')}
                   >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                     Active
+                    <span className={styles.tabCount}>
+                      {tasks.filter(task => !task.archived && task.status !== 'Completed').length}
+                    </span>
                   </button>
                   <button
                     className={`${styles.tab} ${activeTab === 'done' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('done')}
                   >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                     Done
+                    <span className={styles.tabCount}>
+                      {tasks.filter(task => !task.archived && task.status === 'Completed').length}
+                    </span>
                   </button>
                   <button
                     className={`${styles.tab} ${activeTab === 'archived' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('archived')}
                   >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                     Archived
+                    <span className={styles.tabCount}>
+                      {tasks.filter(task => task.archived).length}
+                    </span>
                   </button>
                 </div>
 
-                <div className={styles.viewToggle}>
-                  <button
-                    className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
-                    onClick={() => setViewMode('list')}
-                  >
-                    ☰ List View
-                  </button>
-                  <button
-                    className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
-                    onClick={() => setViewMode('grid')}
-                  >
-                    ▦ Grid View
-                  </button>
+                {/* Modern View Toggle */}
+                <div className={styles.controlsBar}>
+                  <div className={styles.viewToggle}>
+                    <button
+                      className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
+                      onClick={() => setViewMode('list')}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      List
+                    </button>
+                    <button
+                      className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Grid
+                    </button>
+                  </div>
+
+                  <div className={styles.resultCount}>
+                    {filteredAndSortedTasks.length} {filteredAndSortedTasks.length === 1 ? 'task' : 'tasks'}
+                  </div>
                 </div>
 
+                {/* Modern Filter Section */}
                 <div className={styles.filterSection}>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="sortBy" className={styles.filterLabel}>Sort by:</label>
-                  <select
-                    id="sortBy"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className={styles.filterSelect}
-                  >
-                    <option value="priority">Priority (High to Low)</option>
-                    <option value="dueDate">Due Date (Nearest First)</option>
-                    <option value="dateCreated">Date Created (Newest First)</option>
-                    <option value="project">Project (A-Z)</option>
-                  </select>
-                </div>
-
-                {availableTags.length > 0 && (
-                  <div className={styles.filterGroup}>
-                    <label htmlFor="filterTag" className={styles.filterLabel}>Filter by tag:</label>
-                    <select
-                      id="filterTag"
-                      value={filterTag}
-                      onChange={(e) => setFilterTag(e.target.value)}
-                      className={styles.filterSelect}
-                    >
-                      <option value="">All Tags</option>
-                      {availableTags.map(tag => (
-                        <option key={tag} value={tag}>{tag}</option>
-                      ))}
-                    </select>
+                  <div className={styles.filterHeader}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <h3>Filters & Sorting</h3>
                   </div>
-                )}
 
-                {availableProjects.length > 0 && (
-                  <div className={styles.filterGroup}>
-                    <label htmlFor="filterProject" className={styles.filterLabel}>Filter by project:</label>
-                    <select
-                      id="filterProject"
-                      value={filterProject}
-                      onChange={(e) => setFilterProject(e.target.value)}
-                      className={styles.filterSelect}
-                    >
-                      <option value="">All Projects</option>
-                      {availableProjects.map(project => (
-                        <option key={project} value={project}>{project}</option>
-                      ))}
-                    </select>
+                  <div className={styles.filterGrid}>
+                    <div className={styles.filterGroup}>
+                      <label htmlFor="sortBy" className={styles.filterLabel}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Sort by
+                      </label>
+                      <select
+                        id="sortBy"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className={styles.filterSelect}
+                      >
+                        <option value="priority">Priority (High to Low)</option>
+                        <option value="dueDate">Due Date (Nearest First)</option>
+                        <option value="dateCreated">Date Created (Newest First)</option>
+                        <option value="project">Project (A-Z)</option>
+                      </select>
+                    </div>
+
+                    {availableTags.length > 0 && (
+                      <div className={styles.filterGroup}>
+                        <label htmlFor="filterTag" className={styles.filterLabel}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Filter by tag
+                        </label>
+                        <select
+                          id="filterTag"
+                          value={filterTag}
+                          onChange={(e) => setFilterTag(e.target.value)}
+                          className={styles.filterSelect}
+                        >
+                          <option value="">All Tags</option>
+                          {availableTags.map(tag => (
+                            <option key={tag} value={tag}>{tag}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {availableProjects.length > 0 && (
+                      <div className={styles.filterGroup}>
+                        <label htmlFor="filterProject" className={styles.filterLabel}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Filter by project
+                        </label>
+                        <select
+                          id="filterProject"
+                          value={filterProject}
+                          onChange={(e) => setFilterProject(e.target.value)}
+                          className={styles.filterSelect}
+                        >
+                          <option value="">All Projects</option>
+                          {availableProjects.map(project => (
+                            <option key={project} value={project}>{project}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className={styles.filterGroup}>
+                      <label htmlFor="filterStatus" className={styles.filterLabel}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Filter by status
+                      </label>
+                      <select
+                        id="filterStatus"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className={styles.filterSelect}
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="To Do">To Do</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Blocked">Blocked</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </div>
+
+                    {(filterTag || filterProject || filterStatus) && (
+                      <button
+                        onClick={() => {
+                          setFilterTag('');
+                          setFilterProject('');
+                          setFilterStatus('');
+                        }}
+                        className={styles.clearFilters}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Clear All Filters
+                      </button>
+                    )}
                   </div>
-                )}
-
-                <div className={styles.filterGroup}>
-                  <label htmlFor="filterStatus" className={styles.filterLabel}>Filter by status:</label>
-                  <select
-                    id="filterStatus"
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className={styles.filterSelect}
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Blocked">Blocked</option>
-                    <option value="Completed">Completed</option>
-                  </select>
                 </div>
-
-                {(filterTag || filterProject || filterStatus) && (
-                  <button
-                    onClick={() => {
-                      setFilterTag('');
-                      setFilterProject('');
-                      setFilterStatus('');
-                    }}
-                    className={styles.clearFilters}
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
               </>
             )}
 
             {tasks.length === 0 ? (
               <div className={styles.emptyState}>
-                <h3>No tasks yet</h3>
-                <p>Create your first task to get started!</p>
-                <Button variant="primary" onClick={handleCreateTask}>
-                  Create Task
+                <div className={styles.emptyStateIcon}>
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 className={styles.emptyStateTitle}>No tasks yet</h3>
+                <p className={styles.emptyStateText}>Create your first task to get started on your journey to productivity!</p>
+                <Button variant="primary" onClick={handleCreateTask} size="large">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Create Your First Task
                 </Button>
               </div>
             ) : filteredAndSortedTasks.length === 0 ? (
               <div className={styles.emptyState}>
-                <h3>No tasks match your filters</h3>
-                <p>Try adjusting your filters or create a new task.</p>
+                <div className={styles.emptyStateIcon}>
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 className={styles.emptyStateTitle}>No tasks match your filters</h3>
+                <p className={styles.emptyStateText}>Try adjusting your filters or create a new task.</p>
+                <button
+                  onClick={() => {
+                    setFilterTag('');
+                    setFilterProject('');
+                    setFilterStatus('');
+                  }}
+                  className={styles.clearFiltersButton}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Clear All Filters
+                </button>
               </div>
             ) : (
               <div className={viewMode === 'grid' ? styles.taskGrid : styles.taskList}>
-                {filteredAndSortedTasks.map((task) => (
+                {filteredAndSortedTasks.map((task, index) => (
                   <div
                     key={task._id}
                     ref={(el) => taskRefs.current[task._id] = el}
+                    className={styles.taskCardWrapper}
+                    style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <TaskCard
                       task={task}
