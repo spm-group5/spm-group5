@@ -49,7 +49,7 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
+                lean: vi.fn().mockReturnThis()
             };
             taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Updated comment text' };
@@ -73,7 +73,7 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
+                lean: vi.fn().mockReturnThis()
             };
             taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: '  Updated comment with spaces  ' };
@@ -153,7 +153,7 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
+                lean: vi.fn().mockReturnThis()
             };
             taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Valid comment' };
@@ -210,7 +210,7 @@ describe('Task Controller - Edit Comment', () => {
                 title: 'Test Task',
                 comments: mockCommentsArray,
                 save: vi.fn().mockResolvedValue(true),
-                lean: vi.fn().mockReturnValueThis()
+                lean: vi.fn().mockReturnThis()
             };
             taskModel.findById.mockResolvedValue(mockTask);
             req.body = { text: 'Updated my comment' };
