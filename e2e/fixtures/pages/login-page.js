@@ -13,7 +13,7 @@ export class LoginPage {
     this.usernameInput = page.locator('input[name="username"]');
     this.passwordInput = page.locator('input[name="password"]');
     this.submitButton = page.locator('button[type="submit"]');
-    this.errorMessage = page.locator('.error, [class*="error"]');
+    this.errorMessage = page.locator('div.error, div[class*="error"]');
     this.loginCard = page.locator('[class*="loginBox"], [class*="card"]');
   }
 
