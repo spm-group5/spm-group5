@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "SPM Group 5 Project - Task Management System",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
@@ -14,7 +15,12 @@
     "test:all": "npm run test:backend && npm run test:frontend",
     "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
     "test:coverage:backend": "cd backend && npm run test:coverage",
-    "test:coverage:frontend": "cd frontend && npm run test:coverage"
+    "test:coverage:frontend": "cd frontend && npm run test:coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -23,5 +29,8 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
 }
