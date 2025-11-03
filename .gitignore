@@ -31,3 +31,9 @@ backend/node_modules/
 
 #deployment files
 deploy.sh
+
+# Playwright E2E test artifacts
+e2e/test-results/
+test-results/
+test-output.txt
+.playwright/
