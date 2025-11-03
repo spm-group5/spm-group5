@@ -12,12 +12,15 @@ if (!process.env.MONGO_URI) {
 
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
+    
+    // Always use .env.test for testing (both unit tests and E2E tests)
     dotenv.config({path: path.join(__dirname, '..', '..', 'environments', '.env.test')});
 }
 
 //connect with MongoDB database
 const mongoUri = process.env.MONGO_URI;
 console.log('DB config - MONGO_URI found:', mongoUri ? 'Yes' : 'No');
+console.log('DB config - Environment:', process.env.NODE_ENV);
 
 const connection = mongoose.connect(mongoUri) //input DB connection string from .env
     .then(() => console.log("Connected to MongoDB!"))
