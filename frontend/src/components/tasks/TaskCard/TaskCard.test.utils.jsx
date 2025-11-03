@@ -6,6 +6,7 @@ import { AuthContext } from '../../../context/AuthContext';
 import { TaskContext } from '../../../context/TaskContext';
 import { ProjectContext } from '../../../context/ProjectContext';
 import { NotificationContext } from '../../../context/NotificationContext';
+import { SubtaskProvider } from '../../../context/SubtaskContext';
 import { vi } from 'vitest';
 
 /**
@@ -228,7 +229,9 @@ export function renderWithAuth(ui, options = {}) {
           <NotificationContext.Provider value={finalNotificationContext}>
             <ProjectContext.Provider value={finalProjectContext}>
               <TaskContext.Provider value={finalTaskContext}>
-                {children}
+                <SubtaskProvider>
+                  {children}
+                </SubtaskProvider>
               </TaskContext.Provider>
             </ProjectContext.Provider>
           </NotificationContext.Provider>
