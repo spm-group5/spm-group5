@@ -39,6 +39,7 @@ test.afterAll(async () => {
  */
 test.describe('Reports Access Control', () => {
   
+  // Test Case Cards: TCR-E2E-001, LTR-E2E-001
   test('should allow admin to access reports page', async ({ page }) => {
     // Login as admin and navigate to reports
     await loginAsE2EAdminAndNavigateToReports(page);
@@ -47,6 +48,7 @@ test.describe('Reports Access Control', () => {
     await verifyReportFormVisible(page);
   });
 
+  // Test Case Cards: TCR-E2E-002, LTR-E2E-002
   test('should deny manager access to reports page', async ({ page }) => {
     const reportsPage = await loginAsE2EManagerAndNavigateToReports(page);
     
@@ -55,6 +57,7 @@ test.describe('Reports Access Control', () => {
     expect(denied).toBe(true);
   });
 
+  // Test Case Cards: TCR-E2E-003, LTR-E2E-003
   test('should deny staff access to reports page', async ({ page }) => {
     const reportsPage = await loginAsE2EStaffAndNavigateToReports(page);
     
@@ -79,6 +82,7 @@ test.describe('Reports Form Validation', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: TCR-E2E-004
   test('should show error when user is not selected for user task completion report', async ({ page }) => {
     await reportsPage.selectReportType('user');
     await reportsPage.setStartDate('2024-01-01');
@@ -94,6 +98,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-005
   test('should show error when project is not selected for project task completion report', async ({ page }) => {
     await reportsPage.selectReportType('project');
     await reportsPage.setStartDate('2024-01-01');
@@ -109,6 +114,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: TSE-E2E-001
   test('should show error when project is not selected for team summary report', async ({ page }) => {
     await reportsPage.selectReportType('team-summary');
     await reportsPage.setStartDate('2024-01-01');
@@ -124,6 +130,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-004
   test('should show error when project is not selected for logged time report', async ({ page }) => {
     await reportsPage.selectReportType('logged-time');
     await reportsPage.selectFormat('pdf');
@@ -137,6 +144,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-005
   test('should show error when department is not selected for department logged time report', async ({ page }) => {
     await reportsPage.selectReportType('logged-time-department');
     await reportsPage.selectFormat('pdf');
@@ -150,6 +158,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-006
   test('should show error for invalid date range (end before start)', async ({ page }) => {
     const users = getTestUsers();
     
@@ -168,6 +177,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-007
   test('should show error when start date is missing for user task completion report', async ({ page }) => {
     const users = getTestUsers();
     
@@ -186,6 +196,7 @@ test.describe('Reports Form Validation', () => {
     expect(hasError).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-008
   test('should show error when end date is missing for project task completion report', async ({ page }) => {
     const projects = getTestProjects();
     
@@ -216,6 +227,7 @@ test.describe('Task Completion Reports - User', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: TCR-E2E-009
   test('should generate user task completion report PDF for January', async ({ page }) => {
     const users = getTestUsers();
     const dates = getTestDateRanges();
@@ -233,6 +245,7 @@ test.describe('Task Completion Reports - User', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-010
   test('should generate user task completion report Excel for January', async ({ page }) => {
     const users = getTestUsers();
     const dates = getTestDateRanges();
@@ -250,6 +263,7 @@ test.describe('Task Completion Reports - User', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-013
   test('should handle no data for user with no tasks', async ({ page }) => {
     const users = getTestUsers();
     const dates = getTestDateRanges();
@@ -277,6 +291,7 @@ test.describe('Task Completion Reports - Project', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: TCR-E2E-011
   test('should generate project task completion report PDF for main project', async ({ page }) => {
     const projects = getTestProjects();
     const dates = getTestDateRanges();
@@ -294,6 +309,7 @@ test.describe('Task Completion Reports - Project', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-012
   test('should generate project task completion report Excel for main project', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -312,6 +328,7 @@ test.describe('Task Completion Reports - Project', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-014
   test('should handle no data for project with minimal tasks', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -343,6 +360,7 @@ test.describe('Team Summary Reports', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: TSE-E2E-002
   test('should generate team summary PDF for first week', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -361,6 +379,7 @@ test.describe('Team Summary Reports', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TSE-E2E-003
   test('should generate team summary Excel for entire month', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -379,6 +398,7 @@ test.describe('Team Summary Reports', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TSE-E2E-004
   test('should handle team summary for second week', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -397,6 +417,7 @@ test.describe('Team Summary Reports', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: TSE-E2E-005
   test('should handle no data for minimal project team summary', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -427,6 +448,7 @@ test.describe('Logged Time Reports - Project', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: LTR-E2E-006
   test('should generate logged time PDF for main project', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -442,6 +464,7 @@ test.describe('Logged Time Reports - Project', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-007
   test('should generate logged time Excel for main project', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -457,6 +480,7 @@ test.describe('Logged Time Reports - Project', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-008
   test('should exclude archived tasks from logged time report', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -485,6 +509,7 @@ test.describe('Logged Time Reports - Department', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: LTR-E2E-009
   test('should generate department logged time PDF for Engineering', async ({ page }) => {
     
     const departments = getTestDepartments();
@@ -500,6 +525,7 @@ test.describe('Logged Time Reports - Department', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-010
   test('should generate department logged time Excel for Sales', async ({ page }) => {
     
     const departments = getTestDepartments();
@@ -527,6 +553,7 @@ test.describe('Reports Edge Cases', () => {
     reportsPage = await loginAsE2EAdminAndNavigateToReports(page);
   });
 
+  // Test Case Card: TCR-E2E-015
   test('should handle future date range with no data', async ({ page }) => {
     
     const users = getTestUsers();
@@ -545,6 +572,7 @@ test.describe('Reports Edge Cases', () => {
     expect(hasWarning).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-016
   test('should handle very narrow date range (single day)', async ({ page }) => {
     
     const projects = getTestProjects();
@@ -563,6 +591,7 @@ test.describe('Reports Edge Cases', () => {
     expect(downloadTriggered || await reportsPage.hasWarning()).toBe(true);
   });
 
+  // Test Case Card: TCR-E2E-017, LTR-E2E-012
   test('should switch between different report types seamlessly', async ({ page }) => {
     
     const users = getTestUsers();
@@ -588,6 +617,7 @@ test.describe('Reports Edge Cases', () => {
     expect(downloadTriggered).toBe(true);
   });
 
+  // Test Case Card: LTR-E2E-011
   test('should handle multiple consecutive report generations', async ({ page }) => {
     
     const projects = getTestProjects();
