@@ -241,7 +241,7 @@ Before starting, ensure you have the following installed:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/spm-group5.git
+git clone https://github.com/spm-group5/spm-group5.git
 cd spm-group5
 ```
 
@@ -880,24 +880,6 @@ describe('Task Services', () => {
     await expect(createTask(taskData, userId)).rejects.toThrow();
   });
 });
-```
-
-### Frontend Testing
-
-```bash
-cd frontend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with UI
-npm run test:ui
-
-# Generate coverage report
-npm run test:coverage
 ```
 
 ### End-to-End Testing
@@ -1710,6 +1692,5 @@ docker run -it --entrypoint /bin/sh spm-backend:latest
 
 ---
 
-**Project**: SPM Group 5 - Task Management System  
-**License**: MIT  
-**Last Updated**: November 2025
+**Project**: SPM Group 5 - All-In-One Task Management System  
+**Last Updated**: 05 November 2025
