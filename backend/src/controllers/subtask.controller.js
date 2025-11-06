@@ -2,6 +2,7 @@ import subtaskService from '../services/subtask.services.js';
 import Subtask from '../models/subtask.model.js';
 import notificationModel from '../models/notification.model.js';
 import User from '../models/user.model.js';
+import { normalizeAssigneeIds, findAddedAssignees } from '../utils/assignee.utils.js';
 
 class SubtaskController {
   /**
@@ -104,22 +105,16 @@ class SubtaskController {
       const originalStatus = originalSubtask.status;
 
       // Track old assignees for notification logic
-      const oldAssignees = originalSubtask.assigneeId
-        ? originalSubtask.assigneeId.map(id => id.toString())
-        : [];
+      const oldAssignees = normalizeAssigneeIds(originalSubtask.assigneeId);
 
       const subtask = await subtaskService.updateSubtask(subtaskId, updateData, userId);
 
       // Detect newly added assignees and create notifications
       if (updateData.assigneeId !== undefined) {
-        const newAssignees = Array.isArray(updateData.assigneeId)
-          ? updateData.assigneeId.map(id => id.toString())
-          : [];
+        const newAssignees = normalizeAssigneeIds(updateData.assigneeId);
 
         // Find assignees who weren't previously assigned
-        const addedAssignees = newAssignees.filter(assigneeId =>
-          !oldAssignees.includes(assigneeId)
-        );
+        const addedAssignees = findAddedAssignees(oldAssignees, newAssignees);
 
         // Create in-app notifications for newly added assignees
         if (addedAssignees.length > 0) {

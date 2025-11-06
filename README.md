@@ -461,6 +461,9 @@ spm-group5/
 │       │   ├── auth.middleware.js     # Session authentication and RBAC
 │       │   └── *.middleware.test.js   # Middleware tests
 │       │
+│       ├── utils/                 # Utility functions and helpers
+│       │   └── assignee.utils.js      # Assignee ID normalization and comparison utilities
+│       │
 │       ├── lambda/                # AWS Lambda functions
 │       │   ├── email-notification-handler.js  # Lambda email handler
 │       │   └── package.json       # Lambda-specific dependencies
@@ -611,6 +614,41 @@ The backend follows a strict layered architecture pattern:
 - Dependency injection from controllers to services
 - No direct database access from controllers
 - Consistent error handling across layers
+
+### Utility Functions
+
+The project includes utility modules in `backend/src/utils/` for common operations:
+
+#### Assignee Utilities (`assignee.utils.js`)
+
+Provides helper functions for handling assignee operations in task and subtask management:
+
+- **`normalizeAssigneeIds(assigneeId)`** - Normalizes assignee IDs to a consistent array of strings
+  - Handles `null`, `undefined`, single IDs, and arrays
+  - Returns: `string[]` array of assignee IDs
+
+- **`findAddedAssignees(oldAssignees, newAssignees)`** - Identifies newly added assignees
+  - Compares old and new assignee lists
+  - Returns: `string[]` array of added assignee IDs
+
+- **`findRemovedAssignees(oldAssignees, newAssignees)`** - Identifies removed assignees
+  - Compares old and new assignee lists
+  - Returns: `string[]` array of removed assignee IDs
+
+**Usage Example:**
+
+```javascript
+import { normalizeAssigneeIds, findAddedAssignees } from '../utils/assignee.utils.js';
+
+// Normalize assignee IDs from various formats
+const oldAssignees = normalizeAssigneeIds(originalSubtask.assigneeId);
+const newAssignees = normalizeAssigneeIds(updateData.assigneeId);
+
+// Find newly added assignees for notifications
+const addedAssignees = findAddedAssignees(oldAssignees, newAssignees);
+```
+
+These utilities eliminate code duplication and provide consistent handling of assignee data across controllers.
 
 ### Adding New Features
 
