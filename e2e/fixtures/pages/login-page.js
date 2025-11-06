@@ -32,6 +32,11 @@ export class LoginPage {
    */
   async login(username, password) {
     await this.goto();
+    // Wait for login page to be fully loaded and stable
+    await this.loginCard.waitFor({ state: 'visible' });
+    await this.usernameInput.waitFor({ state: 'visible' });
+    await this.passwordInput.waitFor({ state: 'visible' });
+    
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.submitButton.click();

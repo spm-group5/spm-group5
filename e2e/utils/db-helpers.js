@@ -238,3 +238,155 @@ export async function setupCompleteTestData() {
     tasks
   };
 }
+
+/**
+ * Get E2E test users from database
+ * @returns {Promise<Object>} Object with user references by role
+ */
+export async function getE2EUsers() {
+  await connectTestDB();
+  
+  const admin = await User.findOne({ username: 'e2e-admin@test.com' });
+  const manager = await User.findOne({ username: 'e2e-manager@test.com' });
+  const staff = await User.findOne({ username: 'e2e-staff@test.com' });
+  const staff2 = await User.findOne({ username: 'e2e-staff2@test.com' });
+  const financeManager = await User.findOne({ username: 'e2e-finance-manager@test.com' });
+  
+  return {
+    admin,
+    manager,
+    staff,
+    staff2,
+    financeManager
+  };
+}
+
+/**
+ * Get project by name
+ * @param {string} projectName - Name of the project
+ * @returns {Promise<Object>} Project document
+ */
+export async function getProjectByName(projectName) {
+  await connectTestDB();
+  return await Project.findOne({ name: projectName });
+}
+
+/**
+ * Get task by title
+ * @param {string} taskTitle - Title of the task
+ * @returns {Promise<Object>} Task document
+ */
+export async function getTaskByTitle(taskTitle) {
+  await connectTestDB();
+  return await Task.findOne({ title: taskTitle }).populate('assignee').populate('owner');
+}
+
+/**
+ * Verify user is in project members
+ * @param {string} projectId - Project ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user is a member
+ */
+export async function isUserProjectMember(projectId, userId) {
+  await connectTestDB();
+  const project = await Project.findById(projectId);
+  if (!project) return false;
+  return project.members.some(memberId => String(memberId) === String(userId));
+}
+
+/**
+ * Get notifications for a user
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} Array of notifications
+ */
+export async function getUserNotifications(userId) {
+  await connectTestDB();
+  const Notification = (await import(join(dirname(fileURLToPath(import.meta.url)), '../../backend/src/models/notification.model.js'))).default;
+  return await Notification.find({ user: userId }).sort({ createdAt: -1 });
+}
+
+/**
+ * Count unread notifications for a user
+ * @param {string} userId - User ID
+ * @returns {Promise<number>} Count of unread notifications
+ */
+export async function countUnreadNotifications(userId) {
+  await connectTestDB();
+  const Notification = (await import(join(dirname(fileURLToPath(import.meta.url)), '../../backend/src/models/notification.model.js'))).default;
+  return await Notification.countDocuments({ user: userId, read: false });
+}
+
+/**
+ * Wait for notification to be created
+ * Polls database for notification containing specific text
+ * @param {string} userId - User ID to check
+ * @param {string} messagePattern - Text pattern to match in notification message
+ * @param {number} timeout - Timeout in milliseconds (default 5000)
+ * @returns {Promise<Object>} Notification document
+ */
+export async function waitForNotification(userId, messagePattern, timeout = 5000) {
+  await connectTestDB();
+  const Notification = (await import(join(dirname(fileURLToPath(import.meta.url)), '../../backend/src/models/notification.model.js'))).default;
+  
+  const startTime = Date.now();
+  const regex = new RegExp(messagePattern, 'i');
+  
+  while (Date.now() - startTime < timeout) {
+    const notification = await Notification.findOne({
+      user: userId,
+      message: regex
+    }).sort({ createdAt: -1 });
+    
+    if (notification) {
+      return notification;
+    }
+    
+    // Wait 200ms before checking again
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  throw new Error(`Notification matching "${messagePattern}" not found within ${timeout}ms`);
+}
+
+/**
+ * Get all tasks for a project
+ * @param {string} projectId - Project ID
+ * @returns {Promise<Array>} Array of tasks
+ */
+export async function getProjectTasks(projectId) {
+  await connectTestDB();
+  return await Task.find({ project: projectId });
+}
+
+/**
+ * Count archived tasks in a project
+ * @param {string} projectId - Project ID
+ * @returns {Promise<number>} Count of archived tasks
+ */
+export async function countArchivedTasks(projectId) {
+  await connectTestDB();
+  return await Task.countDocuments({ project: projectId, archived: true });
+}
+
+/**
+ * Create project with specific owner and members
+ * @param {string} projectName - Project name
+ * @param {Object} owner - Owner user document
+ * @param {Array} members - Array of member user documents
+ * @returns {Promise<Object>} Created project
+ */
+export async function createProjectWithMembers(projectName, owner, members = []) {
+  await connectTestDB();
+  
+  const project = await Project.create({
+    name: projectName,
+    description: `E2E Test Project - ${projectName}`,
+    owner: owner._id,
+    members: members.map(m => m._id),
+    status: 'In Progress',
+    createdAt: new Date()
+  });
+  
+  console.log(`✅ Created project: ${project.name} with ${members.length} members`);
+  return project;
+}
